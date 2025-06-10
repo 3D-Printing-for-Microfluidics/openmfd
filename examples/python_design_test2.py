@@ -1,10 +1,8 @@
 from pymfd.microfluidic_designer import set_manifold3d_backend, Device, Component, Color
 from components import Valve20px
 from pymfd.router import Router
-from pymfd.visualizer import Visualizer
 
 set_manifold3d_backend()
-visualizer = Visualizer()
 
 device_size = (2560, 1600, 500)
 device_position = (0, 0, 0)
@@ -89,8 +87,11 @@ bulk_cube = device.make_cube(device_size, center=False)
 bulk_cube.translate(device_position)
 device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
 
-# device.invert_device()
-
 # Mesh the component
-scene = visualizer.mesh_component_recursive(device, wireframe_bulk=True)
-scene.export("pymfd/visualizer/component.glb")
+# device.render(do_bulk_difference=False)
+device.render(do_bulk_difference=True)
+# device.preview(render_bulk=False, do_bulk_difference=False, wireframe=False)
+# device.preview(render_bulk=True, do_bulk_difference=False, wireframe=False)
+# device.preview(render_bulk=True, do_bulk_difference=False, wireframe=True)
+# device.preview(render_bulk=True, do_bulk_difference=True, wireframe=False)
+# device.preview(render_bulk=True, do_bulk_difference=True, wireframe=True)

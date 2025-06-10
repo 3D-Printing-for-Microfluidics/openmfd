@@ -1,1 +1,1 @@
-from .router import Router, PolychannelShape
+from .router import Router

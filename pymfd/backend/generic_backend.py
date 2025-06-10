@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import numpy as np
 from enum import Enum
 from abc import ABC, abstractmethod
@@ -282,6 +283,11 @@ class Backend(ABC):
                 bridge_max[0], bridge_max[1], bridge_max[2]
             ])
 
+        def add_bbox_to_keepout(self, bbox:tuple[float]):
+            # add keepout
+            bbox = (bbox[0]/self.px_size, bbox[1]/self.px_size, bbox[2]/self.layer_size, bbox[3]/self.px_size, bbox[4]/self.px_size, bbox[5]/self.layer_size)
+            self.keepouts.append(bbox)
+
     class Cube(Shape, ABC):
         """
         Abstract base class for all cube shapes.
@@ -306,12 +312,6 @@ class Backend(ABC):
                 self.allow_half_integer_translations = True
             else:
                 self.allow_half_integer_translations = False
-
-            # add keepout
-            if center:
-                self.keepouts.append((-size[0]/2, -size[1]/2, -size[2]/2,size[0]/2, size[1]/2, size[2]/2))
-            else:
-                self.keepouts.append((0,0,0,size[0], size[1], size[2]))
 
     class Cylinder(Shape, ABC):
         """
@@ -357,13 +357,6 @@ class Backend(ABC):
             else:
                 self.allow_half_integer_translations = False
 
-            # add keepout
-            radius = max(bottom, top)
-            if center:
-                self.keepouts.append((-radius,-radius,-height/2,radius,radius,height/2))
-            else:
-                self.keepouts.append((-radius,-radius,0,radius,radius,height))
-
     class Sphere(Shape, ABC):
         """
         Abstract base class for all sphere shapes.
@@ -392,15 +385,14 @@ class Backend(ABC):
             else:
                 self.allow_half_integer_translations = False
 
-            # add keepout
-            self.keepouts.append((-radius,-radius,-radius,radius,radius,radius))
-
     class TextExtrusion(Shape, ABC):
         """
         Abstract base class for all text extrusion shapes.
         """
-        def __init__(self, text:str, font:str, px_size:float=None, layer_size:float=None):
-            pass
+        def __init__(self, text:str, height:int, font:str="arial", font_size:int=10, px_size:float=None, layer_size:float=None):
+            super().__init__(px_size, layer_size)
+
+            self.allow_half_integer_translations = True
 
     class STL(Shape, ABC):
         """
@@ -408,3 +400,31 @@ class Backend(ABC):
         """
         def __init__(self):
             pass
+
+    class Evaluation(Shape):
+        @functools.cache
+        def gyroid(x:float, y:float, z:float) -> bool:
+            a = np.radians(360)
+            return (
+                np.cos(a * x) * np.sin(a * y) +
+                np.cos(a * y) * np.sin(a * z) +
+                np.cos(a * z) * np.sin(a * x)
+            )
+
+        @functools.cache
+        def double_diamond(x:float, y:float, z:float) -> bool:
+            a = np.radians(360)
+            return (
+                np.sin(a*(x)) * np.sin(a*(y)) * np.sin(a*(z)) + 
+                np.sin(a*(x)) * np.cos(a*(y)) * np.cos(a*(z)) + 
+                np.cos(a*(x)) * np.sin(a*(y)) * np.cos(a*(z)) + 
+                np.cos(a*(x)) * np.cos(a*(y)) * np.sin(a*(z))
+            )
+
+        def __init__(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=double_diamond, px_size:float=None, layer_size:float=None):
+            super().__init__(px_size, layer_size)
+
+            self.allow_half_integer_translations = True
+
+    def render(self, filename:str, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True, flatten_scene:bool=True, wireframe_bulk:bool=False, show_assists:bool=False):
+        pass

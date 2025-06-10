@@ -23,6 +23,13 @@ def set_fn(fn):
     global _backend
     _backend.set_fn(fn)
 
+class PolychannelShape:
+    def __init__(self, shape_type, size, position=(0, 0, 0), rotation=(0, 0, 0), absolute_position=False):
+        self.shape_type = shape_type  # e.g., "cube", "cylinder"
+        self.size = size  # e.g., (width, height, depth)
+        self.position = position  # e.g., (x, y, z)
+        self.rotation = rotation  # e.g., (rx, ry, rz) in degrees
+        self.absolute_position = absolute_position
 
 class InstantiationTrackerMixin:
     def __init__(self):
@@ -165,6 +172,7 @@ class Component(InstantiationTrackerMixin):
         self.px_size = px_size
         self.layer_size = layer_size
         self.shapes = []
+        self.bulk_shape = []
         self.ports = []
         self.subcomponents = []
         self.labels = {}
@@ -230,6 +238,14 @@ class Component(InstantiationTrackerMixin):
         self.shapes.append(shape)
         setattr(self, name, shape)
 
+    def add_bulk_shape(self, name:str, shape:Backend.Shape, label:str):
+        self._validate_name(name)
+        shape.name = name
+        shape.parent = self
+        shape.color = self.labels[label]
+        self.bulk_shape.append(shape)
+        setattr(self, name, shape)
+
     def add_port(self, name:str, port:Port):
         self._validate_name(name)
         port.name = name
@@ -272,6 +288,54 @@ class Component(InstantiationTrackerMixin):
 
     def make_sphere(self, r:float=None, center:bool=True, fn:int=0) -> Backend.Cylinder:
         return get_backend().Sphere(r, self.px_size, self.layer_size, fn=fn)
+
+    def make_text(self, text:str, height:int=1, font:str="arial", font_size:int=10) -> Backend.TextExtrusion:
+        return get_backend().TextExtrusion(text, height, font, font_size, self.px_size, self.layer_size)
+
+    def make_polychannel(self, shapes:list[PolychannelShape], show_only_shapes:bool=False) -> Backend.Shape:
+            shape_list = []
+            last_shape = None
+            for shape in shapes:
+                if shape.shape_type == "cube":
+                    cube = self.make_cube(shape.size, center=False)
+                    cube.rotate(shape.rotation)
+                    if shape.absolute_position or last_shape is None:
+                        cube.translate(shape.position)
+                    else:
+                        cube.translate(tuple(shape.position[i] + last_shape.position[i] for i in range(3)))
+                    shape_list.append(cube)
+
+                elif shape.shape_type == "sphr":
+                    sphere = make_sphere(r=1, center=False)
+                    sphere.resize(shape.size)
+                    sphere.rotate(shape.rotation)
+                    if shape.absolute_position or last_shape is None:
+                        sphere.translate(shape.position)
+                    else:
+                        sphere.translate(tuple(shape.position[i] + last_shape.position[i] for i in range(3)))
+                    shape_list.append(sphere)
+
+                else:
+                    raise ValueError(f"Unsupported shape type: {shape.shape_type}")
+
+                last_shape = shape
+
+            # Hull shapes pairwise
+            if len(shape_list) > 1:
+                if show_only_shapes:
+                    path = shape_list[0]
+                    for shape in shape_list[1:]:
+                        path += shape
+                    return path
+                else:
+                    path = shape_list[0].hull(shape_list[1])
+                    last_shape = shape_list[1]
+                    for shape in shape_list[2:]:
+                        path += last_shape.hull(shape)
+                        last_shape = shape
+                    return path
+            else:
+                raise ValueError("Polychannel requires at least 2 shapes")
 
     def translate(self, translation:tuple[int, int, int], set_origin:bool=True) -> Component:
         for component in self.subcomponents:
@@ -426,46 +490,15 @@ class Component(InstantiationTrackerMixin):
 
         return self
 
+    def render(self, filename:str="component.glb", do_bulk_difference:bool=True):
+        scene = get_backend().render(filename=filename, component=self, render_bulk=True, do_bulk_difference=do_bulk_difference, flatten_scene=True, wireframe_bulk=False, show_assists=False)
+        scene.export(filename)
+
+    def preview(self, filename:str="pymfd/visualizer/component.glb", render_bulk:bool=False, do_bulk_difference:bool=False, wireframe:bool=False):
+        scene = get_backend().render(filename=filename, component=self, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference, flatten_scene=False, wireframe_bulk=wireframe, show_assists=True)
+        scene.export(filename)
 
 class Device(Component):
     def __init__(self, name:str, size:tuple[int,int,int], position:tuple[int, int, int], px_size:float = 0.0076, layer_size:float = 0.01):
         super().__init__(size, position, px_size, layer_size)
         self.name = name
-        self.inverted = False
-        self.bulk_shape = []
-
-    def add_bulk_shape(self, name:str, shape:Backend.Shape, label:str):
-        self._validate_name(name)
-        shape.name = name
-        shape.parent = self
-        shape.color = self.labels[label]
-        self.bulk_shape.append(shape)
-        setattr(self, name, shape)
-
-    def invert_device(self):
-        if self.inverted:
-            raise ValueError("Device already inverted")
-
-        self.inverted = True
-        
-        # make device from bulk shape
-        device = None
-        for s in self.bulk_shape:
-            if device is None:
-                device = s
-            else:
-                device += s
-            print(f"Adding bulk shape {s} to device {self.name}")
-
-        if device is None:
-            raise ValueError("No bulk shape found in device")
-
-        def invert_helper(component:Component):
-            nonlocal device
-            for c in component.subcomponents:
-                invert_helper(c)
-            for s in component.shapes:
-                device -= s
-
-        invert_helper(self)
-        self.shapes = [device]

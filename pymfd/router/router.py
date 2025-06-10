@@ -8,8 +8,8 @@ import pickle
 import importlib
 from rtree import index
 from pathlib import Path
-from ..microfluidic_designer import Port
 
+from ..microfluidic_designer import Port, get_backend, PolychannelShape
 
 heuristic_weight = 10
 turn_weight = 2
@@ -29,26 +29,18 @@ timeout = 120 # per channel in seconds
 #     translate([0.5-r,0.5-r,0.5-r]) sphere(d=r*2);
 # }
 
-class PolychannelShape:
-        def __init__(self, shape_type, size, position, rotation=(0, 0, 0), absolute_position=False):
-            self.shape_type = shape_type  # e.g., "cube", "cylinder"
-            self.size = size  # e.g., (width, height, depth)
-            self.position = position  # e.g., (x, y, z)
-            self.rotation = rotation  # e.g., (rx, ry, rz) in degrees
-            self.absolute_position = absolute_position
-
 class AutorouterNode:
-        def __init__(self, pos, parent=None, cost=0, turns=0, direction=None, heuristic=0):
-            self.pos = pos
-            self.parent = parent
-            self.cost = cost
-            self.turns = turns
-            self.direction = direction
-            self.heuristic = heuristic
+    def __init__(self, pos, parent=None, cost=0, turns=0, direction=None, heuristic=0):
+        self.pos = pos
+        self.parent = parent
+        self.cost = cost
+        self.turns = turns
+        self.direction = direction
+        self.heuristic = heuristic
 
-        def __lt__(self, other):
-            return (self.cost + heuristic_weight * self.heuristic + turn_weight * self.turns) < \
-                (other.cost + heuristic_weight * other.heuristic + turn_weight * other.turns)
+    def __lt__(self, other):
+        return (self.cost + heuristic_weight * self.heuristic + turn_weight * self.turns) < \
+            (other.cost + heuristic_weight * other.heuristic + turn_weight * other.turns)
 
 
 class Router:
@@ -93,46 +85,6 @@ class Router:
                 cnt += 1
 
         self.keepout_index = idx
-
-
-    def polychannel(self, shapes:list[PolychannelShape]):
-        shape_list = []
-        last_shape = None
-        for shape in shapes:
-            if shape.shape_type == "cube":
-                cube = self.component.make_cube(shape.size, center=False)
-                cube.rotate(shape.rotation)
-                if shape.absolute_position or last_shape is None:
-                    cube.translate(shape.position)
-                else:
-                    cube.translate(tuple(shape.position[i] + last_shape.position[i] for i in range(3)))
-                shape_list.append(cube)
-
-            elif shape.shape_type == "sphr":
-                sphere = self.component.make_sphere(r=1, center=False)
-                sphere.resize(shape.size)
-                sphere.rotate(shape.rotation)
-                if shape.absolute_position or last_shape is None:
-                    sphere.translate(shape.position)
-                else:
-                    sphere.translate(tuple(shape.position[i] + last_shape.position[i] for i in range(3)))
-                shape_list.append(sphere)
-
-            else:
-                raise ValueError(f"Unsupported shape type: {shape.shape_type}")
-
-            last_shape = shape
-
-        # Hull shapes pairwise
-        if len(shape_list) > 1:
-            path = shape_list[0].hull(shape_list[1])
-            last_shape = shape_list[1]
-            for shape in shape_list[2:]:
-                path += last_shape.hull(shape)
-                last_shape = shape
-            return path
-        else:
-            return None
 
     def _get_box_from_pos_and_size(self, pos, size):
         return (
@@ -321,7 +273,6 @@ class Router:
         return result
 
     def autoroute_channel(self, input_port, output_port, label):
-
         if input_port.parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port.parent is None:
@@ -352,7 +303,7 @@ class Router:
                 polychannel_path.append(PolychannelShape("cube", self.channel_size, point, absolute_position=True))
             polychannel_path.append(PolychannelShape("cube", val["output"].size, val["output"].get_origin(), absolute_position=True))
 
-            polychannel = self.polychannel(polychannel_path)
+            polychannel = self.component.make_polychannel(polychannel_path)
 
             # add polychannel keepout
             for j, keepout in enumerate(polychannel.keepouts):

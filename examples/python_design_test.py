@@ -1,5 +1,4 @@
 from pymfd.router import Router
-from pymfd.visualizer import Visualizer
 from pymfd.microfluidic_designer import Device, Component, Color, set_manifold3d_backend, set_fn
 
 from components import Valve20px
@@ -9,7 +8,6 @@ from components import Pinhole
 
 set_manifold3d_backend()
 # set_fn(100)
-visualizer = Visualizer()
 
 # ############### 1 ##################
 # component = Component(
@@ -21,32 +19,34 @@ visualizer = Visualizer()
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # # Add a cube shape
-# component.add_shape("simple_cube", component.make_cube((1, 1, 1), center=False), label="default")
+# # component.add_shape("simple_cube", component.make_cube((1, 1, 1), center=False), label="default")
+# component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
+# # from pymfd.microfluidic_designer import get_backend
+
+# # for i in range(1):
+# #     for j in range(1):
+# #         for k in  range(1):
+# #             component.add_shape(f"gyroid_{i}_{j}_{k}", get_backend().Evaluation((10,10,8), px_size=0.0076, layer_size=0.01).translate((10*i, 10*j, 8*k)), label="default")
 
 # # Mesh the component
-# scene = visualizer.mesh_component_recursive(component)
-# scene.export("pymfd/visualizer/component.glb")
+# component.preview()
 
 
-################ 2 ##################
-device_size = (2560, 1600, 250)
-device_position = (0, 0, 0)
-device = Device("TestDevice", device_size, device_position)
+# ################ 2 ##################
+# device_size = (2560, 1600, 250)
+# device_position = (0, 0, 0)
+# device = Device("TestDevice", device_size, device_position)
 
-component = Pinhole()
-device.add_subcomponent("valve", component)
+# component = Pinhole()
+# device.add_subcomponent("valve", component)
 
-# IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
-device.add_label("device", Color.from_rgba((0, 255, 255, 63)))
-bulk_cube = device.make_cube(device_size, center=False).translate(device_position)
-device.add_bulk_shape("cube", bulk_cube, label="device")
+# # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
+# device.add_label("device", Color.from_rgba((0, 255, 255, 63)))
+# bulk_cube = device.make_cube(device_size, center=False).translate(device_position)
+# device.add_bulk_shape("cube", bulk_cube, label="device")
 
-# device.invert_device()
-
-# Mesh the component
-scene = visualizer.mesh_component_recursive(device, wireframe_bulk=True)
-# scene = visualizer.mesh_component_recursive(device, wireframe_bulk=False)
-scene.export("pymfd/visualizer/component.glb")
+# # Mesh the component
+# component.render()
 
 
 # ############### 3 ##################
@@ -78,39 +78,36 @@ scene.export("pymfd/visualizer/component.glb")
 # # component.add_subcomponent("M4", TestCube().mirror(mirror_y=True).translate((225, 0, 0)))
 
 # # Mesh the component
-# scene = visualizer.mesh_component_recursive(component)
-# scene.export("pymfd/visualizer/component.glb")
+# component.render()
 
 
-# ################ router test ##################
-# device_size = (150, 150, 100)
-# device_position = (0, 0, 0)
-# device = Device("TestDevice", device_size, device_position)
+################ router test ##################
+device_size = (150, 150, 100)
+device_position = (0, 0, 0)
+device = Device("TestDevice", device_size, device_position)
 
-# device.add_label("autopath", Color.from_rgba((0, 255, 0, 127)))
-# device.add_label("device", Color.from_name("aqua", 63))
+device.add_label("autopath", Color.from_rgba((0, 255, 0, 127)))
+device.add_label("device", Color.from_name("aqua", 63))
 
-# c1 = Valve20px().translate((18, 35, 40))
-# c2 = Valve20px().translate((52, 35, 40))
+c1 = Valve20px().translate((18, 35, 40))
+c2 = Valve20px().translate((52, 35, 40))
 
-# device.add_subcomponent("Valve1", c1)
-# device.add_subcomponent("Valve2", c2)
+device.add_subcomponent("Valve1", c1)
+device.add_subcomponent("Valve2", c2)
 
-# chan_size = (8, 8, 6)
-# r = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
-# r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
-# r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
-# r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
-# r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
-# r.route()
+chan_size = (8, 8, 6)
+r = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
+r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
+r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
+r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
+r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
+r.route()
 
-# # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
-# bulk_cube = device.make_cube(device_size, center=False)
-# bulk_cube.translate(device_position)
-# device.add_bulk_shape("bulk1", bulk_cube, label="device")
+# IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
+bulk_cube = device.make_cube(device_size, center=False)
+bulk_cube.translate(device_position)
+device.add_bulk_shape("bulk1", bulk_cube, label="device")
 
-# # device.invert_device()
-
-# # Mesh the component
-# scene = visualizer.mesh_component_recursive(device, wireframe_bulk=True)
-# scene.export("pymfd/visualizer/component.glb")
+# Mesh the component
+device.preview()
+# device.render()

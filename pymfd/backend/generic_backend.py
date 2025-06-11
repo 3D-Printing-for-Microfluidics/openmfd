@@ -426,5 +426,8 @@ class Backend(ABC):
 
             self.allow_half_integer_translations = True
 
-    def render(self, filename:str, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True, flatten_scene:bool=True, wireframe_bulk:bool=False, show_assists:bool=False):
+    def render(self, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True, flatten_scene:bool=True, wireframe_bulk:bool=False, show_assists:bool=False):
+        pass
+
+    def slice_component(self, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True):
         pass

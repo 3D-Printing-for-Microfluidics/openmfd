@@ -296,12 +296,12 @@ class Manifold3D(Backend):
         vertices = mesh.vertices
         entities = [trimesh.path.entities.Line([e[0], e[1]]) for e in edges]
         return trimesh.path.Path3D(entities=entities, vertices=vertices)
-        
-    def render(self, filename:str, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True, flatten_scene:bool=True, wireframe_bulk:bool=False, show_assists:bool=False):
-        scene = Scene()
+
+    def _component_to_manifold(self, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True):
         bulk_manifolds = {}
         manifolds = {}
-        def recurse(comp:Component, parent_name:str="", wireframe_bulk:bool=False):
+        ports = []
+        def recurse(comp:Component, parent_name:str=""):
             name = f"{parent_name}/{comp.name}" if parent_name else comp.name
 
             # itterate subcomponents
@@ -324,34 +324,22 @@ class Manifold3D(Backend):
                 else:
                     manifolds[key] = shape
 
-            if show_assists:
-                # get list of routes
-                route_names = []
-                if comp.parent is not None:
-                    for s in comp.parent.shapes:
-                        if "__to__" in s.name:
-                            route_names.append(s.name)
-                # draw ports not in a route
-                for port in comp.ports:
-                    draw_port = True
-                    for n in route_names:
-                        if port.get_name() in n:
-                            draw_port = False
-                    if draw_port:
-                        self._draw_port(scene, port, comp)
-                
-        recurse(component, wireframe_bulk=wireframe_bulk)
-
-        # do_bulk_difference=True
-        # render (union of shapes and bulk shapes)          render_bulk=True, do_bulk_difference=False, flatten_scene=True, wireframe_bulk=False, show_assists=False
-        # render_negative (diff of shapes and bulk shapes)  render_bulk=True, do_bulk_difference=True, flatten_scene=True, wireframe_bulk=False, show_assists=False
-        # preview (shapes only)                             render_bulk=False, do_bulk_difference=False, flatten_scene=True, wireframe_bulk=False, show_assists=True
-        # preview (wireframe bulk)                          render_bulk=True, do_bulk_difference=False, flatten_scene=True, wireframe_bulk=True, show_assists=True
-        # preview (normal bulk)                             render_bulk=True, do_bulk_difference=False, flatten_scene=True, wireframe_bulk=False, show_assists=True
-        # preview (difference)                              render_bulk=True, do_bulk_difference=True, flatten_scene=True, wireframe_bulk=False, show_assists=True
-        # preview (wireframe difference)                    render_bulk=True, do_bulk_difference=True, flatten_scene=True, wireframe_bulk=True, show_assists=True
-
-        # render_bulk=True, do_bulk_difference=True, flatten_scene=False, wireframe_bulk=False
+            # get list of routes
+            route_names = []
+            if comp.parent is not None:
+                for s in comp.parent.shapes:
+                    if "__to__" in s.name:
+                        route_names.append(s.name)
+            # append ports not in a route
+            for port in comp.ports:
+                draw_port = True
+                for n in route_names:
+                    if port.get_name() in n:
+                        draw_port = False
+                if draw_port:
+                    ports.append((port, comp))
+            
+        recurse(component)
 
         if do_bulk_difference:
             if not render_bulk:
@@ -367,6 +355,18 @@ class Manifold3D(Backend):
                 diff -= m
             manifolds = {}
             bulk_manifolds = {"device": diff}
+
+        return manifolds, bulk_manifolds, ports
+        
+    def render(self, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True, flatten_scene:bool=True, wireframe_bulk:bool=False, show_assists:bool=False):
+        scene = Scene()
+        
+        manifolds, bulk_manifolds, ports = self._component_to_manifold(component, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference)
+
+        if show_assists:
+            for port in ports:
+                p, c = port
+                self._draw_port(scene, p, c)
             
         for m in manifolds.values():
             mesh = self._manifold3d_shape_to_trimesh(m)
@@ -391,8 +391,73 @@ class Manifold3D(Backend):
         )
         
         if flatten_scene:
-            return scene.to_mesh() # for flattening
-            # return scene.to_geometry() # for flattening
+            return scene.to_mesh() # for flattening (trimesh only)
+            # return scene.to_geometry() # for flattening (also allows Path3D and Path2D)
         else:
             return scene
         
+
+    def slice_component(self, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True):
+        manifolds, bulk_manifolds, _ = self._component_to_manifold(component, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference)
+
+        manifold = None
+        for m in manifolds.values():
+            if manifold is None:
+                manifold = m
+            else:
+                manifold += m
+
+        if render_bulk:
+            bulk_manifold = None
+            for m in bulk_manifolds.values():
+                if bulk_manifold is None:
+                    bulk_manifold = m
+                else:
+                    bulk_manifold += m
+            if do_bulk_difference:
+                bulk_manifold -= manifold
+                manifold = bulk_manifold
+            else:
+                manifold += manifold
+
+        from PIL import Image, ImageDraw
+
+        slice_num = 0
+        z_height = 0
+        while z_height < component.size[2]:
+
+            polygons = manifold.object.slice(z_height*component.layer_size).to_polygons()
+
+            # # Step 2: Find bounding box of all points
+            # all_points = np.vstack(polygons)
+            # min_x, min_y = np.min(all_points, axis=0)
+            # max_x, max_y = np.max(all_points, axis=0)
+
+            # # Compute scale to fit image size
+            # width = max_x - min_x
+            # height = max_y - min_y
+            # scale = min((resolution - 2 * padding) / width,
+            #             (resolution - 2 * padding) / height)
+
+            # Create a new blank grayscale image
+            img = Image.new("L", (2560, 1600), 0)
+            draw = ImageDraw.Draw(img)
+
+            # Step 3: Draw each polygon
+            for poly in polygons:
+                # Transform and scale points to image space
+                # transformed = (poly - [min_x, min_y]) * scale + padding
+                transformed = (poly) // component.px_size
+                # Flip Y axis (image origin is top-left)
+                transformed[:, 1] = 1600 - transformed[:, 1]
+                # Convert to list of tuples
+                points = [tuple(p) for p in transformed]
+                # Draw polygon filled with white (255)
+                draw.polygon(points, fill=255)
+
+            # 5. Save or show the image
+            img.save(f"slice{slice_num}.png")
+            img.show()
+
+            slice_num += 1
+            z_height += 1

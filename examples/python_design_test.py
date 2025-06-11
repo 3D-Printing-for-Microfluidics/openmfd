@@ -7,7 +7,7 @@ set_manifold3d_backend()
 
 # ############### 1 ##################
 # component = Component(
-#     size=(10, 10, 10),
+#     size=(2560, 1600, 10),
 #     position=(0, 0, 0),
 #     px_size=0.0076,
 #     layer_size=0.01
@@ -26,6 +26,8 @@ set_manifold3d_backend()
 
 # # Mesh the component
 # component.preview()
+# # component.render()
+# # component.slice_component()
 
 
 # ################ 2 ##################
@@ -107,3 +109,4 @@ device.add_bulk_shape("bulk1", bulk_cube, label="device")
 # Mesh the component
 device.preview()
 # device.render()
+# device.slice_component()

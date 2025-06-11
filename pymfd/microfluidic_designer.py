@@ -491,12 +491,15 @@ class Component(InstantiationTrackerMixin):
         return self
 
     def render(self, filename:str="component.glb", do_bulk_difference:bool=True):
-        scene = get_backend().render(filename=filename, component=self, render_bulk=True, do_bulk_difference=do_bulk_difference, flatten_scene=True, wireframe_bulk=False, show_assists=False)
+        scene = get_backend().render(component=self, render_bulk=True, do_bulk_difference=do_bulk_difference, flatten_scene=True, wireframe_bulk=False, show_assists=False)
         scene.export(filename)
 
     def preview(self, filename:str="pymfd/visualizer/component.glb", render_bulk:bool=False, do_bulk_difference:bool=False, wireframe:bool=False):
-        scene = get_backend().render(filename=filename, component=self, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference, flatten_scene=False, wireframe_bulk=wireframe, show_assists=True)
+        scene = get_backend().render(component=self, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference, flatten_scene=False, wireframe_bulk=wireframe, show_assists=True)
         scene.export(filename)
+
+    def slice_component(self, filename:str="component.glb", do_bulk_difference:bool=True):
+        get_backend().slice_component(component=self, render_bulk=False, do_bulk_difference=False)
 
 class Device(Component):
     def __init__(self, name:str, size:tuple[int,int,int], position:tuple[int, int, int], px_size:float = 0.0076, layer_size:float = 0.01):

@@ -86,6 +86,42 @@ class Router:
 
         self.keepout_index = idx
 
+    def autoroute_channel(self, input_port, output_port, label):
+        if input_port.parent is None:
+            raise ValueError("Port must be added to component before routing! (input)")
+        if output_port.parent is None:
+            raise ValueError("Port must be added to component before routing! (output)")
+
+        name = f"{input_port.get_name()}__to__{output_port.get_name()}"
+
+        self.routes[name] = {
+            "route_type": "autoroute",
+            "input": input_port,
+            "output": output_port,
+            "label": label
+        }
+
+    def route(self):
+        print("Routing...")
+        new_routes = []
+        for name, route_info in self.routes.items():
+            if route_info["route_type"] != "autoroute": # Manual routing
+                self._route(name, route_info)
+        for name, route_info in self.routes.items():
+            if route_info["route_type"] == "autoroute": # Route cached autoroute paths if valid
+                cached_info = self._load_cached_route(name)
+                if cached_info:
+                    if self._load_autoroute(name, route_info, cached_info):
+                        print(f"\t{name} loaded.")
+                        continue
+                    else:
+                        print(f"\tRerouting {name}...")
+                else:
+                    print(f"\tRouting {name}...")
+                new_routes.append((name, route_info))  # Cache is stale/missing → reroute
+        for name, route_info in new_routes: # Route new autoroute paths
+            self._autoroute(name, route_info)
+
     def _get_box_from_pos_and_size(self, pos, size):
         return (
             pos[0], pos[1], pos[2],
@@ -237,79 +273,135 @@ class Router:
                 heapq.heappush(open_heap, neighbor_node)
 
         return None  # No path found
-    
-    def _load_or_compute_a_star(self, input_port, output_port):
-        # Get base path and file name
+
+    def _load_cached_route(self, name:str):
         instantiation_dir = self.component.instantiation_dir
         file_stem = self.component.instantiating_file_stem
-        
-        # Build cache directory path: <instantiator>/<ClassName>_cache/
-        cache_dir = instantiation_dir / f"{file_stem}_cache" / type(self.component).__name__
-
-        # Final cache file path
-        cache_file = cache_dir / f"{input_port.get_name()}__to__{output_port.get_name()}.pkl"
+        cache_file = instantiation_dir / f"{file_stem}_cache" / type(self.component).__name__ / f"{name}.pkl"
 
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as f:
                 return pickle.load(f)
+        return None
 
-        # Compute and cache the result
-        removed_keepouts = {}
-        for keepout_key, (keepout_idx, keepout_box) in self.keepouts.items():
-            if input_port.get_name() == keepout_key or output_port.get_name() == keepout_key or ("__to__" in keepout_key and (input_port.get_name() in keepout_key or output_port.get_name() in keepout_key)):
-                removed_keepouts[keepout_idx] = keepout_box
-                self.keepout_index.delete(keepout_idx, keepout_box)
-                
-        result = self._a_star_3d(input_port, output_port)
+    def _cache_route(self, name:str, route_info:dict):
+        instantiation_dir = self.component.instantiation_dir
+        file_stem = self.component.instantiating_file_stem
+        cache_file = instantiation_dir / f"{file_stem}_cache" / type(self.component).__name__ / f"{name}.pkl"
 
-        for keepout_idx, keepout_box in removed_keepouts.items():
-            self.keepout_index.insert(keepout_idx, keepout_box)
-
-        if result is not None:
+        if route_info is not None:
+            save_dict = {
+                "input": route_info["input"].get_origin(),
+                "output": route_info["output"].get_origin(),
+                "_path": route_info["_path"]
+            }
+            
             os.makedirs(os.path.dirname(cache_file), exist_ok=True)
             with open(cache_file, 'wb') as f:
-                pickle.dump(result, f)
+                pickle.dump(save_dict, f)
+            return True
+        return False
 
-        return result
+    def _load_autoroute(self, name:str, route_info:dict, cached_info:dict):
+        input_port = route_info["input"]
+        output_port = route_info["output"]
 
-    def autoroute_channel(self, input_port, output_port, label):
-        if input_port.parent is None:
-            raise ValueError("Port must be added to component before routing! (input)")
-        if output_port.parent is None:
-            raise ValueError("Port must be added to component before routing! (output)")
+        # validate input and output locations
+        if (
+            tuple(cached_info["input"]) != tuple(input_port.get_origin()) or
+            tuple(cached_info["output"]) != tuple(output_port.get_origin())
+        ):
+            return False
 
-        name = f"{input_port.get_name()}__to__{output_port.get_name()}"
+        # create polychannel
+        polychannel = self._create_polychannel(input_port, output_port, cached_info["_path"])
 
-        self.routes[name] = {
-            "route_type": "autoroute",
-            "input": input_port,
-            "output": output_port,
-            "label": label
-        }
+        # remove port keepouts
+        removed_keepouts = {}
+        for keepout_key, (keepout_idx, keepout_box) in list(self.keepouts.items()):
+            if input_port.get_name() == keepout_key or output_port.get_name() == keepout_key or ("__to__" in keepout_key and (input_port.get_name() in keepout_key or output_port.get_name() in keepout_key)):
+                removed_keepouts[keepout_key] = (keepout_idx, keepout_box)
+                del self.keepouts[keepout_key]
+                self.keepout_index.delete(keepout_idx, keepout_box)
+                
+        # check autoroute keepouts
+        violation = False
+        for keepout in polychannel.keepouts:
+            margin = (-1,-1,-1)
+            ko_box = self._add_margin(tuple(float(x) for x in keepout), margin)
+            intersecting = list(self.keepout_index.intersection(ko_box))
+            if intersecting:
+                violation = True
 
-    def route(self):
-        for name, val in self.routes.items():
-            if val["route_type"] == "autoroute":
-                path = self._load_or_compute_a_star(val["input"], val["output"])
+        # add back port keepouts
+        for keepout_key, val in removed_keepouts.items():
+            keepout_idx, keepout_box = val
+            self.keepouts[keepout_key] = (keepout_idx, keepout_box)
+            self.keepout_index.insert(keepout_idx, keepout_box)
 
-            # Make polychannel path
-            if len(path) < 2:
-                return None
+        if violation:
+            return False
 
-            polychannel_path = [
-                PolychannelShape("cube", val["input"].size, val["input"].get_origin(), absolute_position=True)
-            ]
-            for point in path[1:-1]:
-                polychannel_path.append(PolychannelShape("cube", self.channel_size, point, absolute_position=True))
-            polychannel_path.append(PolychannelShape("cube", val["output"].size, val["output"].get_origin(), absolute_position=True))
+        self._route(name, route_info, polychannel=polychannel)
+        return True
 
-            polychannel = self.component.make_polychannel(polychannel_path)
+    def _autoroute(self, name:str, route_info:dict):
+        input_port = route_info["input"]
+        output_port = route_info["output"]
 
-            # add polychannel keepout
-            for j, keepout in enumerate(polychannel.keepouts):
-                ko_key = f"{name}_{j}"
-                ko = (self._add_margin(tuple(float(x) for x in keepout), self.channel_margin))
-                self.keepouts[ko_key] = (len(self.keepouts.keys()), ko)
-                self.keepout_index.insert(len(self.keepouts.keys()), ko)
+        # remove port keepouts
+        removed_keepouts = {}
+        for keepout_key, (keepout_idx, keepout_box) in list(self.keepouts.items()):
+            if input_port.get_name() == keepout_key or output_port.get_name() == keepout_key or ("__to__" in keepout_key and (input_port.get_name() in keepout_key or output_port.get_name() in keepout_key)):
+                removed_keepouts[keepout_key] = (keepout_idx, keepout_box)
+                del self.keepouts[keepout_key]
+                self.keepout_index.delete(keepout_idx, keepout_box)
+                
+        # A*
+        violation = False
+        path = self._a_star_3d(input_port, output_port)
+        if path is None:
+            violation = True
+        if len(path) < 2:
+            violation = True
+        route_info["_path"] = path
 
-            self.component.add_shape(name, polychannel, label=val["label"])
+        # add back port keepouts
+        for keepout_key, val in removed_keepouts.items():
+            keepout_idx, keepout_box = val
+            self.keepouts[keepout_key] = (keepout_idx, keepout_box)
+            self.keepout_index.insert(keepout_idx, keepout_box)
+
+        if violation:
+            print(f"Error: failed to route {name}")
+            return
+
+        # cache results
+        ret = self._cache_route(name, route_info)
+        if not ret:
+            print(f"Warning: failed to cache route {name}")
+
+        # add route to component
+        self._route(name, route_info)
+
+    def _route(self, name:str, route_info:dict, polychannel:Shape=None):
+        # create polychannel
+        if polychannel is None:
+            polychannel = self._create_polychannel(route_info["input"], route_info["output"], route_info["_path"])
+
+        # add polychannel keepout
+        for j, keepout in enumerate(polychannel.keepouts):
+            ko_key = f"{name}_{j}"
+            ko = (self._add_margin(tuple(float(x) for x in keepout), self.channel_margin))
+            self.keepouts[ko_key] = (len(self.keepouts.keys()), ko)
+            self.keepout_index.insert(len(self.keepouts.keys()), ko)
+
+        # add path to component
+        self.component.add_shape(name, polychannel, label=route_info["label"])
+
+    def _create_polychannel(self, input, output, path):
+        polychannel_path = [PolychannelShape("cube", input.size, input.get_origin(), absolute_position=True)]
+        for point in path[1:-1]:
+            polychannel_path.append(PolychannelShape("cube", self.channel_size, point, absolute_position=True))
+        polychannel_path.append(PolychannelShape("cube", output.size, output.get_origin(), absolute_position=True))
+        return self.component.make_polychannel(polychannel_path)

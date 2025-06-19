@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GLB Viewer</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <script type="module">
+    import * as THREE from './three/three.module.js';
+    import { OrbitControls } from './three/controls/OrbitControls.js';
+    import { GLTFLoader } from './three/loaders/GLTFLoader.js';
+
+    let defaultCamPos = new THREE.Vector3();
+    let defaultCamTarget = new THREE.Vector3();
+
+    function frameModel(object, camera, controls, offset = 1.25) {
+      const box = new THREE.Box3().setFromObject(object);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      // Figure out how far the camera should be
+      const maxSize = Math.max(size.x, size.y, size.z);
+      const fov = camera.fov * (Math.PI / 180);
+      let distance = maxSize / (2 * Math.tan(fov / 2));
+
+      distance *= offset; // add some offset so the model isn't too close
+
+      // Calculate new camera position
+      const direction = new THREE.Vector3(0.5, 0.5, 1).normalize(); // diagonal direction
+      camera.position.copy(center).add(direction.multiplyScalar(distance));
+
+      // Set the controls target to the center of the model
+      controls.target.copy(center);
+
+      // Update controls and camera
+      controls.update();
+      camera.updateProjectionMatrix();
+    }
+
+    // Create Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x222222);
+
+    // Create a group to rotate the world
+    const world = new THREE.Group();
+    scene.add(world);
+
+    // Rotate the world so Z axis points up
+    world.rotation.x = -Math.PI / 2;
+
+    // Add axes
+    const axes = new THREE.AxesHelper(100);
+    axes.position.set(-0.001, -0.001, -0.001);
+    world.add(axes);
+
+    // Add lights
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(10, 10, 10);
+    world.add(light);
+    world.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+    // Add and position camera
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    // Create renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    // controls.enableDamping = true;
+
+    // Add Mesh Object
+    const loader = new GLTFLoader();
+    let currentModel = null;
+
+    function loadModel(preserveCamera = false) {
+      loader.load('./component.glb', (gltf) => {
+        if (currentModel) {
+          world.remove(currentModel);
+          currentModel.traverse((child) => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach(m => m.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          });
+        }
+
+        gltf.scene.traverse((child) => {
+          if (child.isMesh) {
+            let mat = child.material;
+            mat.metalness = 0.5;
+            mat.transparent = true;
+            mat.side = THREE.FrontSide;
+          }
+        });
+
+        currentModel = gltf.scene;
+        world.add(currentModel);
+
+        if (!preserveCamera) {
+          // Frame and optionally restore camera
+          frameModel(currentModel, camera, controls);
+          defaultCamPos.copy(camera.position);
+          defaultCamTarget.copy(controls.target);
+
+          const savedCamPos = localStorage.getItem('cameraPosition');
+          const savedCamTarget = localStorage.getItem('cameraTarget');
+
+          if (savedCamPos) {
+            const pos = JSON.parse(savedCamPos);
+            camera.position.set(pos.x, pos.y, pos.z);
+          } else {
+            camera.position.copy(defaultCamPos);
+          }
+
+          if (savedCamTarget) {
+            const target = JSON.parse(savedCamTarget);
+            controls.target.set(target.x, target.y, target.z);
+          } else {
+            controls.target.copy(defaultCamTarget);
+          }
+
+          controls.update();
+        };
+      }, undefined, console.error);
+    }
+
+    loadModel(); // initial load
+
+    // Save position & target on every control change
+    controls.addEventListener('change', () => {
+      localStorage.setItem('cameraPosition', JSON.stringify(camera.position));
+      localStorage.setItem('cameraTarget', JSON.stringify(controls.target));
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    document.getElementById('resetCameraBtn').addEventListener('click', () => {
+      // Clear stored camera data
+      localStorage.removeItem('cameraPosition');
+      localStorage.removeItem('cameraTarget');
+
+      // Reset camera position & controls target to default
+      camera.position.copy(defaultCamPos);
+      controls.target.copy(defaultCamTarget);
+      controls.update();
+    });
+
+    document.getElementById('reloadModelBtn').addEventListener('click', () => {
+      loadModel(true);
+    });
+  </script>
+  <button id="resetCameraBtn">Reset Camera</button>
+  <button id="reloadModelBtn">Reload Model</button>
+  <style>
+    #resetCameraBtn, #reloadModelBtn {
+      position: fixed;
+      right: 1.25rem;
+      padding: 0.5rem 0.5rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+      z-index: 100;
+    }
+  
+    #resetCameraBtn {
+      bottom: 4.25rem;
+    }
+  
+    #reloadModelBtn {
+      bottom: 1.25rem;
+    }
+  </style>
+</body>
+</html>

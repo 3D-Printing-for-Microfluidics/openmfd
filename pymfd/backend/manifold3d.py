@@ -191,7 +191,6 @@ class Manifold3D(Backend):
                         _y = (size[1]/2 - radius[1]) if j else -(size[1]/2 - radius[1])
                         _z = (size[2]/2 - radius[2]) if k else -(size[2]/2 - radius[2])
                         s = s.translate(((x+_x)*px_size, (y+_y)*px_size, (z+_z)*layer_size))
-                        print(size, radius, (x,y,z), (_x,_y,_z), (x+_x, y+_y, z+_z))
                         if not center:
                             s = s.translate((size[0]/2*px_size, size[1]/2*px_size, size[2]/2*layer_size))
                         spheres.append(s)

@@ -1,6 +1,6 @@
 from pymfd.router import Router
 from pymfd.components import Valve20px, TestCube, Pinhole
-from pymfd import PolychannelShape, Device, Component, Color, set_manifold3d_backend, set_fn
+from pymfd import PolychannelShape, BezierCurveShape, Device, Component, Color, set_manifold3d_backend, set_fn
 
 set_manifold3d_backend()
 set_fn(50)
@@ -23,14 +23,20 @@ set_fn(50)
 # # component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
 # # component.add_shape("import", component.import_model("examples/Diamond_21.stl").resize((1,1,1)), label="default")
 # # component.add_shape("tpms", component.make_tpms_cell((10,10,8)), label="default")
-# component.add_shape("tpms", component.make_polychannel(
-#     [
-#         PolychannelShape("sphere", position=(0,20,0), size=chan_size),
-#         PolychannelShape("sphere", position=(-33,0,0), size=chan_size),
-#         PolychannelShape("rounded_cube", position=(0,0,-30), size=chan_size, rounded_cube_radius=(1,1,1)),
-#         PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
-#     ]
-# ), label="default")
+# # component.add_shape("polychannel", component.make_polychannel(
+# #     [
+# #         PolychannelShape("sphere", position=(0,20,0), size=chan_size),
+# #         PolychannelShape("sphere", position=(-33,0,0), size=chan_size),
+# #         PolychannelShape("rounded_cube", position=(0,0,-30), size=chan_size, rounded_cube_radius=(1,1,1)),
+# #         PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
+# #     ]
+# # ), label="default")
+# # component.add_shape("beziercurve", component.make_polychannel(
+# #     [
+# #         PolychannelShape("cube", position=(0,0,0), size=chan_size),
+# #         BezierCurveShape(control_points=[(500,0,0),(500,500,0)], number_of_segments=100, shape_type="sphere", position=(500, 500, 500)),
+# #     ]
+# # ), label="default")
 
 # # Mesh the component
 # component.preview()
@@ -87,42 +93,42 @@ set_fn(50)
 # component.render()
 
 
-################ 4 Test Routing ##################
-device_size = (150, 150, 100)
-device_position = (0, 0, 0)
-device = Device("TestDevice", device_size, device_position)
+# ################ 4 Test Routing ##################
+# device_size = (150, 150, 100)
+# device_position = (0, 0, 0)
+# device = Device("TestDevice", device_size, device_position)
 
-device.add_label("autopath", Color.from_rgba((0, 255, 0, 127)))
-device.add_label("device", Color.from_name("aqua", 63))
+# device.add_label("autopath", Color.from_rgba((0, 255, 0, 127)))
+# device.add_label("device", Color.from_name("aqua", 63))
 
-c1 = Valve20px().translate((18, 35, 40))
-c2 = Valve20px().translate((52, 35, 40))
+# c1 = Valve20px().translate((18, 35, 40))
+# c2 = Valve20px().translate((52, 35, 40))
 
-device.add_subcomponent("Valve1", c1)
-device.add_subcomponent("Valve2", c2)
+# device.add_subcomponent("Valve1", c1)
+# device.add_subcomponent("Valve2", c2)
 
-chan_size = (8, 8, 6)
-r = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
-# r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
-# r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
-# r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
-# r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
-# r.route_with_fractional_path(c2.P_OUT, c1.F_IN, [(0,-1,0),(1,0,0),(0,0,2),(0,2,0),(0,0,-1)], label="autopath")
-print(c2.P_OUT.position, c1.F_IN.position, tuple(a-b for a, b in zip(c1.F_IN.position, c2.P_OUT.position)))
-r.route_with_polychannel(c2.P_OUT, c1.F_IN, [
-        PolychannelShape("sphere", position=(0,20,0), size=chan_size),
-        PolychannelShape("sphere", position=(-33,0,0), size=chan_size),
-        PolychannelShape("sphere", position=(0,0,-30), size=chan_size),
-        PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
-    ], label="autopath")
-r.route()
+# chan_size = (8, 8, 6)
+# r = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
+# # r.autoroute_channel(c2.F_OUT, c1.F_IN, label="autopath")
+# # r.autoroute_channel(c1.P_OUT, c2.F_IN, label="autopath")
+# # r.autoroute_channel(c1.F_OUT, c2.P_IN, label="autopath")
+# # r.autoroute_channel(c2.P_OUT, c1.P_IN, label="autopath")
+# # r.route_with_fractional_path(c2.P_OUT, c1.F_IN, [(0,-1,0),(1,0,0),(0,0,2),(0,2,0),(0,0,-1)], label="autopath")
+# print(c2.P_OUT.position, c1.F_IN.position, tuple(a-b for a, b in zip(c1.F_IN.position, c2.P_OUT.position)))
+# r.route_with_polychannel(c2.P_OUT, c1.F_IN, [
+#         PolychannelShape("sphere", position=(0,20,0), size=chan_size),
+#         PolychannelShape("sphere", position=(-33,0,0), size=chan_size),
+#         PolychannelShape("sphere", position=(0,0,-30), size=chan_size),
+#         PolychannelShape("sphere", position=(0,-41,0), size=chan_size),
+#     ], label="autopath")
+# r.route()
 
-# IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
-bulk_cube = device.make_cube(device_size, center=False)
-bulk_cube.translate(device_position)
-device.add_bulk_shape("bulk1", bulk_cube, label="device")
+# # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
+# bulk_cube = device.make_cube(device_size, center=False)
+# bulk_cube.translate(device_position)
+# device.add_bulk_shape("bulk1", bulk_cube, label="device")
 
-# Mesh the component
-device.preview()
-# device.render()
-# device.slice_component()
+# # Mesh the component
+# device.preview()
+# # device.render()
+# # device.slice_component()

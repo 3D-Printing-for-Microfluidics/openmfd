@@ -1,8 +1,68 @@
 from pymfd.components import Valve20px
 from pymfd.router import Router
-from pymfd import set_manifold3d_backend, Device, Component, Color
+from pymfd import set_fn, set_manifold3d_backend, Device, Component, Color
+from pymfd.slicer import Settings, Header, Design, ResinType, Printer, Resolution, BurninSettings, PositionSettings, ExposureSettings
 
 set_manifold3d_backend()
+set_fn(50)
+
+settings = Settings(
+    header=Header(
+        schema_version="4.0.0",
+        image_directory="slices",
+        print_under_vacuum=False
+    ),
+    design=Design(
+        user="Test User",
+        purpose="Test Design",
+        description="This is a test design for the pymfd library.",
+        resin=ResinType(
+            monomer=[("PEG", 100)],
+            uv_absorbers=[("NPS", 2.0)],
+            initiators=[("IRG", 1.0)],
+            additives=[]
+        ),
+        printer=Printer(
+            name="HR3v3",
+            resolutions=Resolution(
+                px_size=0.0076,
+                px_count=(2560, 1600)
+            )
+        )
+    ),
+    burnin_settings=BurninSettings(
+        burnin_times=[10000,5000,2500]
+    ),
+    default_position_settings=PositionSettings(
+        layer_thickness=10.0, 
+        distance_up=1.0, 
+        initial_wait=0.0, 
+        up_speed=25.0, 
+        up_acceleration=50.0, 
+        up_wait=0.0, 
+        down_speed=20.0, 
+        down_acceleration=50.0, 
+        force_squeeze=False, 
+        squeeze_count=0, 
+        squeeze_force=0.0, 
+        squeeze_wait=0.0, 
+        final_wait=0.0
+    ),
+    default_exposure_settings=ExposureSettings(
+        image_file="", 
+        grayscale_correction=False, 
+        image_x_offset=0.0, 
+        image_y_offset=0.0, 
+        exposure_time=300.0, 
+        light_engine="visitech", 
+        power_setting=100, 
+        relative_focus_position=0.0, 
+        wait_before_exposure=0.0, 
+        wait_after_exposure=0.0
+    )
+)
+# settings.save("settings.json")
+
 
 device_size = (2560, 1600, 500)
 device_position = (0, 0, 0)
@@ -89,9 +149,10 @@ device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
 
 # Mesh the component
 # device.render(do_bulk_difference=False)
-device.render(do_bulk_difference=True)
-# device.preview(render_bulk=False, do_bulk_difference=False, wireframe=False)
+# device.render(do_bulk_difference=True)
+device.preview(render_bulk=False, do_bulk_difference=False, wireframe=False)
 # device.preview(render_bulk=True, do_bulk_difference=False, wireframe=False)
 # device.preview(render_bulk=True, do_bulk_difference=False, wireframe=True)
 # device.preview(render_bulk=True, do_bulk_difference=True, wireframe=False)
 # device.preview(render_bulk=True, do_bulk_difference=True, wireframe=True)
+# device.slice_component()

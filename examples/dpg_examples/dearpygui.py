@@ -47,6 +47,7 @@ def delete_selected(sender, app_data):
     for link in dpg.get_selected_links(node_editor):
         delink_callback(node_editor, link)
 
+# Add generic node example
 def add_node(sender, app_data):
     if active_tab != "NodeEditorTab":
         return
@@ -60,12 +61,27 @@ def add_node(sender, app_data):
         nodes.append(node)
         print(f"add node sender:{sender} app_data:{app_data} node:{node}/{node_tag}")
 
+
+# right click menu for node editor
+def right_click_menu(sender, app_data):
+    if active_tab != "NodeEditorTab":
+        return
+    
+    mouse_pos = dpg.get_mouse_pos()
+    editor_pos = dpg.get_item_pos("NodeEditor")
+    editor_size = dpg.get_item_rect_size("NodeEditor")
+
+    if (editor_pos[0] <= mouse_pos[0] <= editor_pos[0] + editor_size[0] and
+        editor_pos[1] <= mouse_pos[1] <= editor_pos[1] + editor_size[1]):
+        print("Right-click inside NodeEditor!")
+
 # Key press handlers
 with dpg.handler_registry():
     print("register keys")
     dpg.add_key_press_handler(key=dpg.mvKey_Delete, callback=delete_selected)
     dpg.add_key_press_handler(key=dpg.mvKey_Back, callback=delete_selected)
     dpg.add_key_press_handler(key=dpg.mvKey_Insert, callback=add_node)
+    dpg.add_mouse_click_handler(button=dpg.mvMouseButton_Right, callback=right_click_menu)
 
 def run():
     # Main app layout
@@ -74,7 +90,7 @@ def run():
             with dpg.child_window(tag="TopPane", autosize_x=True):
                 with dpg.group(horizontal=True):
                     # Left Pane
-                    with dpg.child_window(tag="LeftPane", autosize_y=True):
+                    with dpg.child_window(tag="LeftPane", autosize_y=True) as leftpane:
                         with dpg.tab_bar(callback=tab_changed, tag="TabBar"):
 
                             with dpg.tab(label="Node Editor", tag="NodeEditorTab"):

@@ -26,21 +26,19 @@ class Backend(ABC):
         Abstract base class for all shapes.
         """
         @abstractmethod
-        def __init__(self, px_size:float, layer_size:float, allow_half_integer_translations:bool = False):
+        def __init__(self, px_size:float, layer_size:float):
             """
             Initialize the shape.
 
             Input:
             - px_size (float): The size of the pixels.
             - layer_size (float): The size of the layers.
-            - allow_half_integer_translations (bool): Whether to allow half integer translations.
             """
             self.name = None
             self.parent = None
             self.color = None
             self.px_size = px_size
             self.layer_size = layer_size
-            self.allow_half_integer_translations = allow_half_integer_translations
             self.object = None
             self.keepouts = []
 
@@ -134,27 +132,23 @@ class Backend(ABC):
             flip_x, flip_y, flip_z = axis
             new_keepouts = []
             for x0, y0, z0, x1, y1, z1 in self.keepouts:
-                nx0, nx1 = (-x1, -x0) if flip_x else (x0, x1)
-                ny0, ny1 = (-y1, -y0) if flip_y else (y0, y1)
-                nz0, nz1 = (-z1, -z0) if flip_z else (z0, z1)
+                nx0, nx1 = sorted([-x0, -x1]) if flip_x else (x0, x1)
+                ny0, ny1 = sorted([-y0, -y1]) if flip_y else (y0, y1)
+                nz0, nz1 = sorted([-z0, -z1]) if flip_z else (z0, z1)
                 new_keepouts.append([nx0, ny0, nz0, nx1, ny1, nz1])
             self.keepouts = new_keepouts
 
         @abstractmethod
-        def translate(self, translation:tuple[float, float, float]) -> 'Shape':
+        def translate(self, translation:tuple[int, int, int]) -> 'Shape':
             """
             Translate the shape.
 
             Input:
-            - translation (tuple[float, float, float]): The translation.
+            - translation (tuple[int, int, int]): The translation.
 
             Returns:
             - self (Shape): The translated shape.
             """
-            if not self.allow_half_integer_translations and (not _is_integer(translation[0]) or 
-                                   not _is_integer(translation[1]) or 
-                                   not _is_integer(translation[2])):
-                raise ValueError("Translation must be an integer for this shape.")
             self._translate_keepouts(translation)
 
         @abstractmethod
@@ -305,20 +299,12 @@ class Backend(ABC):
             """
             super().__init__(px_size, layer_size)
 
-            # allow half translations if using center and at least one dimention is odd
-            if center and (size[0] % 2 != 0 or 
-                           size[1] % 2 != 0 or 
-                           size[2] % 2 != 0):
-                self.allow_half_integer_translations = True
-            else:
-                self.allow_half_integer_translations = False
-
     class Cylinder(Shape, ABC):
         """
         Abstract base class for all cylinder shapes.
         """
         @abstractmethod
-        def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center:bool=False, fn=0):
+        def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center_xy:bool=True, center_z:bool=False, fn=0):
             """
             Initialize the cylinder shape.
 
@@ -329,7 +315,8 @@ class Backend(ABC):
             - top_r (float): The radius of the top of the cylinder.
             - px_size (float): The size of the pixels.
             - layer_size (float): The size of the layers.
-            - center (bool): Whether to center the cylinder.
+            - center_xy (bool): Whether to center the cylinder in xy.
+            - center_z (bool): Whether to center the cylinder in z.
             - fn (int): The number of facets.
             """
             super().__init__(px_size, layer_size)
@@ -350,40 +337,26 @@ class Backend(ABC):
             top = top_r if top_r is not None else radius
             if bottom is None or top is None:
                 raise ValueError("Either radius or bottom_r and top_r must be provided.")
-                
-            # allow half translations if using center and height is odd or at least one diameter is odd
-            if (center and height % 2 != 0) or (not _is_integer(bottom) or not _is_integer(top)):
-                self.allow_half_integer_translations = True
-            else:
-                self.allow_half_integer_translations = False
+
+            if top % 2 != bottom % 2:
+                raise ValueError("Cylinder top and bottom radius must both be either even or odd.")
 
     class Sphere(Shape, ABC):
         """
         Abstract base class for all sphere shapes.
         """
         @abstractmethod
-        def __init__(self, radius:float, px_size:float=None, layer_size:float=None, center:bool=True, fn=0):
+        def __init__(self, size:tuple[int, int, int], px_size:float=None, layer_size:float=None, center:bool=True, fn=0):
             """
-            Initialize the sphere shape.
+            Initialize the ellipsoid shape.
 
             Input:
-            - radius (float): The radius of the sphere.
+            - size (int): The size of the ellipsoid.
             - px_size (float): The size of the pixels.
             - layer_size (float): The size of the layers.
             - fn (int): The number of facets.
             """
             super().__init__(px_size, layer_size)
-
-            # only allow radius to be multiples of 0.5
-            if radius is not None:
-                if not _is_integer(radius*2):
-                    raise ValueError("Sphere radius must be a multiple of 0.5")
-
-            # allow half translations if diameter is odd
-            if not _is_integer(radius):
-                self.allow_half_integer_translations = True
-            else:
-                self.allow_half_integer_translations = False
 
     class TextExtrusion(Shape, ABC):
         """
@@ -392,16 +365,14 @@ class Backend(ABC):
         def __init__(self, text:str, height:int, font:str="arial", font_size:int=10, px_size:float=None, layer_size:float=None):
             super().__init__(px_size, layer_size)
 
-            self.allow_half_integer_translations = True
-
-    class STL(Shape, ABC):
+    class ImportModel(Shape, ABC):
         """
-        Abstract base class for all STL imports.
+        Abstract base class for all ImportModel imports.
         """
-        def __init__(self):
-            pass
+        def __init__(self, filename:str, auto_repair:bool=True, px_size:float=None, layer_size:float=None):
+            super().__init__(px_size, layer_size)
 
-    class Evaluation(Shape):
+    class TPMS(Shape):
         @functools.cache
         def gyroid(x:float, y:float, z:float) -> bool:
             a = np.radians(360)
@@ -412,7 +383,7 @@ class Backend(ABC):
             )
 
         @functools.cache
-        def double_diamond(x:float, y:float, z:float) -> bool:
+        def diamond(x:float, y:float, z:float) -> bool:
             a = np.radians(360)
             return (
                 np.sin(a*(x)) * np.sin(a*(y)) * np.sin(a*(z)) + 
@@ -421,10 +392,8 @@ class Backend(ABC):
                 np.cos(a*(x)) * np.cos(a*(y)) * np.sin(a*(z))
             )
 
-        def __init__(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=double_diamond, px_size:float=None, layer_size:float=None):
+        def __init__(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=diamond, px_size:float=None, layer_size:float=None):
             super().__init__(px_size, layer_size)
-
-            self.allow_half_integer_translations = True
 
     def render(self, component:Component, render_bulk:bool=True, do_bulk_difference:bool=True, flatten_scene:bool=True, wireframe_bulk:bool=False, show_assists:bool=False):
         pass

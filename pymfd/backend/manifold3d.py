@@ -1,13 +1,15 @@
 from __future__ import annotations
 
-
+import os
 import trimesh
 import freetype
 import numpy as np
 from trimesh.scene import Scene
 from typing import TYPE_CHECKING
+from shapely.affinity import scale
+from shapely.geometry import Polygon
 from trimesh.visual import ColorVisuals
-from manifold3d import set_circular_segments, Manifold, CrossSection
+from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection
 
 from pymfd.backend import Color, Backend
 
@@ -29,10 +31,10 @@ class Manifold3D(Backend):
         """
         Manifold3D shape.
         """
-        def __init__(self, px_size:float, layer_size:float, allow_half_integer_translations:bool = False):
-            super().__init__(px_size, layer_size, allow_half_integer_translations)
+        def __init__(self, px_size:float, layer_size:float):
+            super().__init__(px_size, layer_size)
         
-        def translate(self, translation:tuple[float, float, float]) -> 'Shape':
+        def translate(self, translation:tuple[int, int, int]) -> 'Shape':
             super().translate(translation)
             self.object = self.object.translate((translation[0] * self.px_size, translation[1] * self.px_size, translation[2] * self.layer_size))
             return self
@@ -78,31 +80,75 @@ class Manifold3D(Backend):
         """
         def __init__(self, size:tuple[int, int, int], px_size:float, layer_size:float, center:bool=False):
             super().__init__(size, px_size, layer_size, center)
-            self.object = Manifold.cube((size[0]*px_size, size[1]*px_size, size[2]*layer_size), center=center)
+
+            # shift half a pixel if odd and centered
+            x = 0
+            y = 0
+            z = 0                 
+            if center:
+                if size[0] %2 != 0:
+                    print(f"⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid")
+                    x = 0.5
+                if size[1] %2 != 0:
+                    print(f"⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid")
+                    y = 0.5
+                if size[2] %2 != 0:
+                    print(f"⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid")
+                    z = 0.5
+
+            self.object = Manifold.cube((size[0]*px_size, size[1]*px_size, size[2]*layer_size), center=center).translate((x*px_size,y*px_size,z*layer_size))
             self.add_bbox_to_keepout(self.object.bounding_box())
 
     class Cylinder(Backend.Cylinder, Shape):
         """
         Manifold3D cylinder.
         """
-        def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center:bool=False, fn=0):
-            super().__init__(height, radius, bottom_r, top_r, px_size, layer_size, center, fn)
+        def __init__(self, height:int, radius:float=None, bottom_r:float=None, top_r:float=None, px_size:float=None, layer_size:float=None, center_xy:bool=True, center_z:bool=False, fn=0):
+            super().__init__(height, radius, bottom_r, top_r, px_size, layer_size, center_xy, center_z, fn)
 
             bottom = bottom_r if bottom_r is not None else radius
             top = top_r if top_r is not None else radius
-            self.object = Manifold.cylinder(height=height*layer_size, radius_low=bottom*px_size, radius_high=top*px_size, circular_segments=fn, center=center)
+            
+            xy = 0
+            z = 0
+            if center_z and height %2 != 0:
+                print(f"⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid")
+                z = 0.5
+            if center_xy:
+                if top*2 %2 != 0: # can check either to or bottom
+                    print(f"⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid")
+                    xy = 0.5
+                self.object = Manifold.cylinder(height=height*layer_size, radius_low=bottom*px_size, radius_high=top*px_size, circular_segments=fn, center=center_z).translate((xy*px_size,xy*px_size,z*layer_size))
+            else:
+                radius = max(bottom, top)
+                self.object = Manifold.cylinder(height=height*layer_size, radius_low=bottom*px_size, radius_high=top*px_size, circular_segments=fn, center=center_z).translate((radius*px_size,radius*px_size,z*layer_size))
             self.add_bbox_to_keepout(self.object.bounding_box())
+                
 
     class Sphere(Backend.Sphere, Shape):
         """
-        Manifold3D sphere.
+        Manifold3D ellipsoid.
         """
-        def __init__(self, radius:float, px_size:float=None, layer_size:float=None, center:bool=True, fn=0):
-            super().__init__(radius, px_size, layer_size, center, fn)
+        def __init__(self, size:tuple[int, int, int], px_size:float=None, layer_size:float=None, center:bool=True, fn=0):
+            super().__init__(size, px_size, layer_size, center, fn)
+            self.object = Manifold.sphere(radius=1, circular_segments=fn)
+            self.resize(size)
             if center:
-                self.object = Manifold.sphere(radius=radius*px_size, circular_segments=fn)
+                x = 0
+                y = 0
+                z = 0
+                if size[0] %2 != 0:
+                    print(f"⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid")
+                    x=0.5
+                if size[1] %2 != 0:
+                    print(f"⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid")
+                    y=0.5
+                if size[2] %2 != 0:
+                    print(f"⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid")
+                    z=0.5
+                self.object = self.object.translate((x*px_size,y*px_size,z*px_size))
             else:
-                self.object = Manifold.sphere(radius=radius*px_size, circular_segments=fn).translate((radius*px_size,radius*px_size,radius*px_size))
+                self.object = self.object.translate((size[0]/2*px_size,size[1]/2*px_size,size[2]/2*px_size))
             self.add_bbox_to_keepout(self.object.bounding_box())
 
     class TextExtrusion(Backend.TextExtrusion, Shape):
@@ -175,15 +221,71 @@ class Manifold3D(Backend):
             self.object = text_to_manifold(text, height=height, font_path=f"pymfd/backend/fonts/{font}.ttf")
             self.add_bbox_to_keepout(self.object.bounding_box())
 
-    class STL(Backend.STL, Shape):
+    class ImportModel(Backend.ImportModel, Shape):
         """
-        Abstract base class for all STL imports.
+        Abstract base class for all ImportModel imports.
         """
-        def __init__(self):
-            pass
+        def __init__(self, filename:str, auto_repair:bool=True, px_size:float=None, layer_size:float=None):
+            super().__init__(filename, auto_repair, px_size, layer_size)
 
-    class Evaluation(Backend.Evaluation, Shape):          
-        def __init__(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=Backend.Evaluation.double_diamond, px_size:float=None, layer_size:float=None):
+            def load_3d_file_to_manifold(path, auto_repair=True):
+                ext = os.path.splitext(filename)[1].lower()
+                print(f"📦 Loading: {filename} (.{ext[1:]})")
+
+                # try:
+                mesh = trimesh.load(filename, force='mesh')
+
+                if isinstance(mesh, trimesh.Scene):
+                    print("🔁 Flattening scene...")
+                    mesh = mesh.to_mesh()
+
+                issues = []
+                if not mesh.is_watertight:
+                    issues.append("❌ Mesh is not watertight (required for Manifold3D).")
+                if not mesh.is_winding_consistent:
+                    issues.append("⚠️ Face winding is inconsistent (normals may be wrong).")
+                if mesh.is_empty or len(mesh.faces) == 0:
+                    issues.append("❌ Mesh is empty or has no faces.")
+                if not mesh.is_volume:
+                    issues.append("⚠️ Mesh may not define a solid volume.")
+
+                if issues:
+                    print("\n".join(issues))
+                    if not auto_repair:
+                        raise ValueError("Mesh has critical issues. Aborting due to `auto_repair=False`.")
+
+                if auto_repair:
+                    print("🛠 Attempting repair steps...")
+                    mesh = mesh.copy()
+                    trimesh.repair.fill_holes(mesh)
+                    trimesh.repair.fix_normals(mesh)
+                    mesh.remove_degenerate_faces()
+                    mesh.remove_duplicate_faces()
+                    mesh.remove_infinite_values()
+                    mesh.remove_unreferenced_vertices()
+
+                if not mesh.is_watertight:
+                    raise ValueError("❌ Mesh is still not watertight after repair. Cannot proceed.")
+
+                # Convert to MeshGL
+                verts = np.asarray(mesh.vertices, dtype=np.float32)
+                faces = np.asarray(mesh.faces, dtype=np.uint32)
+                mesh_obj = Mesh(verts, faces)
+
+                manifold = Manifold(mesh_obj)
+                print("✅ Successfully converted mesh to Manifold.")
+                return manifold
+
+            self.object = load_3d_file_to_manifold(filename, auto_repair)
+            self.add_bbox_to_keepout(self.object.bounding_box())
+
+            # except Exception as e:
+            #     raise ValueError(f"❌ Error loading mesh: {e}")
+            #     print(f"🔥 Error loading mesh: {e}")
+            #     return None
+
+    class TPMS(Backend.TPMS, Shape):          
+        def __init__(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=Backend.TPMS.diamond, px_size:float=None, layer_size:float=None):
             super().__init__(size, func, px_size, layer_size)
 
             bounds = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]  # bounding box
@@ -428,8 +530,7 @@ class Manifold3D(Backend):
         slice_num = 0
         z_height = 0
         while z_height < component.size[2]:
-
-            polygons = manifold.object.slice(z_height*component.layer_size).to_polygons()
+            polygons = manifold.object.slice(component.position[2]*component.layer_size + z_height*component.layer_size).to_polygons()
 
             # # Step 2: Find bounding box of all points
             # all_points = np.vstack(polygons)
@@ -446,15 +547,27 @@ class Manifold3D(Backend):
             img = Image.new("L", (2560, 1600), 0)
             draw = ImageDraw.Draw(img)
 
+            # if slice_num == 54:
+            #     print(polygons)
+
             # Step 3: Draw each polygon
             for poly in polygons:
-                # Transform and scale points to image space
-                # transformed = (poly - [min_x, min_y]) * scale + padding
-                transformed = (poly) // component.px_size
-                # Flip Y axis (image origin is top-left)
-                transformed[:, 1] = 1600 - transformed[:, 1]
-                # Convert to list of tuples
+                # snap to pixel grid
+                transformed = np.round(poly / component.px_size).astype(int)
+                transformed[:, 1] = img.height - transformed[:, 1]
                 points = [tuple(p) for p in transformed]
+
+                # Convert poly (Nx2 numpy array) to shapely polygon and offset inward by small amount in px sdpace
+                p = Polygon(points)
+                px_offset = 0.1
+                shrunk = p.buffer(-px_offset)
+                # Only process if still valid
+                if not shrunk.is_empty and shrunk.geom_type == 'Polygon':
+                    coords = np.array(shrunk.exterior.coords)
+                    # do floor to fix issues with polygon inclusivity
+                    transformed = np.floor(coords).astype(int)
+                    points = [tuple(p) for p in transformed]
+
                 # Draw polygon filled with white (255)
                 draw.polygon(points, fill=255)
 

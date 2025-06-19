@@ -3,27 +3,33 @@ from pymfd.components import Valve20px, TestCube, Pinhole
 from pymfd import PolychannelShape, Device, Component, Color, set_manifold3d_backend, set_fn
 
 set_manifold3d_backend()
-set_fn(100)
+set_fn(50)
 
-# ############### 1 ##################
+# ############### 1 Test all basic components ##################
 # component = Component(
 #     size=(2560, 1600, 10),
 #     position=(0, 0, 0),
 #     px_size=0.0076,
 #     layer_size=0.01
 # )
+# chan_size = (8, 8, 6)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # # Add a shape
-# # component.add_shape("simple_cube", component.make_cube((1, 1, 1), center=False), label="default")
-# # component.add_shape("simple_sphr", component.make_sphere(0.5, center=False).translate((1,0,0)), label="default")
+# component.add_shape("simple_cube", component.make_cube((2, 2, 2), center=False).translate((1,1,1)), label="default")
+# # component.add_shape("simple_sphere", component.make_sphere((2,2,2), center=True), label="default")
+# # component.add_shape("simple_cylinder", component.make_cylinder(r=1, h=2, center_xy=False, center_z=False), label="default")
 # # component.add_shape("text", component.make_text("Hello Greg!!"), label="default")
-# # from pymfd import get_backend
-
-# # for i in range(1):
-# #     for j in range(1):
-# #         for k in  range(1):
-# #             component.add_shape(f"gyroid_{i}_{j}_{k}", get_backend().Evaluation((10,10,8), px_size=0.0076, layer_size=0.01).translate((10*i, 10*j, 8*k)), label="default")
+# # component.add_shape("import", component.import_model("examples/Diamond_21.stl").resize((1,1,1)), label="default")
+# # component.add_shape("tpms", component.make_tpms_cell((10,10,8)), label="default")
+# # component.add_shape("tpms", component.make_polychannel(
+# #     [
+# #         PolychannelShape("sphere", chan_size, (0,20,0)),
+# #         PolychannelShape("sphere", chan_size, (-33,0,0)),
+# #         PolychannelShape("sphere", chan_size, (0,0,-30)),
+# #         PolychannelShape("sphere", chan_size, (0,-41,0)),
+# #     ]
+# # ), label="default")
 
 # # Mesh the component
 # component.preview()
@@ -31,7 +37,7 @@ set_fn(100)
 # # component.slice_component()
 
 
-# ################ 2 ##################
+# ################ 2 Test subcomonents ##################
 # device_size = (2560, 1600, 250)
 # device_position = (0, 0, 0)
 # device = Device("TestDevice", device_size, device_position)
@@ -48,7 +54,7 @@ set_fn(100)
 # component.render()
 
 
-# ############### 3 ##################
+# ############### 3 Test translations, mirroring and rotations ##################
 # component = Component(
 #     size=(255, 255, 15),
 #     position=(0, 0, 0),
@@ -80,7 +86,7 @@ set_fn(100)
 # component.render()
 
 
-################ router test ##################
+################ 4 Test Routing ##################
 device_size = (150, 150, 100)
 device_position = (0, 0, 0)
 device = Device("TestDevice", device_size, device_position)

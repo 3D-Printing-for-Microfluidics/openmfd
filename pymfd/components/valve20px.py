@@ -31,11 +31,11 @@ class Valve20px(Component):
         self.add_label("pneumatic", Color.from_name("red", 255))
         self.add_label("fluidic", Color.from_name("blue", 255))
 
-        self.add_shape("FluidicChamber", self.make_cylinder(h=2, r=10, center=False).translate((18,18,4)), label="fluidic")
+        self.add_shape("FluidicChamber", self.make_cylinder(h=2, r=10, center_z=False).translate((18,18,4)), label="fluidic")
         self.add_shape("FluidicInput", self.make_cube((6, 6, 4), center=False).translate((15,15,0)), label="fluidic")
         self.add_shape("FluidicOutput", self.make_cube((8, 10, 6), center=False).translate((14,26,0)), label="fluidic")
 
-        pneumatics = self.make_cylinder(h=11, r=10, center=False).translate((18,18,7))
+        pneumatics = self.make_cylinder(h=11, r=10, center_z=False).translate((18,18,7))
         pneumatics += self.make_cube((8, 10, 6), center=False).translate((14,0,12))
         pneumatics += self.make_cube((8, 10, 6), center=False).translate((14,26,12))
         self.add_shape("PneumaticShapes", pneumatics, label="pneumatic")

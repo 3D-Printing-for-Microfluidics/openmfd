@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 import inspect
 from enum import Enum
 from pathlib import Path
@@ -191,12 +190,12 @@ class Component(InstantiationTrackerMixin):
         self.subcomponents = []
         self.labels = {}
 
-    # def __getattr__(self, name):
-    #     # Only called if the normal attribute lookup fails
-    #     for attr_dict in (self.shapes, self.ports, self.subcomponents):
-    #         if name in attr_dict:
-    #             return attr_dict[name]
-    #     raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+    def __getattr__(self, name):
+        # Only called if the normal attribute lookup fails
+        for attr_dict in (self.shapes, self.ports, self.subcomponents):
+            if name in attr_dict:
+                return attr_dict[name]
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def get_fully_qualified_name(self):
         if self.name is None:
@@ -297,14 +296,20 @@ class Component(InstantiationTrackerMixin):
     def make_cube(self, size:tuple[int, int, int], center:bool=False) -> Backend.Cube:
         return get_backend().Cube(size, self.px_size, self.layer_size, center=center)
 
-    def make_cylinder(self, h:int, r:float=None, r1:float=None, r2:float=None, center:bool=False, fn:int=0) -> Backend.Cylinder:
-        return get_backend().Cylinder(h, r, r1, r2, self.px_size, self.layer_size, center=center, fn=fn)
+    def make_cylinder(self, h:int, r:float=None, r1:float=None, r2:float=None, center_xy:bool=True, center_z:bool=False, fn:int=0) -> Backend.Cylinder:
+        return get_backend().Cylinder(h, r, r1, r2, self.px_size, self.layer_size, center_xy=center_xy, center_z=center_z, fn=fn)
 
-    def make_sphere(self, r:float=None, center:bool=True, fn:int=0) -> Backend.Cylinder:
-        return get_backend().Sphere(r, self.px_size, self.layer_size, center=center, fn=fn)
+    def make_sphere(self, size:tuple[int, int, int], center:bool=True, fn:int=0) -> Backend.Sphere:
+        return get_backend().Sphere(size, self.px_size, self.layer_size, center=center, fn=fn)
         
     def make_text(self, text:str, height:int=1, font:str="arial", font_size:int=10) -> Backend.TextExtrusion:
         return get_backend().TextExtrusion(text, height, font, font_size, self.px_size, self.layer_size)
+
+    def import_model(self, filename:str, auto_repair:bool=True) -> Backend.ImportModel:
+        return get_backend().ImportModel(filename, auto_repair, self.px_size, self.layer_size)
+
+    def make_tpms_cell(self, size:tuple[int, int, int], func:Callable[[int, int, int], int]=Backend.TPMS.diamond) -> Backend.TPMS:
+        return get_backend().TPMS(size, func, self.px_size, self.layer_size)
 
     def make_polychannel(self, shapes:list[PolychannelShape], show_only_shapes:bool=False) -> Backend.Shape:
             shape_list = []
@@ -321,9 +326,8 @@ class Component(InstantiationTrackerMixin):
                         last_shape_position = tuple(shape.position[i] + last_shape_position[i] for i in range(3))
                     shape_list.append(cube)
 
-                elif shape.shape_type == "sphr":
-                    sphere = self.make_sphere(r=1, center=False)
-                    sphere.resize(shape.size)
+                elif shape.shape_type == "sphere":
+                    sphere = self.make_sphere(shape.size, center=False)
                     sphere.rotate(shape.rotation)
                     if shape.absolute_position or last_shape_position is None:
                         sphere.translate(shape.position)
@@ -510,9 +514,37 @@ class Component(InstantiationTrackerMixin):
         scene = get_backend().render(component=self, render_bulk=True, do_bulk_difference=do_bulk_difference, flatten_scene=True, wireframe_bulk=False, show_assists=False)
         scene.export(filename)
 
-    def preview(self, filename:str="pymfd/visualizer/component.glb", render_bulk:bool=False, do_bulk_difference:bool=False, wireframe:bool=False):
+    def preview(self, filename:str="pymfd/viewer/component.glb", render_bulk:bool=False, do_bulk_difference:bool=False, wireframe:bool=False):
         scene = get_backend().render(component=self, render_bulk=render_bulk, do_bulk_difference=do_bulk_difference, flatten_scene=False, wireframe_bulk=wireframe, show_assists=True)
         scene.export(filename)
+        # from trimesh.viewer.notebook import scene_to_html
+        # html_str = scene_to_html(scene)
+
+        # # Inject transparency code
+        # transparency_patch = """
+        # scene.traverse((child) => {
+        #     if (child.isMesh) {
+        #         let mat = child.material;
+        #         mat.vertexColors = THREE.VertexColors;
+        #         mat.metalness = 0.5
+        #         mat.transparent = true;
+        #         mat.side = THREE.FrontSide;
+        #         mat.opacity = 1.0;
+        #         if (child.geometry && child.geometry.attributes.color) {
+        #             const colors = child.geometry.attributes.color.array;
+        #             if (colors.length >= 4) {
+        #                 mat.opacity = colors[3];      // alpha of first vertex
+        #             }
+        #         }
+        #     }
+        # });
+        # """
+
+        # # Add it just before animation starts
+        # html_str = html_str.replace("animate();", transparency_patch + "\nanimate();")
+
+        # with open("scene.html", "w") as f:
+        #     f.write(html_str)
 
     def slice_component(self, filename:str="component.glb", do_bulk_difference:bool=True):
         get_backend().slice_component(component=self, render_bulk=False, do_bulk_difference=False)
@@ -521,3 +553,22 @@ class Device(Component):
     def __init__(self, name:str, size:tuple[int,int,int], position:tuple[int, int, int], px_size:float = 0.0076, layer_size:float = 0.01):
         super().__init__(size, position, px_size, layer_size)
         self.name = name
+
+# class Device(Component):
+#     def __init__(self, resolution:Resolution, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
+#         super().__init__((resolution.px_count[0],resolution.px_count[1],layers), position, resolution.px_size, layer_size)
+
+# class Visitech_LRS10_Device(Device):
+#     def __init__(self, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
+#         resolution = Resolution(px_size=0.0076, px_count=(2560, 1600))
+#         super().__init__(resolution, position, layers, layer_size)
+
+# class Visitech_LRS20_Device(Device):
+#     def __init__(self, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
+#         resolution = Resolution(px_size=0.0152, px_count=(2560, 1600))
+#         super().__init__(resolution, position, layers, layer_size)
+
+# class Wintech_Device(Device):
+#     def __init__(self, position:tuple[int, int, int], layers:int=0, layer_size:float=0.01):
+#         resolution = Resolution(px_size=0.00075, px_count=(1920, 1080))
+#         super().__init__(resolution, position, layers, layer_size)

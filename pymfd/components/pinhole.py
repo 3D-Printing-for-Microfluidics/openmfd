@@ -18,8 +18,8 @@ class Pinhole(Component):
 
         rtr = Router(component=self)
         shape = self.make_polychannel([
-            PolychannelShape("sphr", (0,144,110), (0,0,0)),
-            PolychannelShape("sphr", (0,144,110), (200,0,0)),
+            PolychannelShape("sphere", (0,144,110), (0,0,0)),
+            PolychannelShape("sphere", (0,144,110), (200,0,0)),
             PolychannelShape("cube", (0,8,6), (50,-4,-4)),
         ]).translate((0,72,55))
 

@@ -270,13 +270,13 @@ class Router:
             if route_info["route_type"] == "autoroute":
                 return False
             else:
-                print(f"\t\tWarning: {name} violates keepouts!")
+                print(f"\t\t⚠️ {name} violates keepouts!")
 
         # cache results
         if not loaded:
             ret = self._cache_route(name, route_info)
             if not ret:
-                print(f"Warning: failed to cache route {name}")
+                print(f"⚠️ failed to cache route {name}")
 
         # add polychannel keepout
         for j, keepout in enumerate(polychannel.keepouts):

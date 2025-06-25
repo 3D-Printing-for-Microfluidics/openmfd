@@ -6,8 +6,8 @@ import freetype
 import functools
 import numpy as np
 from trimesh.scene import Scene
+from PIL import Image, ImageDraw
 from typing import TYPE_CHECKING
-from shapely.affinity import scale
 from shapely.geometry import Polygon
 from trimesh.visual import ColorVisuals
 from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection
@@ -370,7 +370,7 @@ class Cube(Shape):
         - px_size (float): Pixel size in mm.
         - layer_size (float): Layer height in mm.
         - center (bool): Whether to center the cube at the origin.
-        - _no_validation (bool): If True, skip validation checks for odd dimensions.
+        - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
         super().__init__(px_size, layer_size)
 
@@ -520,6 +520,7 @@ class Sphere(Shape):
         - layer_size (float): Layer height in mm.
         - center (bool): Whether to center the sphere at the origin.
         - fn (int): Number of facets for the circular segments.
+        - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
         super().__init__(px_size, layer_size)
         if center:
@@ -591,6 +592,7 @@ class RoundedCube(Shape):
         - layer_size (float): Layer height in mm.
         - center (bool): Whether to center the rounded cube at the origin.
         - fn (int): Number of facets for the circular segments.
+        - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
         super().__init__(px_size, layer_size)
 
@@ -1277,8 +1279,6 @@ def _slice_component(
             manifold = bulk_manifold
         else:
             manifold += manifold
-
-    from PIL import Image, ImageDraw
 
     slice_num = 0
     z_height = 0

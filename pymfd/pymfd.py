@@ -6,7 +6,6 @@ import importlib
 from enum import Enum
 from pathlib import Path
 from typing import Union
-from scipy.special import comb
 from typing import TYPE_CHECKING
 
 from .backend import (
@@ -18,12 +17,12 @@ from .backend import (
     TextExtrusion,
     ImportModel,
     TPMS,
+    Polychannel,
+    PolychannelShape,
+    BezierCurveShape,
     _render,
     _slice_component,
     Color,
-    PolychannelShape,
-    BezierCurveShape,
-    _preprocess_polychannel_shapes,
 )
 
 if TYPE_CHECKING:
@@ -350,16 +349,8 @@ class Component(_InstantiationTrackerMixin):
         for s in shapes:
             s._color = self.labels[label]
 
-    def make_cube(
-        self, size: tuple[int, int, int], center: bool = False, _no_validation=True
-    ) -> Cube:
-        return Cube(
-            size,
-            self._px_size,
-            self._layer_size,
-            center=center,
-            _no_validation=_no_validation,
-        )
+    def make_cube(self, size: tuple[int, int, int], center: bool = False) -> Cube:
+        return Cube(size, self._px_size, self._layer_size, center=center)
 
     def make_cylinder(
         self,
@@ -388,16 +379,8 @@ class Component(_InstantiationTrackerMixin):
         size: tuple[int, int, int],
         center: bool = True,
         fn: int = 0,
-        _no_validation=True,
     ) -> Sphere:
-        return Sphere(
-            size,
-            self._px_size,
-            self._layer_size,
-            center=center,
-            fn=fn,
-            _no_validation=_no_validation,
-        )
+        return Sphere(size, self._px_size, self._layer_size, center=center, fn=fn)
 
     def make_rounded_cube(
         self,
@@ -405,7 +388,6 @@ class Component(_InstantiationTrackerMixin):
         radius: tuple[int, int, int],
         center: bool = False,
         fn: int = 0,
-        _no_validation=True,
     ) -> RoundedCube:
         return RoundedCube(
             size,
@@ -414,7 +396,6 @@ class Component(_InstantiationTrackerMixin):
             self._layer_size,
             center=center,
             fn=fn,
-            _no_validation=_no_validation,
         )
 
     def make_text(
@@ -439,48 +420,7 @@ class Component(_InstantiationTrackerMixin):
         shapes: list[Union[PolychannelShape, BezierCurveShape]],
         show_only_shapes: bool = False,
     ) -> Shape:
-        shape_list = []
-        shapes = _preprocess_polychannel_shapes(
-            shapes, px_size=self._px_size, layer_size=self._layer_size
-        )
-        for shape in shapes:
-            if shape._shape_type == "cube":
-                s = self.make_cube(
-                    shape._size, center=True, _no_validation=shape._no_validation
-                )
-            elif shape._shape_type == "sphere":
-                s = self.make_sphere(
-                    shape._size, center=True, _no_validation=shape._no_validation
-                )
-            elif shape._shape_type == "rounded_cube":
-                s = self.make_rounded_cube(
-                    shape._size,
-                    shape._rounded_cube_radius,
-                    center=True,
-                    _no_validation=shape._no_validation,
-                )
-            else:
-                raise ValueError(f"Unsupported shape type: {shape._shape_type}")
-            s.rotate(shape._rotation)
-            s.translate(shape._position)
-            shape_list.append(s)
-
-        # Hull shapes pairwise
-        if len(shape_list) > 1:
-            if show_only_shapes:
-                path = shape_list[0]
-                for shape in shape_list[1:]:
-                    path += shape
-                return path
-            else:
-                path = shape_list[0].hull(shape_list[1])
-                last_shape = shape_list[1]
-                for shape in shape_list[2:]:
-                    path += last_shape.hull(shape)
-                    last_shape = shape
-                return path
-        else:
-            raise ValueError("Polychannel requires at least 2 shapes")
+        return Polychannel(shapes, self._px_size, self._layer_size, show_only_shapes)
 
     def translate(
         self, translation: tuple[int, int, int], set_origin: bool = True

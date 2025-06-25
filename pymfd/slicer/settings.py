@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import datetime
 
 
@@ -25,8 +26,6 @@ class Settings:
 
     def save(self, filename: str = "settings.json"):
         """Save the settings to a JSON file."""
-        import json
-
         self.settings["Burnin"] = vars(self.burnin)
         with open(filename, "w") as f:
             json.dump(self.settings, f, indent=4)
@@ -34,8 +33,6 @@ class Settings:
     @classmethod
     def from_file(cls, filename: str):
         """Load settings from a JSON file."""
-        import json
-
         with open(filename, "r") as f:
             settings_data = json.load(f)
         header = Header(**settings_data["Header"])

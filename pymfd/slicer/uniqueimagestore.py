@@ -1,13 +1,10 @@
-from PIL import Image
-import PIL
-
-import numpy as np
-
-import hashlib
-from pathlib import Path
-import shutil
 import sys
-
+import PIL
+import shutil
+import hashlib
+import numpy as np
+from PIL import Image
+from pathlib import Path
 from typing import NamedTuple
 from collections import defaultdict
 

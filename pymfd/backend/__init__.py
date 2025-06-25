@@ -17,7 +17,7 @@ from .manifold3d import (
     _slice_component,
 )
 from .polychannel import (
+    Polychannel,
     PolychannelShape,
     BezierCurveShape,
-    _preprocess_polychannel_shapes,
 )

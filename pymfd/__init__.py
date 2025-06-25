@@ -15,14 +15,8 @@ complex microfluidic architectures.
 from .pymfd import Port, Component, Device
 from .backend import (
     set_fn,
-    Cube,
-    Cylinder,
-    Sphere,
-    RoundedCube,
-    TextExtrusion,
-    ImportModel,
-    TPMS,
     Color,
+    Polychannel,
     PolychannelShape,
     BezierCurveShape,
 )

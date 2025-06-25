@@ -551,7 +551,10 @@ class Sphere(Shape):
         if size[2] == 0:
             size = (size[0], size[1], 0.0001)
 
-        self._object = Manifold.sphere(radius=1, circular_segments=fn)
+        if fn is None or fn < 0:
+            self._object = Manifold.sphere(radius=1)
+        else:
+            self._object = Manifold.sphere(radius=1, circular_segments=fn)
         self.resize(size)
 
         if center:
@@ -636,7 +639,10 @@ class RoundedCube(Shape):
         for i in range(2):
             for j in range(2):
                 for k in range(2):
-                    s = Manifold.sphere(radius=1, circular_segments=fn)
+                    if fn is None or fn < 0:
+                        s = Manifold.sphere(radius=1)
+                    else:
+                        s = Manifold.sphere(radius=1, circular_segments=fn)
                     s = s.scale(
                         (
                             radius[0] * px_size,
@@ -765,7 +771,7 @@ class TextExtrusion(Shape):
 
             return result
 
-        if height[0] == 0:
+        if height == 0:
             height = 0.0001
 
         self._object = text_to_manifold(

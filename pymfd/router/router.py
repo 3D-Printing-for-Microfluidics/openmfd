@@ -144,19 +144,25 @@ class Router:
 
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
+        input_pos = tuple(
+            np.array(input_port.get_origin()) + np.array(input_port._size) / 2
+        )
         polychannel_shapes.insert(
             0,
             PolychannelShape(
                 "cube",
-                position=input_port.get_origin(),
+                position=input_pos,
                 size=input_port._size,
                 absolute_position=True,
             ),
         )
+        output_pos = tuple(
+            np.array(output_port.get_origin()) + np.array(output_port._size) / 2
+        )
         polychannel_shapes.append(
             PolychannelShape(
                 "cube",
-                position=output_port.get_origin(),
+                position=output_pos,
                 size=output_port._size,
                 absolute_position=True,
             )

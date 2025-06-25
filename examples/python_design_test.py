@@ -4,78 +4,131 @@ from pymfd import PolychannelShape, BezierCurveShape, Device, Component, Color, 
 
 set_fn(50)
 
-# # ############### 1 Test all basic components ##################
-# component = Component(
-#     size=(2560, 1600, 10), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+# ############### 1 Test all basic components ##################
+component = Component(
+    size=(2560, 1600, 10), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+)
+chan_size = (8, 8, 6)
+# Add label
+component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
+# Add a shape
+# component.add_shape(
+#     "simple_cube",
+#     component.make_cube((2, 2, 2), center=False).translate((1, 1, 1)),
+#     label="default",
 # )
-# chan_size = (8, 8, 6)
-# # Add label
-# component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
-# # Add a shape
-# # component.add_shape(
-# #     "simple_cube",
-# #     component.make_cube((2, 2, 2), center=False).translate((1, 1, 1)),
-# #     label="default",
-# # )
-# # component.add_shape(
-# #     "simple_round_cube",
-# #     component.make_rounded_cube((10, 10, 10), (2.5, 2.5, 2.5), center=True),
-# #     label="default",
-# # )
-# # component.add_shape(
-# #     "simple_sphere", component.make_sphere((2, 2, 2), center=False), label="default"
-# # )
-# # component.add_shape(
-# #     "simple_cylinder",
-# #     component.make_cylinder(r=1, h=2, center_xy=False, center_z=False),
-# #     label="default",
-# # )
-# # component.add_shape("text", component.make_text("Hello!!"), label="default")
-# # component.add_shape(
-# #     "import",
-# #     component.import_model("examples/Diamond_21.stl").resize((1, 1, 1)),
-# #     label="default",
-# # )
-# # component.add_shape("tpms", component.make_tpms_cell((10, 10, 8)), label="default")
-# # component.add_shape(
-# #     "polychannel",
-# #     component.make_polychannel(
-# #         [
-# #             PolychannelShape("cube", position=(0, 20, 0), size=chan_size),
-# #             PolychannelShape(
-# #                 "sphere", position=(-33, 0, 0), size=chan_size, corner_radius=10
-# #             ),
-# #             PolychannelShape(
-# #                 "rounded_cube",
-# #                 position=(0, 0, -30),
-# #                 size=chan_size,
-# #                 rounded_cube_radius=(1, 1, 1),
-# #                 corner_radius=0,
-# #             ),
-# #             PolychannelShape("cube", position=(0, -41, 0), size=chan_size),
-# #         ]
-# #     ),
-# #     label="default",
-# # )
-# # component.add_shape(
-# #     "beziercurve",
-# #     component.make_polychannel(
-# #         [
-# #             PolychannelShape("sphere", position=(0, 0, 0), size=chan_size),
-# #             BezierCurveShape(
-# #                 control_points=[(100, 0, 0), (100, 100, 0)],
-# #                 bezier_segments=10,
-# #                 shape_type="sphere",
-# #                 position=(100, 100, 100),
-# #             ),
-# #         ]
-# #     ),
-# #     label="default",
-# # )
+# component.add_shape(
+#     "simple_round_cube",
+#     component.make_rounded_cube((10, 10, 10), (2.5, 2.5, 2.5), center=True),
+#     label="default",
+# )
+# component.add_shape(
+#     "simple_sphere", component.make_sphere((2, 2, 2), center=False), label="default"
+# )
+# component.add_shape(
+#     "simple_cylinder",
+#     component.make_cylinder(r=1, h=2, center_xy=False, center_z=False),
+#     label="default",
+# )
+# component.add_shape("text", component.make_text("Hello!!"), label="default")
+# component.add_shape(
+#     "import",
+#     component.import_model("examples/Diamond_51.stl")
+#     .resize((10, 10, 8))
+#     .translate((-10, 0, 0)),
+#     label="default",
+# )
+# component.add_shape(
+#     f"tpms",
+#     component.make_tpms_cell(
+#         func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=50
+#     ),
+#     label="default",
+# )
+#
+# # TIME DIFFERENT TPMS LOADING METHODS
+# import time
+# from pymfd.backend import TPMS
+# start_time = time.time()
+# for i in range(0, 2):
+#     for j in range(0, 2):
+#         for k in range(25):
+#             component.add_shape(
+#                 f"import_model_{i}{j}{k}",
+#                 component.import_model("examples/Diamond_51.stl")
+#                 .resize((10, 10, 8))
+#                 .translate((10 * i, 10 * j, 8 * k)),
+#                 label="default",
+#             )
+# end_time = time.time()
+# print(f"Import: {end_time - start_time:.2f} seconds")
+# start_time = time.time()
+# for i in range(0, 2):
+#     for j in range(3, 5):
+#         for k in range(25):
+#             component.add_shape(
+#                 f"tpms_njit_{i}{j}{k}",
+#                 component.make_tpms_cell(
+#                     func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=25
+#                 ).translate((10 * i, 10 * j, 8 * k)),
+#                 label="default",
+#             )
+# end_time = time.time()
+# print(f"NJIT Many TPMS: {end_time - start_time:.2f} seconds")
+# start_time = time.time()
+#
+# component.add_shape(
+#     f"tpms_njit_large_eval",
+#     component.make_tpms_cell(
+#         func=TPMS.diamond,
+#         size=(10, 10, 8),
+#         cells=(2, 2, 25),
+#         fill=0.0,
+#         refinement=25,
+#     ).translate((30, 30, 0)),
+#     label="default",
+# )
+# end_time = time.time()
+# print(f"NJIT Large TPMS: {end_time - start_time:.2f} seconds")
+# component.add_shape(
+#     "polychannel",
+#     component.make_polychannel(
+#         [
+#             PolychannelShape("cube", position=(0, 20, 0), size=chan_size),
+#             PolychannelShape(
+#                 "sphere", position=(-33, 0, 0), size=chan_size, corner_radius=10
+#             ),
+#             PolychannelShape(
+#                 "rounded_cube",
+#                 position=(0, 0, -30),
+#                 size=chan_size,
+#                 rounded_cube_radius=(1, 1, 1),
+#                 corner_radius=0,
+#             ),
+#             PolychannelShape("cube", position=(0, -41, 0), size=chan_size),
+#         ]
+#     ),
+#     label="default",
+# )
+# component.add_shape(
+#     "beziercurve",
+#     component.make_polychannel(
+#         [
+#             PolychannelShape("sphere", position=(0, 0, 0), size=chan_size),
+#             BezierCurveShape(
+#                 control_points=[(100, 0, 0), (100, 100, 0)],
+#                 bezier_segments=10,
+#                 shape_type="sphere",
+#                 position=(100, 100, 100),
+#             ),
+#         ]
+#     ),
+#     label="default",
+# )
 
-# # Mesh the component
-# component.preview()
-# # component.slice()
+# Mesh the component
+component.preview()
+# component.slice()
 
 
 # ################ 2 Test subcomonents ##################

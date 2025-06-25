@@ -5,6 +5,7 @@ import trimesh
 import freetype
 import functools
 import numpy as np
+from numba import njit
 from trimesh.scene import Scene
 from PIL import Image, ImageDraw
 from typing import TYPE_CHECKING
@@ -629,11 +630,11 @@ class RoundedCube(Shape):
 
         radius = list(radius)
         if radius[0] <= 0:
-            radius[0] = 0.0000001
+            radius[0] = 0.0001
         if radius[1] <= 0:
-            radius[1] = 0.0000001
+            radius[1] = 0.0001
         if radius[2] <= 0:
-            radius[2] = 0.0000001
+            radius[2] = 0.0001
 
         spheres = []
         for i in range(2):
@@ -919,7 +920,7 @@ class TPMS(Shape):
     ###### Manifold3D triply periodic minimal surface (TPMS) shapes.
     """
 
-    @functools.cache
+    @njit
     def gyroid(x: float, y: float, z: float) -> bool:
         """###### Gyroid TPMS function."""
         a = np.radians(360)
@@ -929,28 +930,33 @@ class TPMS(Shape):
             + np.cos(a * z) * np.sin(a * x)
         )
 
-    @functools.cache
-    def diamond(x: float, y: float, z: float) -> bool:
-        """###### Diamond Lattice TPMS function."""
-        a = np.radians(360)
+    @njit
+    def diamond(x, y, z):
+        a = np.radians(360.0)
         return (
-            np.sin(a * (x)) * np.sin(a * (y)) * np.sin(a * (z))
-            + np.sin(a * (x)) * np.cos(a * (y)) * np.cos(a * (z))
-            + np.cos(a * (x)) * np.sin(a * (y)) * np.cos(a * (z))
-            + np.cos(a * (x)) * np.cos(a * (y)) * np.sin(a * (z))
+            np.sin(a * x) * np.sin(a * y) * np.sin(a * z)
+            + np.sin(a * x) * np.cos(a * y) * np.cos(a * z)
+            + np.cos(a * x) * np.sin(a * y) * np.cos(a * z)
+            + np.cos(a * x) * np.cos(a * y) * np.sin(a * z)
         )
 
     def __init__(
         self,
         size: tuple[int, int, int],
+        cells: tuple[int, int, int] = (1, 1, 1),
         func: Callable[[int, int, int], int] = diamond,
+        fill: float = 0.0,
+        refinement: int = 10,
         px_size: float = None,
         layer_size: float = None,
     ):
         """
         ###### Parameters:
-        - size (tuple[int, int, int]): Size of the TPMS in px/layer space.
+        - size (tuple[int, int, int]): Size of the TPMS unit cell in px/layer space.
+        - cells (tuple[int, int, int]): Number of unit cells in each dimension.
         - func (Callable[[float, float, float], bool]): Function defining the TPMS shape.
+        - fill (float): Level set value for the TPMS shape ranges from -1 to 1 (isosurface at 0)
+        - refinement (int): Number of subdivisions for the level set grid.
         - px_size (float): Pixel size in mm.
         - layer_size (float): Layer height in mm.
 
@@ -958,17 +964,22 @@ class TPMS(Shape):
         """
         super().__init__(px_size, layer_size)
 
-        bounds = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]  # bounding box
-        edge_length = 0.1
-        self._object = Manifold.level_set(
-            func, bounds, edge_length, level=0.0  # isosurface at 0
+        bounds = [
+            0.0,
+            0.0,
+            0.0,
+            1.0 * cells[0],
+            1.0 * cells[1],
+            1.0 * cells[2],
+        ]  # bounding box
+        # bounds = [0.0, 0.0, 0.0, 10.0, 10.0, 10.0]  # bounding box
+        edge_length = 1 / refinement
+        self._object = Manifold.level_set(func, bounds, edge_length, level=fill)
+        size = (
+            size[0] * cells[0],
+            size[1] * cells[1],
+            size[2] * cells[2],
         )
-        if size[0] == 0:
-            size = (0.0001, size[1], size[2])
-        if size[1] == 0:
-            size = (size[0], 0.0001, size[2])
-        if size[2] == 0:
-            size = (size[0], size[1], 0.0001)
         self.resize(size)
         self._add_bbox_to_keepout(self._object.bounding_box())
 

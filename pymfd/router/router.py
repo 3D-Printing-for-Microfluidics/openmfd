@@ -16,7 +16,11 @@ from .. import PolychannelShape, BezierCurveShape, Port, Component
 from ..backend import Shape
 
 
-class AutorouterNode:
+class _AutorouterNode:
+    """
+    ###### A node in the A* search algorithm for 3D routing.
+    """
+
     def __init__(
         self,
         pos,
@@ -28,6 +32,17 @@ class AutorouterNode:
         heuristic_weight=10,
         turn_weight=2,
     ):
+        """
+        ###### Parameters:
+        - pos: The position of the node in 3D space (tuple of 3 floats).
+        - parent: The parent node in the search tree.
+        - cost: The cost to reach this node from the start node.
+        - turns: The number of turns taken to reach this node.
+        - direction: The direction of the last move made to reach this node (tuple of 3 ints).
+        - heuristic: The estimated cost to reach the goal from this node.
+        - heuristic_weight: Weighting factor for the heuristic.
+        - turn_weight: Weighting factor for the number of turns.
+        """
         self._pos = pos
         self._parent = parent
         self._cost = cost
@@ -38,6 +53,10 @@ class AutorouterNode:
         self._turn_weight = turn_weight
 
     def __lt__(self, other):
+        """
+        ###### Less than comparison for priority queue sorting.
+        ###### Compares the total cost (cost + heuristic + turns) of two nodes.
+        """
         return (
             self._cost
             + self._heuristic_weight * self._heuristic
@@ -50,12 +69,26 @@ class AutorouterNode:
 
 
 class Router:
+    """
+    ###### A class for routing channels in a 3D component using various methods.
+    This class provides methods for autorouting, manual routing with polychannels,
+    and routing with fractional paths. It also manages keepouts and bounding boxes
+    for the component and its subcomponents.
+    """
+
     def __init__(
         self,
         component: Component,
         channel_size: tuple[int, int, int] = (0, 0, 0),
         channel_margin: tuple[int, int, int] = (0, 0, 0),
     ):
+        """
+        ###### Initializes the Router with a component and channel specifications.
+        ###### Parameters:
+        - component: The Component instance to route channels within.
+        - channel_size: The size of the channels to be routed (tuple of 3 ints).
+        - channel_margin: The margin to apply around the channels (tuple of 3 ints).
+        """
         self._routes = {}
         self._component = component
         self._channel_size = channel_size
@@ -100,6 +133,14 @@ class Router:
         self._keepout_index = idx
 
     def _add_margin(self, bbox, margin):
+        """
+        ###### Adds a margin to a bounding box.
+        ###### Parameters:
+        - bbox: The bounding box to which the margin will be added (tuple of 6 floats).
+        - margin: The margin to add to each side of the bounding box (tuple of 3 floats).
+        ###### Returns:
+        - A new bounding box with the margin applied (tuple of 6 floats).
+        """
         (x0, y0, z0, x1, y1, z1) = bbox
         mx, my, mz = margin
         return (x0 - mx, y0 - my, z0 - mz, x1 + mx, y1 + my, z1 + mz)
@@ -113,6 +154,18 @@ class Router:
         heuristic_weight: int = 10,
         turn_weight: int = 2,
     ):
+        """
+        ###### Automatically routes a channel between two ports using A* algorithm.
+        ###### Parameters:
+        - input_port: The Port instance where the channel starts.
+        - output_port: The Port instance where the channel ends.
+        - label: A label for the routed channel.
+        - timeout: The maximum time allowed for the routing operation (in seconds).
+        - heuristic_weight: Weighting factor for the heuristic in the A* algorithm.
+        - turn_weight: Weighting factor for the number of turns in the A* algorithm.
+        ###### Raises:
+        - ValueError: If either port has not been added to the component before routing.
+        """
         if input_port._parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port._parent is None:
@@ -137,6 +190,16 @@ class Router:
         polychannel_shapes: list[Union[PolychannelShape, BezierCurveShape]],
         label: str,
     ):
+        """
+        ###### Routes a channel between two ports using a specified polychannel path.
+        ###### Parameters:
+        - input_port: The Port instance where the channel starts.
+        - output_port: The Port instance where the channel ends.
+        - polychannel_shapes: A list of PolychannelShape or BezierCurveShape instances defining the channel path.
+        - label: A label for the routed channel.
+        ###### Raises:
+        - ValueError: If either port has not been added to the component before routing.
+        """
         if input_port._parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port._parent is None:
@@ -183,6 +246,16 @@ class Router:
         route: list[tuple[float, float, float]],
         label: str,
     ):
+        """
+        ###### Routes a channel between two ports using a fractional path.
+        ###### Parameters:
+        - input_port: The Port instance where the channel starts.
+        - output_port: The Port instance where the channel ends.
+        - route: A list of tuples representing the fractional path segments (each tuple contains three floats) the sum of each digit must add to 1.0.
+        - label: A label for the routed channel.
+        ###### Raises:
+        - ValueError: If either port has not been added to the component before routing.
+        """
         if input_port._parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port._parent is None:
@@ -232,6 +305,15 @@ class Router:
         }
 
     def _path_to_polychannel_shapes(self, input_port, output_port, path):
+        """
+        ###### Converts a path defined by a list of points into a list of PolychannelShape instances.
+        ###### Parameters:
+        - input_port: The Port instance where the channel starts.
+        - output_port: The Port instance where the channel ends.
+        - path: A list of tuples representing the path segments (each tuple contains three floats).
+        ###### Returns:
+        - A list of PolychannelShape instances representing the channel path.
+        """
         polychannel_shapes = []
 
         # Handle input port
@@ -271,6 +353,11 @@ class Router:
         return polychannel_shapes
 
     def route(self):
+        """
+        ###### Routes all defined channels in the component.
+        This method checks for cached routes, loads them if valid, and reroutes if necessary.
+        It handles both manual routing with polychannels and autorouting using the A* algorithm.
+        """
         print("Routing...")
         new_routes = []
         for name, route_info in self._routes.items():  # Route cached paths if valid
@@ -293,6 +380,13 @@ class Router:
                 self._autoroute(name, route_info)
 
     def _load_cached_route(self, name: str):
+        """
+        ###### Loads a cached route from a file.
+        ###### Parameters:
+        - name: The name of the route to load.
+        ###### Returns:
+        - A dictionary containing the cached route information if it exists, otherwise None.
+        """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
         cache_file = (
@@ -308,6 +402,15 @@ class Router:
         return None
 
     def _load_route(self, name: str, route_info: dict, cached_info: dict):
+        """
+        ###### Validates and loads a route from cached information.
+        ###### Parameters:
+        - name: The name of the route to load.
+        - route_info: A dictionary containing the route information to validate.
+        - cached_info: A dictionary containing the cached route information.
+        ###### Returns:
+        - True if the route is valid and loaded successfully, otherwise False.
+        """
         input_port = route_info["input"]
         output_port = route_info["output"]
 
@@ -335,6 +438,15 @@ class Router:
         return True
 
     def _validate_keepouts(self, input_port: Port, output_port: Port, polychannel: Shape):
+        """
+        ###### Checks if the polychannel does not violate any keepouts.
+        ###### Parameters:
+        - input_port: The Port instance where the channel starts.
+        - output_port: The Port instance where the channel ends.
+        - polychannel: The PolychannelShape instance representing the channel path.
+        ###### Returns:
+        - True if the polychannel does not violate any keepouts, otherwise False.
+        """
         # remove port keepouts
         removed_keepouts = {}
         for keepout_key, (keepout_idx, keepout_box) in list(self._keepouts.items()):
@@ -371,6 +483,15 @@ class Router:
         return not violation
 
     def _route(self, name: str, route_info: dict, loaded: bool = False):
+        """
+        ###### Routes a channel based on the provided route information.
+        ###### Parameters:
+        - name: The name of the route to be created.
+        - route_info: A dictionary containing the route information, including input and output ports, path, and other parameters.
+        - loaded: A boolean indicating whether the route is being loaded from cache (default is False).
+        ###### Returns:
+        - True if the route was successfully created, otherwise False.
+        """
         input_port = route_info["input"]
         output_port = route_info["output"]
 
@@ -404,6 +525,14 @@ class Router:
         return True
 
     def _cache_route(self, name: str, route_info: dict):
+        """
+        ###### Caches the route information to a file.
+        ###### Parameters:
+        - name: The name of the route to be cached.
+        - route_info: A dictionary containing the route information to be cached.
+        ###### Returns:
+        - True if the route was successfully cached, otherwise False.
+        """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
         cache_file = (
@@ -428,6 +557,14 @@ class Router:
         return False
 
     def _autoroute(self, name: str, route_info: dict):
+        """
+        ###### Automatically routes a channel using the A* algorithm.
+        ###### Parameters:
+        - name: The name of the route to be created.
+        - route_info: A dictionary containing the route information, including input and output ports, timeout, heuristic weight, and turn weight.
+        ###### Returns:
+        - None
+        """
         input_port = route_info["input"]
         output_port = route_info["output"]
 
@@ -485,6 +622,17 @@ class Router:
     def _a_star_3d(
         self, input_port, output_port, timeout=120, heuristic_weight=10, turn_weight=2
     ):
+        """
+        ###### Implements the A* algorithm for 3D routing between two ports.
+        ###### Parameters:
+        - input_port: The Port instance where the channel starts.
+        - output_port: The Port instance where the channel ends.
+        - timeout: The maximum time allowed for the routing operation (in seconds).
+        - heuristic_weight: Weighting factor for the heuristic in the A* algorithm.
+        - turn_weight: Weighting factor for the number of turns in the A* algorithm.
+        ###### Returns:
+        - A list of tuples representing the path from the input port to the output port if a valid path is found, otherwise None.
+        """
         start_time = time.time()
 
         start = self._move_outside_port(input_port)
@@ -493,7 +641,7 @@ class Router:
         directions = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
 
         open_heap = []
-        start_node = AutorouterNode(
+        start_node = _AutorouterNode(
             start,
             cost=0,
             turns=0,
@@ -533,7 +681,7 @@ class Router:
                 turn_count = current._turns + int(is_turn)
                 move_cost = current._cost + 1
 
-                neighbor_node = AutorouterNode(
+                neighbor_node = _AutorouterNode(
                     neighbor_pos,
                     parent=current,
                     cost=move_cost,
@@ -548,6 +696,13 @@ class Router:
         return None  # No path found
 
     def _move_outside_port(self, port: Port):
+        """
+        ###### Moves the port position outside its bounding box in the direction of its vector.
+        ###### Parameters:
+        - port: The Port instance to be moved outside its bounding box.
+        ###### Returns:
+        - A tuple representing the new position of the port outside its bounding box.
+        """
         pos = list(port._position)
         direction = port.to_vector()
 
@@ -562,6 +717,14 @@ class Router:
         return tuple(pos)
 
     def _get_box_from_pos_and_size(self, pos, size):
+        """
+        ###### Creates a bounding box from a position and size.
+        ###### Parameters:
+        - pos: A tuple representing the position in 3D space (x, y, z).
+        - size: A tuple representing the size of the bounding box (width, height, depth).
+        ###### Returns:
+        - A tuple representing the bounding box in 3D space (x0, y0, z0, x1, y1, z1).
+        """
         return (
             pos[0],
             pos[1],
@@ -572,6 +735,14 @@ class Router:
         )
 
     def _intersects_with_bbox(self, box1, box2):
+        """
+        ###### Checks if two bounding boxes intersect.
+        ###### Parameters:
+        - box1: The first bounding box (tuple of 6 floats).
+        - box2: The second bounding box (tuple of 6 floats).
+        ###### Returns:
+        - True if the bounding boxes intersect, otherwise False.
+        """
         x0a, y0a, z0a, x1a, y1a, z1a = box1
         x0b, y0b, z0b, x1b, y1b, z1b = box2
         return not (
@@ -584,9 +755,24 @@ class Router:
         )
 
     def _heuristic(self, a, b):
+        """
+        ###### Heuristic function for A* algorithm.
+        ###### Parameters:
+        - a: The first point in 3D space (tuple of 3 floats).
+        - b: The second point in 3D space (tuple of 3 floats).
+        ###### Returns:
+        - The heuristic cost between the two points.
+        """
         return sum(abs(a[i] - b[i]) for i in range(3))  # Manhattan
 
     def _reconstruct_path(self, node):
+        """
+        ###### Reconstructs the path from the end node to the start node.
+        ###### Parameters:
+        - node: The end node in the A* search tree.
+        ###### Returns:
+        - A list of tuples representing the path from the start node to the end node.
+        """
         path = []
         while node:
             path.append(node._pos)
@@ -594,6 +780,13 @@ class Router:
         return path[::-1]
 
     def _simplify_cardinal_path(self, points):
+        """
+        ###### Simplifies a path by removing unnecessary points while keeping cardinal directions.
+        ###### Parameters:
+        - points: A list of tuples representing the path segments (each tuple contains three floats).
+        ###### Returns:
+        - A simplified list of tuples representing the path segments.
+        """
         # Remove any duplicate entries
         tmp = [points[0]]
         for point in points[1:]:
@@ -623,6 +816,13 @@ class Router:
         return simplified
 
     def _is_valid_point(self, point):
+        """
+        ###### Checks if a point is valid for routing.
+        ###### Parameters:
+        - point: A tuple representing the point in 3D space (x, y, z).
+        ###### Returns:
+        - True if the point is valid for routing, otherwise False.
+        """
         pos_box = self._get_box_from_pos_and_size(point, self._channel_size)
 
         if not self._is_bbox_inside(
@@ -640,6 +840,14 @@ class Router:
         return True
 
     def _is_bbox_inside(self, bbox_inner, bbox_outer):
+        """
+        ###### Checks if one bounding box is completely inside another.
+        ###### Parameters:
+        - bbox_inner: The inner bounding box (tuple of 6 floats).
+        - bbox_outer: The outer bounding box (tuple of 6 floats).
+        ###### Returns:
+        - True if the inner bounding box is completely inside the outer bounding box, otherwise False.
+        """
         x0i, y0i, z0i, x1i, y1i, z1i = bbox_inner
         x0o, y0o, z0o, x1o, y1o, z1o = bbox_outer
         return (

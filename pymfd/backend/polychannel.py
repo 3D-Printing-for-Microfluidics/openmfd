@@ -144,7 +144,7 @@ class BezierCurveShape:
         - corner_segments: Defaults to last shape's segments (10 if not specified).
         - fn: Default to manifold3D's default value (if not specified).
 
-        Bezier curves cannot be the first shape in a polychannel.
+        ###### Bezier curves cannot be the first shape in a polychannel!
         """
         self._shape_type = shape_type
         self._control_points = control_points
@@ -236,7 +236,9 @@ class BezierCurveShape:
 
 class Polychannel(Shape):
     """
-    ###### Polychannel class for creating complex 3D shapes with multiple segments
+    ###### Represents a polychannel, which is a collection of shapes that are hulls of each other.
+    ###### It can contain PolychannelShape and BezierCurveShape objects..
+    ###### The shapes are automatically validated and rounded corners are created for non-manhattan corners.
     """
 
     def __init__(
@@ -489,12 +491,15 @@ class Polychannel(Shape):
         list[tuple[float, float, float]], list[tuple[float, float, float]], int, int
     ]:
         """
-        Calculate a 3D arc between points A, B, and C with radius r.
-        A, B, C are 3D points (tuples or lists).
-        r is the radius of the arc.
-        n is the number of points to generate along the arc.
+        ###### Calculate a 3D arc between points A, B, and C with radius r.
+        ###### Parameters:
+        - A: Start point of the arc.
+        - B: Middle point of the arc (where the arc starts and ends).
+        - C: End point of the arc.
+        - r: Radius of the arc.
+        - n: Number of points to generate along the arc.
 
-        Returns:
+        ###### Returns:
         - arc_points: List of points along the arc.
         - rotation_vectors: List of rotation vectors for each point.
         - start_dir: Index of the direction along BA (0 for x, 1 for y, 2 for z).

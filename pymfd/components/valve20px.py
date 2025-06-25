@@ -3,12 +3,12 @@ from .. import Component, Port, Color
 
 class Valve20px(Component):
     """
-    20 px membrane valve
+    ###### 20 px membrane valve
     - 3 layer fluidic chamber
     - 11 layer pneumatic chamber
     - 1 layer membrane
 
-    Ports:
+    ###### Ports:
     - F_IN:
         - Type: IN
         - Size: (6, 6, 4)

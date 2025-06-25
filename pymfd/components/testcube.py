@@ -3,7 +3,7 @@ from .. import Component, Port, Color
 
 class TestCube(Component):
     """
-    Port test cube. Used to test visualization and component geometric transformations.
+    ###### Port test cube. Used to test visualization and component geometric transformations.
     """
 
     def __init__(self):

@@ -9,9 +9,9 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 def draw_3d_bounding_boxes(boxes, boxes2, color="cyan", edge_color="k", alpha=0.2):
     """
-    Draws 3D bounding boxes in a 3D plot.
+    ###### Draws 3D bounding boxes in a 3D plot.
 
-    Parameters:
+    ###### Parameters:
     - boxes: List of tuples, where each tuple contains the coordinates of a bounding box in the format
              (x_min, y_min, z_min, x_max, y_max, z_max).
     - boxes2: List of tuples, where each tuple contains the coordinates of a second set of bounding boxes

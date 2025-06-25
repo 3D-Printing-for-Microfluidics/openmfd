@@ -160,9 +160,9 @@ class Color:
 
     def __init__(self, r: int, g: int, b: int, a: int = 255):
         """
-        Initialize the color.
+        ###### Initialize the color.
 
-        Parameters:
+        ###### Parameters:
         - r (int): The red value.
         - g (int): The green value.
         - b (int): The blue value.
@@ -176,9 +176,9 @@ class Color:
     @classmethod
     def from_name(cls, name: str = "aqua", alpha: int = 255) -> Color:
         """
-        Initialize the color from a name.
+        ###### Initialize the color from a name.
 
-        Parameters:
+        ###### Parameters:
         - name (str): The name of the color.
         - alpha (int): The alpha value.
         """
@@ -191,9 +191,9 @@ class Color:
     @classmethod
     def from_rgba(cls, rgba: tuple[int, int, int, int]) -> Color:
         """
-        Initialize the color from a tuple of 4 integers.
+        ###### Initialize the color from a tuple of 4 integers.
 
-        Parameters:
+        ###### Parameters:
         - rgba (tuple[int, int, int, int]): The RGBA values.
         """
         if len(rgba) != 4:
@@ -203,9 +203,9 @@ class Color:
     @classmethod
     def from_hex(cls, hex_code: str, alpha: int = 255) -> Color:
         """
-        Initialize the color from a hex code.
+        ###### Initialize the color from a hex code.
 
-        Parameters:
+        ###### Parameters:
         - hex_code (str): The hex code.
         - alpha (int): The alpha value.
         """
@@ -219,9 +219,9 @@ class Color:
 
     def _change_to_color(self, color: Color) -> None:
         """
-        Change the color to another color.
+        ###### Change the color to another color.
 
-        Parameters:
+        ###### Parameters:
         - color (Color): The color to change to.
         """
         self._r = color._r
@@ -231,31 +231,31 @@ class Color:
 
     def _to_rgba(self) -> tuple[int, int, int, int]:
         """
-        Convert the color to a tuple of 4 integers.
+        ###### Convert the color to a tuple of 4 integers.
         """
         return (self._r, self._g, self._b, self._a)
 
     def _to_float(self) -> tuple[float, float, float, float]:
         """
-        Convert the color to a tuple of 4 floats.
+        ###### Convert the color to a tuple of 4 floats.
         """
         return (self._r / 256, self._g / 256, self._b / 256, self._a / 256)
 
     def __str__(self) -> str:
         """
-        Convert the color to a string.
+        ###### Convert the color to a string.
         """
         return f"rgba({self._r}, {self._g}, {self._b}, {self._a})"
 
     def __repr__(self) -> str:
         """
-        Convert the color to a string.
+        ###### Convert the color to a string.
         """
         return f"Color(r={self._r}, g={self._g}, b={self._b}, a={self._a})"
 
     @staticmethod
     def _clamp(value: Union[float, int]) -> int:
         """
-        Clamp the value between 0 and 255.
+        ###### Clamp the value between 0 and 255.
         """
         return max(0, min(255, int(value)))

@@ -4,9 +4,9 @@ from ..router import Router
 
 class Pinhole(Component):
     """
-    Simple 144 px pinhole component.
+    ###### Simple 144 px pinhole component.
 
-    Ports:
+    ###### Ports:
     - port:
         - Type: INOUT
         - Size: (8, 8, 6)

@@ -72,10 +72,10 @@ class _InstantiationTrackerMixin:
 
 class Port(_InstantiationTrackerMixin):
     """
-    Class representing a port in a microfluidic device.
-    Ports are used to connect components and define their interaction with the environment.
-    Each port has a type (IN, OUT, INOUT), a position in 3D space, a size, and a surface normal.
-    The surface normal defines the direction in which the port is oriented.
+    ###### Class representing a port in a microfluidic device.
+    ###### Ports are used to connect components and define their interaction with the environment.
+    ###### Each port has a type (IN, OUT, INOUT), a position in 3D space, a size, and a surface normal.
+    ###### The surface normal defines the direction in which the port is oriented.
     """
 
     class PortType(Enum):
@@ -112,9 +112,9 @@ class Port(_InstantiationTrackerMixin):
         surface_normal: SurfaceNormal,
     ):
         """
-        Initialize a port.
+        ###### Initialize a port.
 
-        Parameters:
+        ###### Parameters:
         - _type (PortType): The type of the port (IN, OUT, INOUT).
         - position (tuple[int, int, int]): The position of the port in 3D space.
         - size (tuple[int, int, int]): The size of the port.
@@ -194,15 +194,15 @@ class Port(_InstantiationTrackerMixin):
 
     def get_color(self):
         """
-        Get the color of the port based on its type.
+        ###### Get the color of the port based on its type.
 
-        The color is determined as follows:
+        ###### The color is determined as follows:
         - IN ports are green
         - OUT ports are red
         - INOUT ports are blue
         - If the type is not recognized, it defaults to white.
 
-        Returns:
+        ###### Returns:
         - Color: The color of the port.
         """
         if self._type == Port.PortType.IN:

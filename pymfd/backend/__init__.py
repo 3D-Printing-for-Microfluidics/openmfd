@@ -1,5 +1,5 @@
 """
-Backend module.
+Module that provides 3D manifold shapes and transforms as well as polychannel (complex hulled shapes).
 """
 
 from .color import Color

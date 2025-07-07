@@ -1,3 +1,4 @@
+import inspect
 from .. import Component, Port, Color
 
 
@@ -7,12 +8,19 @@ class TestCube(Component):
     """
 
     def __init__(self):
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+
         super().__init__(
             size=(30, 30, 15), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
         )  # px_size=1.0, layer_size=1.0)
 
         self.add_label("cube", Color.from_name("aqua", 255))
-        self.add_shape("cubeshape", self.make_cube((30, 30, 15), center=False), "cube")
+        self.add_bulk_shape(
+            "cubeshape", self.make_cube((30, 30, 15), center=False), "cube"
+        )
 
         self.add_port(
             "NEG_X_IN",

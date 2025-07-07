@@ -1,4 +1,4 @@
-from pymfd.components import Valve20px
+from pymfd.component_library import Valve20px
 from pymfd.router import Router
 from pymfd import set_fn, Device, Component, Color
 

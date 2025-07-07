@@ -1,5 +1,5 @@
-from .. import Component, Port, Color, PolychannelShape
-from ..router import Router
+import inspect
+from .. import Component, Port, Color, PolychannelShape, Router
 
 
 class Pinhole(Component):
@@ -19,6 +19,11 @@ class Pinhole(Component):
         pinhole_length = 200
         taper_length = 50
         total_length = pinhole_length + taper_length
+
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             size=(total_length, pinhole_height, pinhole_width),
@@ -43,12 +48,17 @@ class Pinhole(Component):
                     "cube",
                     position=(taper_length, pinhole_height / 2, pinhole_width / 2),
                     size=(0, channel_size[1], channel_size[2]),
-                    center=True,
                 ),
             ]
         )
 
         self.add_shape("pinhole", shape, label="default")
+
+        self.add_bulk_shape(
+            "BulkShape",
+            self.make_cube((total_length, pinhole_height, pinhole_width), center=False),
+            label="default",
+        )
 
         self.add_port(
             "port",

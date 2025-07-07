@@ -1,5 +1,5 @@
 from pymfd.router import Router
-from pymfd.components import Valve20px, TestCube, Pinhole
+from pymfd.component_library import Valve20px, TestCube, Pinhole
 from pymfd import PolychannelShape, BezierCurveShape, Device, Component, Color, set_fn
 
 set_fn(50)

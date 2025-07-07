@@ -1,3 +1,4 @@
+import inspect
 from .. import Component, Port, Color
 
 
@@ -28,10 +29,16 @@ class Valve20px(Component):
     """
 
     def __init__(self):
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+
         super().__init__(
             size=(36, 36, 24), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
         )  # px_size=1.0, layer_size=1.0)
 
+        self.add_label("device", Color.from_name("cyan", 255))
         self.add_label("pneumatic", Color.from_name("red", 255))
         self.add_label("fluidic", Color.from_name("blue", 255))
 
@@ -55,6 +62,10 @@ class Valve20px(Component):
         pneumatics += self.make_cube((8, 10, 6), center=False).translate((14, 0, 12))
         pneumatics += self.make_cube((8, 10, 6), center=False).translate((14, 26, 12))
         self.add_shape("PneumaticShapes", pneumatics, label="pneumatic")
+
+        self.add_bulk_shape(
+            "BulkShape", self.make_cube((36, 36, 24), center=False), label="device"
+        )
 
         self.add_port(
             "F_IN",

@@ -700,6 +700,7 @@ class Slicer:
         for image in images:
             if type(image) is not dict:
                 H, W = image.shape
+                break
         if H == 0 or W == 0:
             H, W = image_from_dict(images[0]).shape
 

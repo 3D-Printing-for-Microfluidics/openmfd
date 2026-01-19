@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: openmfd
+Version: 0.1.0
+Summary: Python package for designing and slicing custom microfluidic devices.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: freetype-py>=2.5.1
+Requires-Dist: manifold3d>=3.3.2
+Requires-Dist: matplotlib>=3.10.8
+Requires-Dist: numba>=0.63.1
+Requires-Dist: numpy>=2.2.6
+Requires-Dist: opencv-python>=4.12.0.88
+Requires-Dist: pillow>=12.1.0
+Requires-Dist: rtree>=1.4.1
+Requires-Dist: scipy>=1.15.3
+Requires-Dist: shapely>=2.1.2
+Requires-Dist: trimesh>=4.11.0

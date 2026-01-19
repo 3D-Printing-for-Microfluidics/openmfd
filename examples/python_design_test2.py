@@ -1,9 +1,11 @@
-from pymfd.component_library import Valve20px
-from pymfd.router import Router
-from pymfd import set_fn, Visitech_LRS10_Device, Component, Color, Cube
-from pymfd.slicer import Slicer
-
-from pymfd.slicer import (
+from openmfd import (
+    set_fn,
+    Visitech_LRS10_Device,
+    Component,
+    Color,
+    Cube,
+    Router,
+    Slicer,
     Settings,
     ResinType,
     Printer,
@@ -11,13 +13,14 @@ from pymfd.slicer import (
     PositionSettings,
     ExposureSettings,
 )
+from openmfd.component_library import Valve20px
 
 set_fn(50)
 
 settings = Settings(
     # user="Test User",
     # purpose="Test Design",
-    # description="This is a test design for the pymfd library.",
+    # description="This is a test design for the OpenMFD library.",
     printer=Printer(
         name="HR3v3",
         light_engines=[
@@ -140,7 +143,7 @@ rtr.route()
 # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
 bulk_cube = Cube(device._size, center=False)
 bulk_cube.translate(device._position)
-device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
+device.add_bulk("bulk_cube", bulk_cube, label="device")
 
 # Mesh the component
 # device.render("component.glb", do_bulk_difference=False)

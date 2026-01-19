@@ -1,5 +1,5 @@
 import inspect
-from pymfd import (
+from openmfd import (
     set_fn,
     Visitech_LRS10_Device,
     Component,
@@ -10,13 +10,16 @@ from pymfd import (
     Cylinder,
     Polychannel,
     PolychannelShape,
-)
-
-from pymfd.slicer import (
     MembraneSettings,
     SecondaryDoseSettings,
     PositionSettings,
     ExposureSettings,
+    Slicer,
+    Settings,
+    ResinType,
+    Printer,
+    LightEngine,
+)
 )
 
 set_fn(100)
@@ -124,14 +127,14 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             label="pneumatic",
         )
 
-        # self.add_regional_settings(
-        #     "exposure_settings",
-        #     Cube((18, 9, 65), center=False),
-        #     ExposureSettings(
-        #         exposure_time=400.0,
-        #     ),
-        #     label="pneumatic",
-        # )
+        self.add_regional_settings(
+            "exposure_settings",
+            Cube((18, 9, 65), center=False),
+            ExposureSettings(
+                exposure_time=400.0,
+            ),
+            label="pneumatic",
+        )
 
         self.add_regional_settings(
             "position_settings",
@@ -140,7 +143,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             label="pneumatic",
         )
 
-        self.add_bulk_shape(
+        self.add_bulk(
             "bulk_cube",
             Cube((18, 18, 65), center=False),
             label="default",
@@ -154,25 +157,16 @@ device.add_subcomponent(f"valve", v)
 
 bulk_cube = Cube(device._size, center=False)
 bulk_cube.translate(device._position)
-device.add_bulk_shape("bulk_cube", bulk_cube, label="device")
+device.add_bulk("bulk_cube", bulk_cube, label="device")
 
 device.set_burn_in_exposure([10000, 5000, 2500])
 
 device.preview()
 
-
-from pymfd.slicer import (
-    Slicer,
-    Settings,
-    ResinType,
-    Printer,
-    LightEngine,
-)
-
 settings = Settings(
     user="Test User",
     purpose="Test Design",
-    description="This is a test design for the pymfd library.",
+    description="This is a test design for the OpenMFD library.",
     printer=Printer(
         name="HR3v3",
         light_engines=LightEngine(

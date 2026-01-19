@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>OpenMFD Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="modelSelector"
+    style="position:fixed;top:1.25rem;right:1.25rem;z-index:200;background:rgba(34,34,34,0.95);padding:0.75rem 1.25rem;border-radius:0.5rem;box-shadow:0 2px 8px #0003;font-size:0.95rem;color:#fff;max-width:300px;">
+    <strong>Models</strong><br>
+    <form id="glbForm"></form>
+  </div>
+  <script type="module" src="main.js"></script>
+  <button id="resetCameraBtn">Reset Camera</button>
+  <button id="reloadModelBtn">Reload Models</button>
+  <style>
+    #resetCameraBtn,
+    #reloadModelBtn {
+      position: fixed;
+      right: 1.25rem;
+      padding: 0.5rem 0.5rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+      z-index: 100;
+    }
+
+    #resetCameraBtn {
+      bottom: 4.25rem;
+    }
+
+    #reloadModelBtn {
+      bottom: 1.25rem;
+    }
+  </style>
+</body>
+
+</html>

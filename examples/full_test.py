@@ -1,7 +1,7 @@
 import inspect
-from pymfd.component_library import Pinhole
 
-from pymfd import *
+from openmfd import *
+from openmfd.component_library import Pinhole
 
 set_fn(50)
 
@@ -92,7 +92,7 @@ class Valve20px(VariableLayerThicknessComponent):
         )
 
         # Build bulk shape
-        self.add_bulk_shape("BulkShape", Cube((36, 36, 48), center=False), label="device")
+        self.add_bulk("BulkShape", Cube((36, 36, 48), center=False), label="device")
 
 
 # Valve20px().preview()
@@ -173,7 +173,7 @@ class DC(VariableLayerThicknessComponent):
         )
 
         # Build bulk shape
-        self.add_bulk_shape("BulkShape", Cube((36, 36, 48), center=False), label="device")
+        self.add_bulk("BulkShape", Cube((36, 36, 48), center=False), label="device")
 
 
 # DC().preview()
@@ -260,9 +260,7 @@ class Pump(Component):
         v2.connect_port(v2.F_OUT.get_name())
 
         # Build bulk shape
-        self.add_bulk_shape(
-            "BulkShape", Cube((125, 36, 36), center=False), label="device"
-        )
+        self.add_bulk("BulkShape", Cube((125, 36, 36), center=False), label="device")
 
 
 # Pump().rotate(270, in_place=True).mirror(
@@ -310,7 +308,7 @@ class TJunction(Component):
         r.route()
 
         # Build bulk shape
-        self.add_bulk_shape("BulkShape", Cube((24, 24, 18), center=False), label="device")
+        self.add_bulk("BulkShape", Cube((24, 24, 18), center=False), label="device")
 
 
 # TJunction().preview()
@@ -355,7 +353,7 @@ class ViewingRegion(Component):
         r.route()
 
         # Build bulk shape
-        self.add_bulk_shape("BulkShape", Cube((48, 48, 18), center=False), label="device")
+        self.add_bulk("BulkShape", Cube((48, 48, 18), center=False), label="device")
 
 
 # ViewingRegion().preview()
@@ -400,7 +398,7 @@ class HARChannel(Component):
         r.route()
 
         # Build bulk shape
-        self.add_bulk_shape("BulkShape", Cube((72, 24, 36), center=False), label="device")
+        self.add_bulk("BulkShape", Cube((72, 24, 36), center=False), label="device")
 
 
 # HARChannel().preview()
@@ -501,7 +499,7 @@ class SerpentineChannel(Component):
         r.route()
 
         # Build bulk shape
-        self.add_bulk_shape(
+        self.add_bulk(
             "BulkShape",
             Cube(
                 (
@@ -713,7 +711,7 @@ dev.add_regional_settings(
 
 dev.set_burn_in_exposure([10000, 5000, 2500])
 
-dev.add_bulk_shape(
+dev.add_bulk(
     "BulkShape",
     Cube((2560, 1600, 250), center=False).translate((0, 0, 0)),
     label="device",
@@ -724,7 +722,7 @@ dev.preview()
 settings = Settings(
     # user="Test User",
     # purpose="Test Design",
-    # description="This is a test design for the pymfd library.",
+    # description="This is a test design for the OpenMFD library.",
     printer=Printer(
         name="HR3v3",
         light_engines=[

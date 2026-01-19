@@ -1,4 +1,4 @@
-from pymfd import Component, Color, ImportModel
+from openmfd import Component, Color, ImportModel, TPMS
 
 # ############### 1 Test all basic components ##################
 component = Component(
@@ -10,7 +10,6 @@ component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # Add a shape
 # TIME DIFFERENT TPMS LOADING METHODS
 import time
-from pymfd import TPMS
 
 # start_time = time.time()
 # for i in range(0, 2):

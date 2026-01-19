@@ -1,0 +1,71 @@
+[build-system]
+requires = ["uv_build >= 0.9.21, <0.10.0"]
+build-backend = "uv_build"
+
+[project]
+name = "openmfd"
+version = "0.1.0"
+dependencies = [
+    "freetype-py>=2.5.1",
+    "manifold3d>=3.3.2",
+    "numba>=0.63.1",
+    "numpy>=2.2.6",
+    "opencv-python>=4.12.0.88",
+    "pillow>=12.1.0",
+    "rtree>=1.4.1",
+    "scipy>=1.15.3",
+    "shapely>=2.1.2",
+    "trimesh>=4.11.0",
+]
+requires-python = ">=3.10"
+authors = [
+    {name = "Dallin Miner", email = "keyofd.miner@gmail.com"},
+    {name = "Greg Nordin", email = "nordin@byu.edu"},
+]
+maintainers = [
+    {name = "Dallin Miner", email = "keyofd.miner@gmail.com"},
+]
+description = "Python package for designing and slicing custom microfluidic devices."
+readme = "README.md"
+licence = {text = "GNU General Public License v3.0"}
+licence-files = ["LICENSE"]
+keywords = ["microfluidics", "3d printing", "slicing", "computational geometry"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.9.1",
+    "matplotlib>=3.10.8",
+    "pdoc>=0.14.0",
+]
+
+[project.urls]
+repository = ""
+documentation = ""
+
+[project.scripts]
+mfd-serve = "openmfd.run_visualizer:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple/"
+publish-url = "https://upload.pypi.org/legacy/"
+explicit = true

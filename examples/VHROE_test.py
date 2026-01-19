@@ -1,25 +1,24 @@
 import inspect
-from pymfd.component_library import Pinhole
-
-from pymfd import *
+from openmfd import *
+from openmfd.component_library import Pinhole
 
 set_fn(50)
 
-vdev = Visitech_LRS10_Device("vdev", position=(10, 0, 0), layers=100, layer_size=0.015)
+vdev = Visitech_LRS10_Device("vdev", position=(0, 0, 0), layers=100, layer_size=0.015)
 
-wdev = Wintech_Device("wdev", position=(100, 0, 1000), layers=100, layer_size=0.0015)
+wdev = Wintech_Device("wdev", position=(0, 0, 1000), layers=100, layer_size=0.0015)
 
 vdev.add_label("device", Color.from_name("aqua", 100))
 wdev.add_label("device", Color.from_name("blue", 100))
 
-vdev.add_bulk_shape(
+vdev.add_bulk(
     "v_bulk", Cube(vdev._size, center=False).translate(vdev._position), label="device"
 )
-wdev.add_bulk_shape(
+wdev.add_bulk(
     "w_bulk", Cube(wdev._size, center=False).translate(wdev._position), label="device"
 )
 vdev.add_subcomponent("wintech", wdev.translate((0, 0, 0)))
-vdev.add_subcomponent("wintech", wdev.translate((100, 0, 0)))
+vdev.add_subcomponent("wintech", wdev.translate((100, 100, 0)))
 
 vdev.preview()
 # dev.preview()
@@ -27,7 +26,7 @@ vdev.preview()
 settings = Settings(
     # user="Test User",
     # purpose="Test Design",
-    # description="This is a test design for the pymfd library.",
+    # description="This is a test design for the OpenMFD library.",
     printer=Printer(
         name="HR3v3",
         light_engines=[

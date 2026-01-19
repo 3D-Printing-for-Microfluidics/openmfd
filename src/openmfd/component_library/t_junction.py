@@ -1,0 +1,77 @@
+import inspect
+from openmfd import Component, Port, Color, Cube, Router
+
+
+class TJunction(Component):
+    def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6)):
+        frame = inspect.currentframe()
+        args, _, _, values = inspect.getargvalues(frame)
+        self.init_args = [values[arg] for arg in args if arg != "self"]
+        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+
+        super().__init__(
+            size=(
+                channel_size[0] + channel_margin[0] * 2,
+                channel_size[1] + channel_margin[1] * 2,
+                channel_size[2] + channel_margin[2] * 2,
+            ),
+            position=(0, 0, 0),
+            px_size=0.0076,
+            layer_size=0.01,
+        )
+
+        # Setup labels
+        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("fluidic", Color.from_name("blue", 255))
+
+        # Add ports
+        self.add_port(
+            "F_IN1",
+            Port(
+                Port.PortType.IN,
+                (0, channel_margin[1], channel_margin[2]),
+                channel_size,
+                Port.SurfaceNormal.NEG_X,
+            ),
+        )
+        self.add_port(
+            "F_IN2",
+            Port(
+                Port.PortType.IN,
+                (
+                    channel_size[0] + channel_margin[0] * 2,
+                    channel_margin[1],
+                    channel_margin[2],
+                ),
+                channel_size,
+                Port.SurfaceNormal.POS_X,
+            ),
+        )
+        self.add_port(
+            "F_OUT",
+            Port(
+                Port.PortType.OUT,
+                (
+                    channel_margin[0],
+                    channel_size[1] + channel_margin[1] * 2,
+                    channel_margin[2],
+                ),
+                channel_size,
+                Port.SurfaceNormal.POS_Y,
+            ),
+        )
+
+        # Route channels
+        r = Router(
+            component=self, channel_size=channel_size, channel_margin=channel_margin
+        )
+        r.route_with_fractional_path(
+            self.F_IN2, self.F_OUT, [(1, 0, 1), (0, 1, 0)], label="fluidic"
+        )
+        r.route_with_fractional_path(
+            self.F_IN1, self.F_OUT, [(1, 0, 1), (0, 1, 0)], label="fluidic"
+        )
+        r.route()
+
+        # Build bulk shape
+        self.add_bulk("BulkShape", Cube(self._size, center=False), label="device")

@@ -3,7 +3,12 @@ env/
 .venv/
 __pycache__/
 *_cache/
-*.glb
+/*.glb
 *.prof
 settings.json
 test_slicer/
+embedded_device_demo/
+stitched_demo/
+preview/
+tmp*/
+dist/

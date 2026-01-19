@@ -1,6 +1,4 @@
-from pymfd.router import Router
-from pymfd.component_library import Valve20px, TestCube, Pinhole
-from pymfd import (
+from openmfd import (
     Visitech_LRS10_Device,
     Cube,
     RoundedCube,
@@ -15,7 +13,9 @@ from pymfd import (
     Component,
     Color,
     set_fn,
+    Router,
 )
+from openmfd.component_library import Valve20px, TestCube, Pinhole
 
 set_fn(50)
 
@@ -104,7 +104,7 @@ set_fn(50)
 # # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
 # device.add_label("device", Color.from_rgba((0, 255, 255, 63)))
 # bulk_cube = Cube(device_size, center=False).translate(device_position)
-# device.add_bulk_shape("cube", bulk_cube, label="device")
+# device.add_bulk("cube", bulk_cube, label="device")
 
 # # Mesh the component
 # # device.render()
@@ -203,7 +203,7 @@ set_fn(50)
 # # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
 # bulk_cube = Cube(device_size, center=False)
 # bulk_cube.translate(device_position)
-# device.add_bulk_shape("bulk1", bulk_cube, label="device")
+# device.add_bulk("bulk1", bulk_cube, label="device")
 
 # # Mesh the component
 # device.preview()

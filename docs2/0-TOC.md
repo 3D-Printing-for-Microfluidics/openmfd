@@ -25,5 +25,4 @@
     - [Named Color Lists](r2-color.md)
     - [Custom Component Template](r3-component_template.md)
     - [JSON Print File Reference](r4-json_print_file_reference.md)
-    
     - [API Reference]()

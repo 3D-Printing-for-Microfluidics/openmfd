@@ -1,8 +1,6 @@
 # OpenMFD Cheat Sheet (One‑Page Reference)
 
-Quick reference to build, render, and slice a device. This page is formatted in columns for printing.
-
-<div style="column-count:2; column-gap:24px;">
+Quick reference to build, render, and slice a device.
 
 ## Core classes
 
@@ -23,6 +21,7 @@ Quick reference to build, render, and slice a device. This page is formatted in 
 ## Shapes (geometry)
 
 Primitives and key parameters:
+
 - `Cube(size, center=False)`
 - `Cylinder(height, radius, center_z=False)`
 - `Sphere(size)`
@@ -32,15 +31,18 @@ Primitives and key parameters:
 - `TPMS(size, function, period, threshold)`
 
 Transforms (shapes):
+
 - `translate((x,y,z))`, `rotate((rx,ry,rz))`, `resize((x,y,z))`, `mirror((x,y,z))`
 
 Boolean ops:
+
 - Union: `a + b`
 - Difference: `a - b`
 - Hull: `a.hull(b)`
 - Copy: `a.copy()`
 
 Add to component:
+
 - `component.add_void(name, shape, label)`
 - `component.add_bulk(name, shape, label)`
 
@@ -55,13 +57,16 @@ Add to component:
 ## Subcomponents
 
 Transforms (components):
+
 - `translate((x,y,z))`, `rotate((rx,ry,rz))`, `mirror((x,y))`
 - 90 degree rotations only
 
 Add to component:
+
 - `component.add_subcomponent(name, subcomponent)`
 
 Relabeling helpers:
+
 - `component.relabel_subcomponents([...], label)`
 - `component.relabel_labels([...], label, recursive=True)`
 - `component.relabel_shapes([...], label)`
@@ -73,6 +78,7 @@ Relabeling helpers:
 - `BezierCurveShape(control_points, bezier_segments, position, size, absolute_position=False, shape_type=..., rounded_cube_radius=(...))`
 
 Rules:
+
 - First shape cannot be `BezierCurveShape`
 - First shape must define `shape_type`, `position`, `size`
 - Last shape cannot have non‑zero `corner_radius`
@@ -94,6 +100,7 @@ Rules:
 ## Slicing
 
 Settings objects (key parameters):
+
 - `Settings(printer, resin, default_position_settings, default_exposure_settings, special_print_techniques=[...], user="", purpose="", description="")`
 - `Printer(name, light_engines, xy_stage_available=False, vacuum_available=False)`
 - `LightEngine(px_size, px_count, wavelengths, grayscale_available=[False])`
@@ -102,24 +109,31 @@ Settings objects (key parameters):
 - `ExposureSettings(grayscale_correction, exposure_time, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
 
 Special techniques:
+
 - Print:
+
 	- `PrintUnderVacuum(enabled=False, target_vacuum_level_torr=10.0, vacuum_wait_time=0.0)`
 - Position/Layer:
+
 	- `SqueezeOutResin(enabled=False, count=0, squeeze_force=0.0, squeeze_time=0.0)`
 - Image/Exposure:
+
 	- `ZeroMicronLayer(enabled=False, count=0)`
 	- `PrintOnFilm(enabled=False, distance_up_mm=0.3)`
 
 Device‑level defaults:
+
 - `device.add_default_position_settings(PositionSettings(...))`
 - `device.add_default_exposure_settings(ExposureSettings(...))`
 - `device.set_burn_in_exposure([t1, t2, ...])`
 
 Slicer:
+
 - `Slicer(device, settings, filename, minimize_file=True, zip_output=False)`
 - `slicer.make_print_file()`
 
 Stitching notes:
+
 - `StitchedDevice` requires printer `xy_stage_available=True`
 - Device is centered; per‑tile offsets are written in JSON
 - Use `overlap_px` to overlap tiles (step = base size − overlap)
@@ -133,4 +147,3 @@ Stitching notes:
 
 - `set_fn(value)`
 
-</div>

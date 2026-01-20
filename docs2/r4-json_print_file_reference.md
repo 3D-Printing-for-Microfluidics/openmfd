@@ -2,7 +2,7 @@
 
 This reference explains the JSON print file produced by OpenMFD in plain language. It is based on our open source print file schema and designed to be readable without the full schema document.
 
-**Source of truth:** A public schema repository exists at https://github.com/3D-Printing-for-Microfluidics/3D_printer_json_print_file.
+**Source of truth:** A public schema repository exists at [https://github.com/3D-Printing-for-Microfluidics/3D_printer_json_print_file](https://github.com/3D-Printing-for-Microfluidics/3D_printer_json_print_file).
 
 ---
 

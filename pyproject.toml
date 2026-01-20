@@ -7,6 +7,7 @@ name = "openmfd"
 version = "0.1.0"
 dependencies = [
     "freetype-py>=2.5.1",
+    "flask>=3.0.0",
     "manifold3d>=3.3.2",
     "numba>=0.63.1",
     "numpy>=2.2.6",

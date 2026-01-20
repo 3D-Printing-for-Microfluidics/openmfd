@@ -19,9 +19,7 @@ Or, if using uv:
 uv run mfd-serve
 ```
 
-This command starts a local web server. If the page does not open automatically, go to [http://localhost:8000/](http://localhost:8000/) in your browser. To stop the server, press Enter in the terminal where it is running.
-
-**Note:** After stopping the server, it may take a minute for your system to release the port. If you restart immediately, you may see "Address already in use". Waiting 30–60 seconds usually resolves this.
+This command starts a local web server. If the page does not open automatically, go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. To stop the server, press Enter in the terminal where it is running.
 
 ---
 

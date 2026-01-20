@@ -48,6 +48,7 @@ By the end of Part 12, you will be able to:
 ## Who Should Use OpenMFD?
 
 OpenMFD is ideal for:
+
 - Researchers developing new microfluidic devices
 - Engineers prototyping lab-on-a-chip systems
 - Educators teaching microfluidics or digital fabrication

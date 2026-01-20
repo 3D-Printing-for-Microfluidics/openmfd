@@ -7,6 +7,7 @@ OpenMFD is available on PyPI. The recommended installation method uses [uv](http
 **Why use uv?**
 
 `uv` is a fast, modern Python package manager that makes working with virtual environments and dependencies much easier:
+
 - Installs packages significantly faster than pip
 - Automatically manages virtual environments for you
 - Provides a simpler, more reliable workflow for modern Python projects

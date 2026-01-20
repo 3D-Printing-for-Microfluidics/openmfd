@@ -78,4 +78,16 @@ pip install -e .
 
 ---
 
+## Windows notes (manifold3d)
+
+On some Windows setups (especially PowerShell/Command Prompt), `manifold3d` can fail to build from source.
+
+**Workarounds:**
+
+- Use **WSL2**, **Git Bash** or **Anaconda Prompt** (known to work).
+- Prefer **uv** or **conda** where prebuilt wheels are available.
+- If you must use PowerShell/CMD, install MSVC build tools and a recent CMake, then retry.
+
+---
+
 Next: [Part 3: Using the Visualizer](3-visualizer.md)

@@ -1,5 +1,5 @@
 site_name: OpenMFD Documentation
-docs_dir: docs2
+docs_dir: docs
 
 dev_addr: '127.0.0.1:5000'
 
@@ -31,6 +31,19 @@ nav:
       - "Named Color Lists": r2-color.md
       - "Custom Component Template": r3-component_template.md
       - "JSON Print File Reference": r4-json_print_file_reference.md
+  - "API Reference":
+          - "Core": api/core.md
+          - "Component/Device": api/component.md
+          - "Color": api/color.md
+          - "Shape": api/shapes.md
+          - "Port": api/port.md
+          - "Polychannel": api/polychannels.md
+          - "Router": api/router.md
+          - "Settings": api/settings.md
+          - "Special Techniques": api/special_techniques.md
+          - "Slicer": api/slicer.md
+          - "Component Library": api/component_library.md
+
 
 theme: readthedocs
 
@@ -40,10 +53,26 @@ markdown_extensions:
     - pymdownx.arithmatex:
             generic: true
 
+plugins:
+    - search
+    - mkdocstrings:
+          handlers:
+            python:
+              options:
+                show_source: false
+                show_root_heading: true
+                show_root_full_path: false
+                separate_signature: true
+                show_signature_annotations: true
+                show_if_no_docstring: false
+                docstring_style: google
+                docstring_section_style: list
+                heading_level: 3
+
 extra_javascript:
     - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js
     - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js
-    - javascripts/katex.js
+    - static/katex.js
 
 extra_css:
     - https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css

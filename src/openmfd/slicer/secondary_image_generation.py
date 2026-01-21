@@ -13,6 +13,7 @@ def generate_secondary_images_from_folders(
     settings: "SecondaryDoseSettings",
     slice_metadata: dict,
 ):
+    """Generate secondary images from existing image and mask folders."""
     # Primary (trivial) case
     # 1. Edge == Roof == Bulk -> D
 

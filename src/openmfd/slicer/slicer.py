@@ -27,9 +27,10 @@ class Slicer:
         zip_output: bool = True,
     ):
         """
-        ###### Initialize the Slicer with a device and settings.
+        Initialize the Slicer with a device and settings.
 
-        ###### Parameters:
+        Parameters:
+
         - device: Device to be sliced.
         - settings: Slicer settings dictionary.
         - filename: Name of the output file.
@@ -43,12 +44,14 @@ class Slicer:
 
     def _check_output_exists(self, output_path: str) -> bool:
         """
-        ###### Check if the output path already exists.
+        Check if the output path already exists.
 
-        ###### Parameters:
+        Parameters:
+
         - output_path: Path to check for existing output.
 
-        ###### Returns:
+        Returns:
+
         - True if output exists, False otherwise.
         """
 
@@ -228,7 +231,7 @@ class Slicer:
                         f"StitchedDevice {device.get_fully_qualified_name()} requires a printer with XY stage support."
                     )
 
-                le = self.settings.printer.get_light_engine(
+                le = self.settings.printer._get_light_engine(
                     device._px_size,
                     device.base_px_count,
                     device.default_exposure_settings.wavelength,
@@ -303,7 +306,7 @@ class Slicer:
                 info["slices"] = expanded_slices
                 return
 
-            le = self.settings.printer.get_light_engine(
+            le = self.settings.printer._get_light_engine(
                 device._px_size,
                 device._size[0:2],
                 device.default_exposure_settings.wavelength,

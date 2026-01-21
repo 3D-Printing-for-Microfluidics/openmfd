@@ -12,6 +12,7 @@ def generate_exposure_images_from_folders(
     settings: "ExposureSettings",
     slice_metadata: dict,
 ):
+    """Generate exposure images from existing image and mask folders."""
     slices = slice_metadata["slices"]
     for _, meta in enumerate(slices):
         name = meta["image_name"]

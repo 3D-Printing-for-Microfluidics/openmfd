@@ -102,7 +102,7 @@ component.preview()
 component.render("my_first_component.glb")
 ```
 
-![Basic shapes](5-3.png)
+![Basic shapes](resources/5-3.png)
 
 ## Step 4 — Add a Bézier curve (optional)
 
@@ -146,7 +146,7 @@ component.preview()
 component.render("my_first_component.glb")
 ```
 
-![Basic shapes](5-4.png)
+![Basic shapes](resources/5-4.png)
 
 ---
 

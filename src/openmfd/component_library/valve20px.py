@@ -4,12 +4,14 @@ from openmfd import Component, Port, Color, Cylinder, Cube, MembraneSettings
 
 class Valve20px(Component):
     """
-    ###### 20 px membrane valve
+    20 px membrane valve
+
     - 3 layer fluidic chamber
     - 11 layer pneumatic chamber
     - 1 layer membrane
 
-    ###### Ports:
+    Ports:
+    
     - F_IN:
         - Type: IN
         - Size: (6, 6, 4)
@@ -29,6 +31,7 @@ class Valve20px(Component):
     """
 
     def __init__(self):
+        """Initialize a 20px Valve component."""
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]

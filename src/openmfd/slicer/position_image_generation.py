@@ -10,6 +10,7 @@ def generate_position_images_from_folders(
     settings: "PositionSettings",
     slice_metadata: list[dict],
 ):
+    """Generate position images from existing image and mask folders."""
     slices = slice_metadata["slices"]
     # Loop through all slices
     for i, meta in enumerate(slices):

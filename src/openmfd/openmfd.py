@@ -74,21 +74,40 @@ class _InstantiationTrackerMixin:
 
 class Port(_InstantiationTrackerMixin):
     """
-    ###### Class representing a port in a microfluidic device.
-    ###### Ports are used to connect components and define their interaction with the environment.
-    ###### Each port has a type (IN, OUT, INOUT), a position in 3D space, a size, and a surface normal.
-    ###### The surface normal defines the direction in which the port is oriented.
+    Class representing a port in a microfluidic device.
+
+    Ports are used to connect components and define their interaction with the environment.
+
+    Each port has a type (IN, OUT, INOUT), a position in 3D space, a size, and a surface normal.
+
+    The surface normal defines the direction in which the port is oriented.
     """
 
     class PortType(Enum):
-        """Enumeration for port types."""
+        """
+        Enumeration for port types.
+        
+        - IN: Port for input.
+        - OUT: Port for output.
+        - INOUT: Port for input and/or output.
+
+        """
 
         IN = 1
         OUT = 2
         INOUT = 3
 
     class SurfaceNormal(Enum):
-        """Enumeration for surface normals."""
+        """
+        Enumeration for surface normals.
+
+        - POS_X: Positive X direction.
+        - POS_Y: Positive Y direction.
+        - POS_Z: Positive Z direction.
+        - NEG_X: Negative X direction.
+        - NEG_Y: Negative Y direction.
+        - NEG_Z: Negative Z direction.
+        """
 
         POS_X = 1
         POS_Y = 2
@@ -114,9 +133,10 @@ class Port(_InstantiationTrackerMixin):
         surface_normal: SurfaceNormal,
     ):
         """
-        ###### Initialize a port.
+        Initialize a port.
 
-        ###### Parameters:
+        Parameters:
+
         - _type (PortType): The type of the port (IN, OUT, INOUT).
         - position (tuple[int, int, int]): The position of the port in 3D space.
         - size (tuple[int, int, int]): The size of the port.
@@ -143,14 +163,14 @@ class Port(_InstantiationTrackerMixin):
         return p
 
     def get_name(self) -> str:
-        """Get the name of the port, including parent name."""
+        # """Get the name of the port, including parent name."""
         if self._name is None:
             raise ValueError(f"Port has not been named")
         else:
             return f"{self._parent._name}_{self._name}"
 
     def get_fully_qualified_name(self) -> str:
-        """Get the fully qualified name of the port, including all parent components names."""
+        # """Get the fully qualified name of the port, including all parent components names."""
         if self._name is None:
             raise ValueError(f"Port has not been named")
         name = self._name
@@ -165,7 +185,7 @@ class Port(_InstantiationTrackerMixin):
         return name
 
     def to_vector(self) -> tuple[int, int, int]:
-        """Convert the surface normal to a vector."""
+        # """Convert the surface normal to a vector."""
         try:
             return self._vector_map[self._surface_normal]
         except KeyError:
@@ -174,19 +194,19 @@ class Port(_InstantiationTrackerMixin):
     def get_bounding_box(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int, int, int, int]:
-        """
-        Get the bounding box of the port.
-        The bounding box is defined by the position and size of the port,
-        adjusted based on the surface normal direction.
+        # """
+        # Get the bounding box of the port.
+        # The bounding box is defined by the position and size of the port,
+        # adjusted based on the surface normal direction.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        # Parameters:
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
 
-        Returns:
-        - A tuple of six integers representing the bounding box coordinates:
-        (min_x, min_y, min_z, max_x, max_y, max_z)
-        """
+        # Returns:
+        # - A tuple of six integers representing the bounding box coordinates:
+        # (min_x, min_y, min_z, max_x, max_y, max_z)
+        # """
         dx, dy, dz = self._vector_map[self._surface_normal]
         pos = list(self._position)
         size = self._size
@@ -215,27 +235,27 @@ class Port(_InstantiationTrackerMixin):
         )
 
     def get_origin(self, px_size: float = None, layer_size: float = None):
-        """
-        Get the origin of the port, which is the minimum corner of its bounding box.
+        # """
+        # Get the origin of the port, which is the minimum corner of its bounding box.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        """
+        # Parameters:
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # """
         return self.get_bounding_box(px_size, layer_size)[0:3]
 
     def get_position(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        """
-        Get the position of the port in 3D space.
+        # """
+        # Get the position of the port in 3D space.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        # Parameters:
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
 
-        Returns:
-        - A tuple of three integers representing the position of the port (x, y, z).
-        """
+        # Returns:
+        # - A tuple of three integers representing the position of the port (x, y, z).
+        # """
 
         _px_size = self._parent._px_size if px_size is None else px_size
         _layer_size = self._parent._layer_size if layer_size is None else layer_size
@@ -248,15 +268,15 @@ class Port(_InstantiationTrackerMixin):
     def get_size(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        """
-        Get the size of the port.
+        # """
+        # Get the size of the port.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # Parameters:
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
 
-        Returns:
-        - A tuple of three integers representing the size of the port (width, height, depth).
-        """
+        # Returns:
+        # - A tuple of three integers representing the size of the port (width, height, depth).
+        # """
         _px_size = self._parent._px_size if px_size is None else px_size
         _layer_size = self._parent._layer_size if layer_size is None else layer_size
         return (
@@ -266,18 +286,20 @@ class Port(_InstantiationTrackerMixin):
         )
 
     def get_color(self):
-        """
-        ###### Get the color of the port based on its type.
+        # """
+        # Get the color of the port based on its type.
 
-        ###### The color is determined as follows:
-        - IN ports are green
-        - OUT ports are red
-        - INOUT ports are blue
-        - If the type is not recognized, it defaults to white.
+        # The color is determined as follows:
 
-        ###### Returns:
-        - Color: The color of the port.
-        """
+        # - IN ports are green
+        # - OUT ports are red
+        # - INOUT ports are blue
+        # - If the type is not recognized, it defaults to white.
+
+        # Returns:
+
+        # - Color: The color of the port.
+        # """
         if self._type == Port.PortType.IN:
             return Color.from_name("green", 255)  # Green
         elif self._type == Port.PortType.OUT:
@@ -290,10 +312,11 @@ class Port(_InstantiationTrackerMixin):
 
 class Component(_InstantiationTrackerMixin):
     """
-    ###### Base class for components in a microfluidic device.
-    ###### Components can contain shapes, ports, subcomponents, and labels.
-    ###### Each component has a size, position, pixel size, and layer size.
-    ###### Components can be translated, rotated, mirrored, and rendered.
+    Base class for components in a microfluidic device.
+
+    - Components can contain shapes, ports, subcomponents, and labels.
+    - Each component has a size, position, pixel size, and layer size.
+    - Components can be translated, rotated, mirrored, and rendered.
     """
 
     def __init__(
@@ -305,7 +328,8 @@ class Component(_InstantiationTrackerMixin):
         hide_in_render: bool = False,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - size (tuple[int, int, int]): The size of the component in pixels (width, height, depth).
         - position (tuple[int, int, int]): The position of the component in 3D space (x, y, z).
         - px_size (float): The size of a pixel in mm. Default is 0.0076 m.
@@ -336,10 +360,11 @@ class Component(_InstantiationTrackerMixin):
         self.labels = {}
 
     def __eq__(self, other):
-        """
-        ###### Check if two components are equivilant based on their attribute.
-        ###### We only need to compare the instantiated attributes, the rotation, and mirroring.
-        """
+        # """
+        # Check if two components are equivilant based on their attribute.
+
+        # We only need to compare the instantiated attributes, the rotation, and mirroring.
+        # """
         if not isinstance(other, Component):
             return False
         if not type(self) == type(other):
@@ -361,16 +386,19 @@ class Component(_InstantiationTrackerMixin):
         return True
 
     def __getattr__(self, name):
-        """
-        ###### Custom attribute lookup for Component.
-        ###### This method is called when an attribute is not found in the usual places.
-        ###### It allows accessing ports by their names."""
+        # """
+        # Custom attribute lookup for Component.
+
+        # This method is called when an attribute is not found in the usual places.
+
+        # It allows accessing ports by their names.
+        # """
         if name in self.ports:
             return self.ports[name]
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     def get_fully_qualified_name(self):
-        """Get the fully qualified name of the component, including all parent components names."""
+        # """Get the fully qualified name of the component, including all parent components names."""
         if self._name is None:
             raise ValueError(f"Component has not been named")
         name = self._name
@@ -387,17 +415,20 @@ class Component(_InstantiationTrackerMixin):
     def get_bounding_box(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int, int, int, int]:
-        """
-        Get the bounding box of the component.
-        The bounding box is defined by the position and size of the component.
+        # """
+        # Get the bounding box of the component.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        # The bounding box is defined by the position and size of the component.
 
-        Returns:
-        - A tuple of six integers representing the bounding box coordinates:
-        """
+        # Parameters:
+
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        # Returns:
+
+        # - A tuple of six integers representing the bounding box coordinates:
+        # """
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
 
@@ -418,16 +449,18 @@ class Component(_InstantiationTrackerMixin):
     def get_size(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        """
-        Get the size of the component.
+        # """
+        # Get the size of the component.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        # Parameters:
 
-        Returns:
-        - A tuple of three integers representing the size of the component (width, height, depth).
-        """
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        # Returns:
+
+        # - A tuple of three integers representing the size of the component (width, height, depth).
+        # """
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
         return (
@@ -439,16 +472,18 @@ class Component(_InstantiationTrackerMixin):
     def get_position(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        """
-        Get the position of the component in 3D space.
+        # """
+        # Get the position of the component in 3D space.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        # Parameters:
 
-        Returns:
-        - A tuple of three integers representing the position of the component (x, y, z).
-        """
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        # Returns:
+
+        # - A tuple of three integers representing the position of the component (x, y, z).
+        # """
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
         return (
@@ -458,11 +493,13 @@ class Component(_InstantiationTrackerMixin):
         )
 
     def _validate_name(self, name):
-        """
-        ###### Validate the name for a new port.
-        ###### Raises:
-        - ValueError: If the name already exists in the component or is not a valid Python identifier.
-        """
+        # """
+        # Validate the name for a new port.
+
+        # Raises:
+
+        # - ValueError: If the name already exists in the component or is not a valid Python identifier.
+        # """
         for p in self.ports.keys():
             if p == name:
                 raise ValueError(
@@ -477,8 +514,10 @@ class Component(_InstantiationTrackerMixin):
 
     def add_label(self, name: str, color: Color):
         """
-        ###### Add a label to the component.
-        ###### Parameters:
+        Add a label to the component.
+
+        Parameters:
+
         - name (str): The name of the label (must be a unique python identifier).
         - color (Color): The color of the label, which can be a Color object or a tuple of RGBA values.
         """
@@ -487,8 +526,10 @@ class Component(_InstantiationTrackerMixin):
 
     def add_void(self, name: str, shape: Shape, label: str):
         """
-        ###### Add a shape to the component.
-        ###### Parameters:
+        Add a shape to the component.
+
+        Parameters:
+
         - name (str): The name of the shape (must be a unique python identifier).
         - shape (Shape): The shape to be added.
         - label (str): The label for the shape, which should be a key in the component's labels dictionary.
@@ -502,8 +543,10 @@ class Component(_InstantiationTrackerMixin):
 
     def add_bulk(self, name: str, shape: Shape, label: str):
         """
-        ###### Add a bulk shape to the component.
-        ###### Parameters:
+        Add a bulk shape to the component.
+
+        Parameters:
+
         - name (str): The name of the bulk shape (must be a unique python identifier).
         - shape (Shape): The bulk shape to be added.
         - label (str): The label for the bulk shape, which should be a key in the component's labels dictionary.
@@ -517,8 +560,10 @@ class Component(_InstantiationTrackerMixin):
 
     def add_port(self, name: str, port: Port):
         """
-        ###### Add a port to the component.
-        ###### Parameters:
+        Add a port to the component.
+
+        Parameters:
+
         - name (str): The name of the port (must be a unique python identifier).
         - port (Port): The port to be added.
         """
@@ -531,8 +576,10 @@ class Component(_InstantiationTrackerMixin):
         self, name: str, component: Component, hide_in_render: bool = False
     ):
         """
-        ###### Add a subcomponent to the component.
-        ###### Parameters:
+        Add a subcomponent to the component.
+
+        Parameters:
+
         - name (str): The name of the subcomponent (must be a unique python identifier).
         - component (Component): The subcomponent to be added.
         """
@@ -553,8 +600,10 @@ class Component(_InstantiationTrackerMixin):
         settings: ExposureSettings,
     ):
         """
-        ###### Add default exposure settings to the component.
-        ###### Parameters:
+        Add default exposure settings to the component.
+
+        Parameters:
+
         - settings (ExposureSettings): The exposure settings to be added.
         """
         self.default_exposure_settings = settings
@@ -564,8 +613,10 @@ class Component(_InstantiationTrackerMixin):
         settings: PositionSettings,
     ):
         """
-        ###### Add default position settings to the component.
-        ###### Parameters:
+        Add default position settings to the component.
+
+        Parameters:
+
         - settings (PositionSettings): The position settings to be added.
         """
         self.default_position_settings = settings
@@ -583,8 +634,10 @@ class Component(_InstantiationTrackerMixin):
         label: str,
     ):
         """
-        ###### Add regional settings in a given shape to the component.
-        ###### Parameters:
+        Add regional settings in a given shape to the component.
+
+        Parameters:
+
         - name (str): The name of the regional settings (must be a unique python identifier).
         - shape (Shape): The shape to which the regional settings apply.
         - settings (Union[PositionSettings, ExposureSettings, MembraneSettings, SecondaryDoseSettings]): The settings to be applied in the shape.
@@ -613,16 +666,20 @@ class Component(_InstantiationTrackerMixin):
 
     def set_burn_in_exposure(self, exposure_times: list[float]):
         """
-        ###### Set burn-in exposure times for the component.
-        ###### Parameters:
+        Set burn-in exposure times for the component.
+
+        Parameters:
+
         - exposure_times (list[float]): List of exposure times in seconds for the burn-in process.
         """
         self.burnin_settings = exposure_times
 
     def relabel_subcomponents(self, subcomponents: list[Component], label: str):
         """
-        ###### Relabel listed subcomponents with a new label.
-        ###### Parameters:
+        Relabel listed subcomponents with a new label.
+
+        Parameters:
+
         - subcomponents (list[Component]): List of subcomponents to relabel.
         - label (str): The new label to apply to the subcomponents.
         """
@@ -639,8 +696,10 @@ class Component(_InstantiationTrackerMixin):
         self, labels: list[str], label: str, recursive: bool = True, _color: Color = None
     ):
         """
-        ###### Relabel subcomponent labels with a new label and color.
-        ###### Parameters:
+        Relabel subcomponent labels with a new label and color.
+
+        Parameters:
+
         - labels (list[str]): List of labels to relabel.
         - label (str): The new label to apply.
         - recursive (bool): Whether to apply the relabeling recursively to subcomponents. Default is True.
@@ -684,8 +743,10 @@ class Component(_InstantiationTrackerMixin):
 
     def relabel_shapes(self, shapes: list[Shape], label: str):
         """
-        ###### Relabel shapes with a new label.
-        ###### Parameters:
+        Relabel shapes with a new label.
+
+        Parameters:
+
         - shapes (list[Shape]): List of shapes to relabel.
         - label (str): The new label to apply to the shapes.
         """
@@ -695,8 +756,10 @@ class Component(_InstantiationTrackerMixin):
 
     def connect_port(self, port: Port):
         """
-        ###### Label port as connected.
-        ###### Parameters:
+        Label port as connected.
+
+        Parameters:
+
         - port (Port): Port to connect.
         """
         if port not in self.connected_ports:
@@ -706,11 +769,15 @@ class Component(_InstantiationTrackerMixin):
         self, translation: tuple[int, int, int], _internal: bool = False
     ) -> Component:
         """
-        ###### Translate the component by a given translation vector.
-        ###### Parameters:
+        Translate the component by a given translation vector.
+
+        Parameters:
+
         - translation (tuple[int, int, int]): The translation vector in parent pixels/layers (dx, dy, dz) to apply to the component.
         - _internal (bool): If True, the translation uses the component's pixels/layers for internal calculations and opperates immediatly. Default is False.
-        ###### Returns:
+        
+        Returns:
+
         - self: The translated component.
         """
         if self._parent is None and not _internal:
@@ -776,11 +843,15 @@ class Component(_InstantiationTrackerMixin):
 
     def rotate(self, rotation: int, in_place: bool = False) -> Component:
         """
-        ###### Rotate the component around the Z axis by a given angle.
-        ###### Parameters:
+        Rotate the component around the Z axis by a given angle.
+        
+        Parameters:
+
         - rotation (int): The angle in degrees to rotate the component. Must be a multiple of 90.
         - in_place (bool): If True, the component is rotated in place. Default is False.
-        ###### Returns:
+        
+        Returns:
+
         - self: The rotated component.
         """
         if rotation % 90 != 0:
@@ -936,12 +1007,16 @@ class Component(_InstantiationTrackerMixin):
         self, mirror_x: bool = False, mirror_y: bool = False, in_place: bool = False
     ) -> Component:
         """
-        ###### Mirror the component along the X and/or Y axes.
-        ###### Parameters:
+        Mirror the component along the X and/or Y axes.
+        
+        Parameters:
+
         - mirror_x (bool): If True, mirrors the component along the X axis. Default is False.
         - mirror_y (bool): If True, mirrors the component along the Y axis. Default is False.
         - in_place (bool): If True, performs the mirroring in place. Default is False.
-        ###### Returns:
+        
+        Returns:
+
         - self: The mirrored component.
         """
         if not mirror_x and not mirror_y:
@@ -1051,11 +1126,15 @@ class Component(_InstantiationTrackerMixin):
 
     def render(self, filename: str = "component.glb", do_bulk_difference: bool = True):
         """
-        ###### Render the component to a GLB file.
-        ###### Parameters:
+        Render the component to a GLB file.
+        
+        Parameters:
+
         - filename (str): The name of the output GLB file. Default is "component.glb".
         - do_bulk_difference (bool): If True, applies a difference operation for bulk shapes. Default is True.
-        ###### Returns:
+        
+        Returns:
+
         - None: The rendered scene is exported to the specified file.
         """
         print("Rendering Component...")
@@ -1072,10 +1151,14 @@ class Component(_InstantiationTrackerMixin):
         preview_dir: str = "preview",
     ):
         """
-        ###### Preview the component in a GLB file.
-        ###### Parameters:
+        Preview the component in a GLB file.
+        
+        Parameters:
+
         - preview_dir (str): The directory where the preview GLB file will be saved. Default is "preview/".
-        ###### Returns:
+        
+        Returns:
+
         - None: The rendered scene is exported to the specified file.
         """
         print("Rendering Component...")
@@ -1087,6 +1170,9 @@ class Component(_InstantiationTrackerMixin):
 
 
 def float_gcf(numbers, max_denominator=10**6):
+    """
+    Calculate the greatest common factor (GCF) of a list of floating-point numbers.
+    """
     if not numbers:
         raise ValueError("Input list must not be empty")
 
@@ -1125,6 +1211,7 @@ class VariableLayerThicknessComponent(Component):
         Initialize a VariableLayerThicknessComponent.
 
         Parameters:
+
         - size (tuple[int, int, int]): The size of the component in pixels/layers (width, height, depth).
         - position (tuple[int, int, int]): The position of the component in parent pixels/layers (x, y, z).
         - px_size (float): The pixel size in mm. Default is 0.0076.
@@ -1164,17 +1251,20 @@ class VariableLayerThicknessComponent(Component):
     def get_bounding_box(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int, int, int, int]:
-        """
-        Get the bounding box of the component.
-        The bounding box is defined by the position and size of the component.
+        # """
+        # Get the bounding box of the component.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        # The bounding box is defined by the position and size of the component.
 
-        Returns:
-        - A tuple of six integers representing the bounding box coordinates:
-        """
+        # Parameters:
+
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        # Returns:
+
+        # - A tuple of six integers representing the bounding box coordinates:
+        # """
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
 
@@ -1195,16 +1285,18 @@ class VariableLayerThicknessComponent(Component):
     def get_size(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        """
-        Get the size of the component.
+        # """
+        # Get the size of the component.
 
-        Parameters:
-        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        # Parameters:
 
-        Returns:
-        - A tuple of three integers representing the size of the component (width, height, depth).
-        """
+        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+
+        # Returns:
+
+        # - A tuple of three integers representing the size of the component (width, height, depth).
+        # """
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
         return (
@@ -1224,6 +1316,19 @@ class Device(Component):
         px_count: tuple[int, int] = (2560, 1600),
         px_size: float = 0.0076,
     ):
+        """
+        Initialize a generic Device.
+
+        Parameters:
+
+        - name (str): The name of the device.
+        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
+        - layers (int): The number of layers in the device.
+        - layer_size (float): The layer size in mm.
+        - px_count (tuple[int, int]): The pixel count of the device (width, height). Default is (2560, 1600).
+        - px_size (float): The pixel size in mm. Default is 0.0076.
+        """
+        
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]
@@ -1251,6 +1356,22 @@ class StitchedDevice(Device):
         overlap_px: int = 0,
         px_size: float = 0.0076,
     ):
+        """
+        Initialize a StitchedDevice.
+
+        Parameters:
+
+        - name (str): The name of the device.
+        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
+        - layers (int): The number of layers in the device.
+        - layer_size (float): The layer size in mm.
+        - tiles_x (int): The number of tiles in the X direction.
+        - tiles_y (int): The number of tiles in the Y direction.
+        - base_px_count (tuple[int, int]): The pixel count of a single tile (width, height). Default is (2560, 1600).
+        - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
+        - px_size (float): The pixel size in mm. Default is 0.0076.
+        """
+
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]
@@ -1291,6 +1412,15 @@ class Visitech_LRS10_Device(Device):
         layers: int = 0,
         layer_size: float = 0.01,
     ):
+        """
+        Initialize a device for a Visitech light engine with LRS10 Lens.
+        Parameters:
+        - name (str): The name of the device.
+        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
+        - layers (int): The number of layers in the device.
+        - layer_size (float): The layer size in mm.
+        """
+
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]
@@ -1313,6 +1443,15 @@ class Visitech_LRS20_Device(Device):
         layers: int = 0,
         layer_size: float = 0.01,
     ):
+        """
+        Initialize a device for a Visitech light engine with LRS20 Lens.
+        Parameters:
+        - name (str): The name of the device.
+        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
+        - layers (int): The number of layers in the device.
+        - layer_size (float): The layer size in mm.
+        """
+
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]
@@ -1336,6 +1475,15 @@ class Wintech_Device(Device):
         layers: int = 0,
         layer_size: float = 0.0015,
     ):
+        """
+        Initialize a Wintech light engine device.
+        Parameters:
+        - name (str): The name of the device.
+        - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
+        - layers (int): The number of layers in the device.
+        - layer_size (float): The layer size in mm.
+        """
+
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]

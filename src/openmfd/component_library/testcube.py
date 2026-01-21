@@ -4,10 +4,11 @@ from openmfd import Component, Port, Color, Cube
 
 class TestCube(Component):
     """
-    ###### Port test cube. Used to test visualization and component geometric transformations.
+    Port test cube. Used to test visualization and component geometric transformations.
     """
 
     def __init__(self):
+        """Initialize a TestCube component."""
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]

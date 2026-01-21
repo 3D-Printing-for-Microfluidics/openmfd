@@ -122,13 +122,13 @@ component.preview()
 
 **Checkpoint:** In the visualizer you should see a solid block with the void shapes removed.
 
-![visualizer-difference](4-1.png)
+![visualizer-difference](resources/4-1.png)
 
 Toggle **Bulk** and **Void** to see each category separately:
 
-![visualizer-bulk](4-2.png)
+![visualizer-bulk](resources/4-2.png)
 
-![visualizer-bulk](4-3.png)
+![visualizer-bulk](resources/4-3.png)
 
 ---
 

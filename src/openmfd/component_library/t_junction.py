@@ -3,7 +3,26 @@ from openmfd import Component, Port, Color, Cube, Router
 
 
 class TJunction(Component):
+    """
+    Simple T Junction with configurable channel size and margin.
+
+    Ports:
+    
+    - F_IN1:
+        - Type: IN
+        - Size: channel_size
+        - Normal: NEG_X
+    - F_IN2:
+        - Type: IN
+        - Size: channel_size
+        - Normal: POS_X
+    - F_OUT:
+        - Type: OUT
+        - Size: channel_size
+        - Normal: POS_Y
+    """
     def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6)):
+        """Initialize a T Junction component."""
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]

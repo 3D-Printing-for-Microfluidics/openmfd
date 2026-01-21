@@ -2,7 +2,14 @@
 Module that provides 3D manifold shapes and transforms as well as polychannel (complex hulled shapes).
 """
 
-from .color import Color
+from .color import (
+    Color,
+    BASE_COLORS,
+    OPEN_COLORS,
+    TAB_COLORS,
+    X11_COLORS,
+    XKCD_COLORS,
+)
 from .manifold3d import (
     set_fn,
     Shape,

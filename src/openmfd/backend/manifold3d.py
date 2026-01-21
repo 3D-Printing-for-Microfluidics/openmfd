@@ -25,16 +25,17 @@ def get_openmfd_env_dir():
 
 def _is_integer(val: float) -> bool:
     """
-    ###### Check if a float value is close to an integer.
+    Check if a float value is close to an integer.
     """
     return abs(val - round(val)) < 1e-6
 
 
 def set_fn(fn: int) -> None:
     """
-    ###### Set the default number of facets for round shapes.
+    Set the default number of facets for round shapes.
 
-    ######  Parameters:
+     Parameters:
+
     - fn (int): Number of facets for circular segments.
     """
     set_circular_segments(fn)
@@ -45,7 +46,7 @@ set_fn(20)  # Set default circular segments to 20
 
 class Shape:
     """
-    ###### Manifold3D generic shape class.
+    Manifold3D generic shape class.
     """
 
     def __init__(self):
@@ -58,9 +59,10 @@ class Shape:
 
     def _translate_keepouts(self, translation: tuple[float, float, float]) -> None:
         """
-        ###### Translate the keepouts.
+        Translate the keepouts.
 
-        ###### Parameters:
+        Parameters:
+
         - translation (tuple[float, float, float]): The translation.
         """
         dx, dy, dz = translation
@@ -73,9 +75,10 @@ class Shape:
         self, point: tuple[float, float, float], rotation: tuple[float, float, float]
     ) -> None:
         """
-        ###### Rotate a point around origin (0,0,0) with Euler angles (in degrees) in XYZ order.
+        Rotate a point around origin (0,0,0) with Euler angles (in degrees) in XYZ order.
 
-        ###### Parameters:
+        Parameters:
+
         - point (tuple[float, float, float]): The point to rotate.
         - rotation (tuple[float, float, float]): The rotation.
         """
@@ -99,9 +102,10 @@ class Shape:
 
     def _rotate_keepouts(self, rotation: tuple[float, float, float]):
         """
-        ###### Rotate the keepouts.
+        Rotate the keepouts.
 
-        ###### Parameters:
+        Parameters:
+
         - rotation (tuple[float, float, float]): The rotation.
         """
         rotated_keepouts = []
@@ -117,9 +121,10 @@ class Shape:
 
     def _scale_keepouts(self, scale: tuple[float, float, float]) -> None:
         """
-        ###### Scale the keepouts.
+        Scale the keepouts.
 
-        ###### Parameters:
+        Parameters:
+
         - scale (tuple[float, float, float]): The scale.
         """
         sx, sy, sz = scale
@@ -137,9 +142,10 @@ class Shape:
 
     def _mirror_keepouts(self, axis: tuple[bool, bool, bool]) -> None:
         """
-        ###### Mirror the keepouts.
+        Mirror the keepouts.
 
-        ###### Parameters:
+        Parameters:
+
         - axis (tuple[bool, bool, bool]): The axis to mirror.
         """
         flip_x, flip_y, flip_z = axis
@@ -153,12 +159,14 @@ class Shape:
 
     def translate(self, translation: tuple[int, int, int]) -> "Shape":
         """
-        ###### Translate the shape by a given translation vector.
+        Translate the shape by a given translation vector.
 
-        ###### Parameters:
+        Parameters:
+
         - translation (tuple[int, int, int]): The translation vector.
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The translated shape.
         """
         self._translate_keepouts(translation)
@@ -173,12 +181,14 @@ class Shape:
 
     def rotate(self, rotation: tuple[float, float, float]) -> "Shape":
         """
-        ###### Rotate the shape by a given rotation vector (in degrees).
+        Rotate the shape by a given rotation vector (in degrees).
 
-        ###### Parameters:
+        Parameters:
+
         - rotation (tuple[float, float, float]): The rotation vector in degrees.
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The rotated shape.
         """
         self._rotate_keepouts(rotation)
@@ -187,12 +197,14 @@ class Shape:
 
     def resize(self, size: tuple[int, int, int]) -> "Shape":
         """
-        ###### Resize the shape to a given size in px/layer space.
+        Resize the shape to a given size in px/layer space.
 
-        ###### Parameters:
+        Parameters:
+
         - size (tuple[int, int, int]): The new size in px/layer space.
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The resized shape.
         """
         # if size if 0 set it near 0
@@ -223,12 +235,14 @@ class Shape:
 
     def mirror(self, axis: tuple[bool, bool, bool]) -> "Shape":
         """
-        ###### Mirror the shape along the specified axes.
+        Mirror the shape along the specified axes.
 
-        ###### Parameters:
+        Parameters:
+
         - axis (tuple[bool, bool, bool]): A tuple indicating which axes to mirror (x, y, z).
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The mirrored shape.
         """
         self._mirror_keepouts(axis)
@@ -237,12 +251,14 @@ class Shape:
 
     def __add__(self, other: "Shape") -> "Shape":
         """
-        ###### Combine two shapes using union operation.
+        Combine two shapes using union operation.
 
-        ###### Parameters:
+        Parameters:
+
         - other (Shape): The other shape to combine with.
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The combined shape.
         """
         self._keepouts.extend(other._keepouts)
@@ -251,12 +267,14 @@ class Shape:
 
     def __sub__(self, other: "Shape") -> "Shape":
         """
-        ###### Subtract another shape from this shape.
+        Subtract another shape from this shape.
 
-        ###### Parameters:
+        Parameters:
+
         - other (Shape): The shape to subtract.
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The resulting shape after subtraction.
         """
         self._object = self._object - other._object
@@ -288,12 +306,14 @@ class Shape:
 
     def __and__(self, other: "Shape") -> "Shape":
         """
-        ###### Intersect this shape with another shape.
+        Intersect this shape with another shape.
 
-        ###### Parameters:
+        Parameters:
+
         - other (Shape): The shape to intersect with.
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The resulting shape after intersection.
         """
         self._keepouts = self._intersect_keepouts(self._keepouts, other._keepouts)
@@ -305,13 +325,15 @@ class Shape:
 
     def hull(self, other: "Shape") -> "Shape":
         """
-        ###### Create a convex hull of this shape and another shape.
-        ###### This method combines the keepouts of both shapes and creates a bridge between their bounding boxes.
+        Create a convex hull of this shape and another shape.
+        This method combines the keepouts of both shapes and creates a bridge between their bounding boxes.
 
-        ###### Parameters:
+        Parameters:
+
         - other (Shape): The other shape to combine with.
 
-        ###### Returns:
+        Returns:
+
         - self (Shape): The resulting shape after creating the hull.
         """
         # Combine keepouts
@@ -372,12 +394,14 @@ class Shape:
 
     def copy(self, _internal=False) -> "Shape":
         """
-        ###### Create a copy of the shape.
+        Create a copy of the shape.
 
-        ###### Parameters:
+        Parameters:
+
         - _internal (bool): If True, copy internal properties like name, parent, and color. (internal use only)
 
-        ###### Returns:
+        Returns:
+
         - Shape: A new Shape instance with the same properties.
         """
         new_shape = Shape()
@@ -406,7 +430,7 @@ class Shape:
 
 class Cube(Shape):
     """
-    ###### Manifold3D cube.
+    Manifold3D cube.
     """
 
     def __init__(
@@ -416,7 +440,8 @@ class Cube(Shape):
         _no_validation: bool = False,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - size (tuple[int, int, int]): Size of the cube in px/layer space.
         - center (bool): Whether to center the cube at the origin.
         - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
@@ -460,7 +485,7 @@ class Cube(Shape):
 
 class Cylinder(Shape):
     """
-    ###### Manifold3D cylinder.
+    Manifold3D cylinder.
     """
 
     def __init__(
@@ -474,7 +499,8 @@ class Cylinder(Shape):
         fn: int = 0,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - height (int): Height of the cylinder in layer space.
         - radius (float): Radius of the cylinder in px space.
         - bottom_r (float): Bottom radius of the cylinder in px space.
@@ -546,7 +572,7 @@ class Cylinder(Shape):
 
 class Sphere(Shape):
     """
-    ###### Manifold3D ellipsoid.
+    Manifold3D ellipsoid.
     """
 
     def __init__(
@@ -557,7 +583,8 @@ class Sphere(Shape):
         _no_validation: bool = False,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - size (tuple[int, int, int]): Size of the sphere in px/layer space.
         - center (bool): Whether to center the sphere at the origin.
         - fn (int): Number of facets for the circular segments.
@@ -613,7 +640,7 @@ class Sphere(Shape):
 
 class RoundedCube(Shape):
     """
-    ###### Manifold3D rounded cube.
+    Manifold3D rounded cube.
     """
 
     def __init__(
@@ -625,7 +652,8 @@ class RoundedCube(Shape):
         _no_validation: bool = False,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - size (tuple[int, int, int]): Size of the rounded cube in px/layer space.
         - radius (tuple[float, float, float]): Radius of the rounded corners in px/layer space.
         - center (bool): Whether to center the rounded cube at the origin.
@@ -711,7 +739,7 @@ class RoundedCube(Shape):
 
 class TextExtrusion(Shape):
     """
-    ###### Manifold3D text extrusion shapes.
+    Manifold3D text extrusion shapes.
     """
 
     def __init__(
@@ -722,7 +750,8 @@ class TextExtrusion(Shape):
         font_size: int = 10,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - text (str): The text to extrude.
         - height (int): Height of the extrusion in layer space.
         - font (str): Font name to use for the text.
@@ -844,7 +873,10 @@ class TextExtrusion(Shape):
 
 class ImportModel(Shape):
     """
-    ###### Manifold3D 3d model import.
+    This class loads a 3D model file and converts it to a Manifold3D object.
+    It checks for common mesh issues such as watertightness, winding consistency, and emptiness.
+    If the mesh has issues, it attempts to repair them if `auto_repair` is set to True.
+    If the mesh cannot be repaired or is still not watertight, it raises an error.
     """
 
     def __init__(
@@ -853,26 +885,24 @@ class ImportModel(Shape):
         auto_repair: bool = True,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - filename (str): Path to the 3D model file.
         - auto_repair (bool): Whether to automatically repair the mesh if it has issues.
-
-        This class loads a 3D model file and converts it to a Manifold3D object.
-        It checks for common mesh issues such as watertightness, winding consistency, and emptiness.
-        If the mesh has issues, it attempts to repair them if `auto_repair` is set to True.
-        If the mesh cannot be repaired or is still not watertight, it raises an error.
         """
         super().__init__()
 
         def load_3d_file_to_manifold(path, auto_repair=True) -> Manifold:
             """
-            ###### Load a 3D file and convert it to a Manifold3D object.
+            Load a 3D file and convert it to a Manifold3D object.
 
-            ###### Parameters:
+            Parameters:
+
             - path (str): Path to the 3D model file.
             - auto_repair (bool): Whether to automatically repair the mesh if it has issues.
 
-            ###### Returns:
+            Returns:
+
             - Manifold3D object.
             """
 
@@ -938,12 +968,13 @@ class ImportModel(Shape):
 
 class TPMS(Shape):
     """
-    ###### Manifold3D triply periodic minimal surface (TPMS) shapes.
+    Manifold3D triply periodic minimal surface (TPMS) shapes. 
+    This class generates a TPMS shape using a level set method.
     """
 
     @njit
     def gyroid(x: float, y: float, z: float) -> bool:
-        """###### Gyroid TPMS function."""
+        """Gyroid TPMS function  (uses @njit decorator for performance)"""
         a = np.radians(360)
         return (
             np.cos(a * x) * np.sin(a * y)
@@ -952,7 +983,8 @@ class TPMS(Shape):
         )
 
     @njit
-    def diamond(x, y, z):
+    def diamond(x: float, y: float, z: float) -> bool:
+        """Diamond TPMS function (uses @njit decorator for performance)"""
         a = np.radians(360.0)
         return (
             np.sin(a * x) * np.sin(a * y) * np.sin(a * z)
@@ -970,14 +1002,13 @@ class TPMS(Shape):
         refinement: int = 10,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - size (tuple[int, int, int]): Size of the TPMS unit cell in px/layer space.
         - cells (tuple[int, int, int]): Number of unit cells in each dimension.
-        - func (Callable[[float, float, float], bool]): Function defining the TPMS shape.
+        - func (Callable[[float, float, float], bool]): Function defining the TPMS shape. Can use gyroid, diamond, or a custom function.
         - fill (float): Level set value for the TPMS shape ranges from -1 to 1 (isosurface at 0)
         - refinement (int): Number of subdivisions for the level set grid.
-
-        This class generates a TPMS shape using a level set method.
         """
         super().__init__()
 

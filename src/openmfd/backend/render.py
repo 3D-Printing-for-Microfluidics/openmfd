@@ -138,12 +138,14 @@ def _draw_port(scene: Scene, port: "Port", component: "Component") -> None:
 
 def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
     """
-    ###### Convert a Manifold3D shape to a trimesh object.
+    Convert a Manifold3D shape to a trimesh object.
 
-    ###### Parameters:
+    Parameters:
+
     - shape (Shape): The Manifold3D shape to convert.
 
-    ###### Returns:
+    Returns:
+
     - tm (trimesh.Trimesh): The converted trimesh object.
     """
     m = shape._object.to_mesh()
@@ -215,14 +217,16 @@ def _component_to_manifold(
     do_bulk_difference: bool = True,
 ) -> tuple[dict[str, "Shape"], dict[str, "Shape"], list[tuple["Port", "Component"]]]:
     """
-    ###### Convert a Component to manifolds and bulk shapes for rendering.
+    Convert a Component to manifolds and bulk shapes for rendering.
 
-    ###### Parameters:
+    Parameters:
+
     - component (Component): The Component to convert.
     - render_bulk (bool): Whether to render bulk shapes.
     - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
 
-    ###### Returns:
+    Returns:
+
     - manifolds (dict): Dictionary of manifolds keyed by color.
     - bulk_manifolds (dict): Dictionary of bulk shapes keyed by color.
     - ports (list): List of ports to draw.
@@ -233,6 +237,7 @@ def _component_to_manifold(
     ports = []
 
     def accumulate_shape(comp: "Component"):
+        """Accumulate shapes from the component and its subcomponents."""
         # itterate shapes (will also draw an inverted device)
         for shape in comp.shapes.values():
             # key = str(shape._color)
@@ -252,6 +257,7 @@ def _component_to_manifold(
                 accumulate_shape(sub)
 
     def accumulate_bulk_shape(comp: "Component"):
+        """Accumulate bulk shapes from the component and its subcomponents."""
         # itterate bulk shapes (if device and not inverted)
         bulks = {}
         comp_cubes = None
@@ -313,7 +319,7 @@ def _component_to_manifold(
         return bulks
 
     def accumulate_regional_settings(comp: "Component"):
-        # itterate shapes (will also draw an inverted device)
+        """Accumulate regional settings from the component and its subcomponents."""
         for shape, setting in comp.regional_settings.values():
             if type(setting).__name__ == "MembraneSettings":
                 prefix = "membrane_settings_"
@@ -343,7 +349,7 @@ def _component_to_manifold(
 
     def get_unconnected_ports(comp: "Component"):
         """
-        Recursive function to traverse the component tree and collect shapes and ports.
+        Recursive function to traverse the component tree and collect unconnected ports.
         """
         # append ports not in a route
         for port in comp.ports.values():
@@ -389,15 +395,18 @@ def render_component(
     preview: bool = False,
 ) -> trimesh.Trimesh | Scene:
     """
-    ###### Render a Component to a Scene.
+    Render a Component to a Scene.
 
-    ###### Parameters:
+    Parameters:
+
     - component (Component): The Component to render.
     - path (str): The directory or file path to save the rendered output.
     - render_bulk (bool): Whether to render bulk shapes.
     - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
     - preview (bool): If True, exports individual GLB files for previewing. If False, exports a single file.
-    ###### Returns:
+    
+    Returns:
+    
     - scene (Scene or trimesh.Trimesh): The rendered scene or flattened mesh.
     """
 

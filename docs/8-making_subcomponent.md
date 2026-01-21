@@ -140,7 +140,7 @@ if __name__ == "__main__":
 
 ```
 
-![Y Junction](8.png)
+![Y Junction](resources/8.png)
 
 This pattern can be adapted for any custom subcomponent. Define your geometry and ports inside the class, then import and reuse it across devices.
 

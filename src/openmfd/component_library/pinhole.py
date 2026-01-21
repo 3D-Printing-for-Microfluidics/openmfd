@@ -4,9 +4,10 @@ from openmfd import Component, Port, Color, Cube, Polychannel, PolychannelShape
 
 class Pinhole(Component):
     """
-    ###### Simple 144 px pinhole component.
+    Simple 144 px pinhole component.
 
-    ###### Ports:
+    Ports:
+    
     - port:
         - Type: INOUT
         - Size: (8, 8, 6)
@@ -14,6 +15,7 @@ class Pinhole(Component):
     """
 
     def __init__(self, channel_size: tuple[int, int, int] = (8, 8, 6)):
+        """Initialize a Pinhole component."""
         pinhole_height = 144
         pinhole_width = 110
         pinhole_length = 200

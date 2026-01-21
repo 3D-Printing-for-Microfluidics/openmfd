@@ -13,6 +13,7 @@ def generate_membrane_images_from_folders(
     membrane_settings: "MembraneSettings",
     slice_metadata: dict,
 ):
+    """Generate membrane images from existing image and mask folders."""
     slices = slice_metadata["slices"]
 
     membrane_thickness_um = membrane_settings.max_membrane_thickness_um

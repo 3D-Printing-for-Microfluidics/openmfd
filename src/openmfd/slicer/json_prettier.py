@@ -71,6 +71,7 @@ json_order = [
 
 
 def pretty_json(input):
+    """Prettify JSON dictionary or list by ordering keys according to json_order."""
     if type(input) is dict:
         new_dict = {}
         for item in json_order:

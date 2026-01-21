@@ -25,6 +25,18 @@ def _slice(
     sliced_devices: list,
     sliced_devices_info: list,
 ):
+    """
+    # Slice the device and save slices in the directory.
+    #
+    # Parameters:
+    #
+    # - _type: String indicating the type of slice (e.g. "masks").
+    # - device: Device to be sliced.
+    # - composite_shape: Composite shape of the device to be sliced.
+    # - directory: Directory to save the slices.
+    # - sliced_devices: List of already sliced devices.
+    # - sliced_devices_info: List of dictionaries to store slice info.
+    """
 
     ############## Slice manifold at layer height and resolution ##############
     from .. import VariableLayerThicknessComponent
@@ -141,9 +153,10 @@ def slice_component(
     _recursed: bool = False,
 ):
     """
-    ###### Slice the device's components and save them in the temporary directory.
+    Slice the device's components and save them in the temporary directory.
 
-    ###### Parameters:
+    Parameters:
+    
     - device: Device to be sliced.
     - temp_directory: Path to the temporary directory where slices will be saved.
     - sliced_devices: Dictionary to store sliced devices.

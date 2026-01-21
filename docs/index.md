@@ -1,17 +1,8 @@
-# Welcome to MkDocs
+# OpenMFD Documentation
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+Welcome to the official OpenMFD documentation.
 
-## Commands
+Use the table of contents to navigate the full tutorial and references.
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+- Start here: [Table of Contents](0-TOC.md)
+- First tutorial step: [Part 1: Introduction](1-introduction.md)

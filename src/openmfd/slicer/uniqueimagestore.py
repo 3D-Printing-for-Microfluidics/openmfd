@@ -97,7 +97,8 @@ class UniqueImageStore:
             shutil.rmtree(self.image_directory)
 
     def add_image(self, img, filename):
-        """Add an image to the image store.
+        """
+        Add an image to the image store.
 
         Must provide both the image and a desired file name, which is
         usually just the original slice file name. This can be provided

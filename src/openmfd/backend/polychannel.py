@@ -19,7 +19,7 @@ def _lerp(
 
 class PolychannelShape:
     """
-    ###### Represents a shape in a polychannel.
+    Represents a shape in a polychannel.
     """
 
     def __init__(
@@ -36,7 +36,8 @@ class PolychannelShape:
         _no_validation: bool = False,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - shape_type: Type of shape (e.g., "cube", "sphere", "rounded_cube").
         - position: Position of the shape in 3D space (x, y, z).
         - size: Size of the shape (width, height, depth).
@@ -48,7 +49,8 @@ class PolychannelShape:
         - fn: Number of facets for rounded shapes.
         - _no_validation: If True, skip validation (for internal use).
 
-        ###### Default behaviors are as follows:
+        Default behaviors are as follows:
+
         - shape_type: Defaults to last shape's shape_type'.
         - size: Defaults to the last shape's size.
         - rounded_cube_radius: Defaults to the last shape's radius
@@ -111,7 +113,7 @@ class PolychannelShape:
 
 class BezierCurveShape:
     """
-    ###### Represents a Bezier curve shape in a polychannel.
+    Represents a Bezier curve shape in a polychannel.
     """
 
     def __init__(
@@ -130,11 +132,13 @@ class BezierCurveShape:
         _no_validation: bool = False,
     ):
         """
-        ###### Parameters:
+        Parameters:
+
         - control_points: List of control points defining the Bezier curve.
         - bezier_segments: Number of segments to divide the curve into.
 
-        ###### Inputs for the final shape of the curve:
+        Inputs for the final shape of the curve:
+
         - shape_type: Type of shape (e.g., "cube", "sphere", "rounded_cube").
         - size: Size of shape.
         - position: Position of the shape in 3D space.
@@ -146,7 +150,8 @@ class BezierCurveShape:
         - fn: Number of facets for rounded shapes.
         - _no_validation: If True, skip validation (for internal use).
 
-        ###### Default behaviors are as follows:
+        Default behaviors are as follows:
+
         - shape_type: Defaults to last shape's shape_type'.
         - size: Defaults to the last shape's size.
         - rounded_cube_radius: Defaults to the last shape's radius
@@ -159,7 +164,7 @@ class BezierCurveShape:
         - corner_segments: Defaults to last shape's segments (10 if not specified).
         - fn: Default to manifold3D's default value (if not specified).
 
-        ###### Bezier curves cannot be the first shape in a polychannel!
+        Bezier curves cannot be the first shape in a polychannel!
         """
         self._shape_type = shape_type
         self._control_points = control_points
@@ -251,9 +256,9 @@ class BezierCurveShape:
 
 class Polychannel(Shape):
     """
-    ###### Represents a polychannel, which is a collection of shapes that are hulls of each other.
-    ###### It can contain PolychannelShape and BezierCurveShape objects..
-    ###### The shapes are automatically validated and rounded corners are created for non-manhattan corners.
+    A polychannel is a collection of shapes that are hulled together.
+    It can contain PolychannelShape and BezierCurveShape objects.
+    The shapes are automatically validated and rounded corners are created for non-manhattan corners.
     """
 
     def __init__(
@@ -262,8 +267,10 @@ class Polychannel(Shape):
         show_only_shapes: bool = False,
     ):
         """
-        ###### Initialize a Polychannel object.
-        ###### Parameters:
+        Initialize a Polychannel object.
+
+        Parameters:
+
         - shapes: List of PolychannelShape or BezierCurveShape objects defining the polychannel.
         - show_only_shapes: If True, only show the shapes without hulls (default: False).
         """
@@ -492,15 +499,18 @@ class Polychannel(Shape):
         list[tuple[float, float, float]], list[tuple[float, float, float]], int, int
     ]:
         """
-        ###### Calculate a 3D arc between points A, B, and C with radius r.
-        ###### Parameters:
+        Calculate a 3D arc between points A, B, and C with radius r.
+
+        Parameters:
+
         - A: Start point of the arc.
         - B: Middle point of the arc (where the arc starts and ends).
         - C: End point of the arc.
         - r: Radius of the arc.
         - n: Number of points to generate along the arc.
 
-        ###### Returns:
+        Returns:
+        
         - arc_points: List of points along the arc.
         - rotation_vectors: List of rotation vectors for each point.
         - start_dir: Index of the direction along BA (0 for x, 1 for y, 2 for z).

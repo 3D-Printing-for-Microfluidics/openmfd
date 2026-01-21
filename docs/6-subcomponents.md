@@ -41,7 +41,7 @@ component.preview()
 component.render("my_first_component.glb")
 ```
 
-![Preview of valve subcomponent](6.png)
+![Preview of valve subcomponent](resources/6.png)
 
 **Checkpoint:** In the visualizer, you should see the valve embedded inside the bulk.
 

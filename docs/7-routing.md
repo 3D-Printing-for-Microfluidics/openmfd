@@ -322,7 +322,7 @@ component.preview()
 ```
 
 
-![Routed Example](7.png)
+![Routed Example](resources/7.png)
 
 ---
 

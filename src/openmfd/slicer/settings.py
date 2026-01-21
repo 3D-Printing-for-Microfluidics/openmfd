@@ -9,6 +9,15 @@ class SpecialPrintTechniques:
 
 class PrintUnderVacuum(SpecialPrintTechniques):
     def __init__(self, enabled: bool = False, target_vacuum_level_torr: float = 10.0, vacuum_wait_time: float = 0.0):
+        """
+        Settings for printing under vacuum.
+        
+        Parameters:
+
+        - enabled: Whether to enable printing under vacuum.
+        - target_vacuum_level_torr: Target vacuum level in Torr.
+        - vacuum_wait_time: Time to wait to reach target vacuum level in seconds.
+        """
         self.enabled = enabled
         self.target_vacuum_level_torr = target_vacuum_level_torr
         self.vacuum_wait_time = vacuum_wait_time    
@@ -25,6 +34,20 @@ class Settings:
         purpose: str = "",
         description: str = "",
     ):
+        """
+        Initialize the settings for slicer object.
+
+        Parameters:
+
+        - printer: Printer object containing printer settings.
+        - resin: ResinType object containing resin formulation.
+        - default_position_settings: Default PositionSettings for layers.
+        - default_exposure_settings: Default ExposureSettings for layers.
+        - special_print_techniques: List of SpecialPrintTechniques to apply.
+        - user: Name of the user creating the settings.
+        - purpose: Purpose of the print job.
+        - description: Description of the print job.
+        """
         self.resin = resin
         self.printer = printer
 
@@ -163,21 +186,35 @@ class ResinType:
         initiators: list[tuple[str, float]] = [("IRG", 1.0)],
         additives: list[tuple[str, float]] = [],
     ):
-        # Resin naming convention:
-        # Use 3 letter abbreviations for materials.
-        # Follow with a dash and the percent amount of the material
-        # If it's a monomer or oligimer, the percent is the fraction of total monomer/oligimer
-        # If it's an absorber, photoinitiator, or additive, the percent is a w/w fraction of the total resin mass
-        # When there are multiple materials in a category, separate them with a single underscore, _
-        # Separate categories of materials with two underscores, __
-        # Schema: MoA-XX_MoB-XX__AbA-XX_AbB-XX__PIA-XX_PIB_XX__AdA-XX_AdB-XX
-        # where:
-        #     MoA, MoB - monomers A and B
-        #     AbA, AbB - absorbers A and B
-        #     PIA, PIB - photoinitiators A and B
-        #     AdA, AdB - additives A and B
-        #     XX - number
+        """
+        Initialize the resin formulation.
+        
+        Parameters:
 
+        - monomer: List of tuples (name, percentage) for monomers.
+        - uv_absorbers: List of tuples (name, percentage) for UV absorbers.
+        - initiators: List of tuples (name, percentage) for photoinitiators.
+        - additives: List of tuples (name, percentage) for additives.
+
+        Resin naming convention:
+
+        - Use 3 letter abbreviations for materials.
+        - Follow with a dash and the percent amount of the material
+        - If it's a monomer or oligimer, the percent is the fraction of total monomer/oligimer
+        - If it's an absorber, photoinitiator, or additive, the percent is a w/w fraction of the total resin mass
+        - When there are multiple materials in a category, separate them with a single underscore, _
+        - Separate categories of materials with two underscores, __
+        - Schema: MoA-XX_MoB-XX__AbA-XX_AbB-XX__PIA-XX_PIB_XX__AdA-XX_AdB-XX
+        - where:
+            - MoA, MoB - monomers A and B
+            - AbA, AbB - absorbers A and B
+            - PIA, PIB - photoinitiators A and B
+            - AdA, AdB - additives A and B
+            - XX - number
+
+        
+        """
+        
         if not isinstance(monomer, list) or not all(
             (isinstance(x, tuple) or isinstance(x, list)) and len(x) == 2 for x in monomer
         ):
@@ -247,6 +284,18 @@ class LightEngine:
         grayscale_available: list[bool] = [False],
         origin: tuple[float, float] = (0.0, 0.0),  # Origin of image mm (x, y)
     ):
+        """
+        Initialize a LightEngine object.
+
+        Parameters:
+
+        - name: Name of the light engine.
+        - px_size: Pixel size in mm.
+        - px_count: Tuple of (width, height) pixel count.
+        - wavelengths: List of supported wavelengths in nm.
+        - grayscale_available: List of booleans indicating if grayscale is available for each wavelength.
+        - origin: Tuple of (x, y) origin in mm.
+        """
         if not isinstance(px_size, (int, float)) or px_size <= 0:
             raise ValueError("Pixel size must be a positive number")
         if (
@@ -285,6 +334,16 @@ class Printer:
         xy_stage_available: bool = False,
         vacuum_available: bool = False,
     ):
+        """
+        Initialize a Printer object.
+
+        Parameters:
+
+        - name: Name of the printer.
+        - light_engines: List of LightEngine objects.
+        - xy_stage_available: Whether the printer has an XY stage.
+        - vacuum_available: Whether the printer supports vacuum printing.
+        """
         self.name = name
         self.light_engines = (
             [light_engines] if isinstance(light_engines, LightEngine) else light_engines
@@ -315,7 +374,7 @@ class Printer:
             printer_data["vacuum_available"],
         )
 
-    def get_light_engine(self, px_size, px_count, wavelength):
+    def _get_light_engine(self, px_size, px_count, wavelength):
         """Get the light engine with the specified pixel size, pixel count, and wavelength."""
         for le in self.light_engines:
             if (
@@ -335,6 +394,16 @@ class SpecialLayerTechniques:
 
 class SqueezeOutResin(SpecialLayerTechniques):
     def __init__(self, enabled: bool = False, count: int = 0, squeeze_force: float = 0.0, squeeze_time: float = 0.0):
+        """
+        Settings for squeezing out resin between layers.
+
+        Parameters:
+
+        - enabled: Whether to enable squeeze out resin.
+        - count: Number of squeezes to perform.
+        - squeeze_force: Force to apply during squeeze in Newtons.
+        - squeeze_time: Time to hold the squeeze in milliseconds.
+        """
         self.enabled = enabled
         self.count = count
         self.squeeze_force = squeeze_force
@@ -354,16 +423,32 @@ class PositionSettings:
         final_wait: float = None,
         special_layer_techniques: list[SpecialLayerTechniques] = [],
     ):
-        # DEFAULT VALUES
-        # # layer_thickness: float = 10.0,
-        # distance_up: float = 1.0,
-        # initial_wait: float = 0.0,
-        # up_speed: float = 25.0,
-        # up_acceleration: float = 50.0,
-        # up_wait: float = 0.0,
-        # down_speed: float = 20.0,
-        # down_acceleration: float = 50.0,
-        # final_wait: float = 0.0,
+        """
+        Initialize position settings for layer movement.
+
+        Parameters:
+
+        - distance_up: Distance to move up in mm.
+        - initial_wait: Initial wait time in milliseconds.
+        - up_speed: Speed to move up in mm/sec.
+        - up_acceleration: Acceleration to move up in mm/sec^2.
+        - up_wait: Wait time after moving up in milliseconds.
+        - down_speed: Speed to move down in mm/sec.
+        - down_acceleration: Acceleration to move down in mm/sec^2.
+        - final_wait: Final wait time in milliseconds.
+        - special_layer_techniques: List of SpecialLayerTechniques to apply.
+
+        Default Values:
+
+        - distance_up: float = 1.0,
+        - initial_wait: float = 0.0,
+        - up_speed: float = 25.0,
+        - up_acceleration: float = 50.0,
+        - up_wait: float = 0.0,
+        - down_speed: float = 20.0,
+        - down_acceleration: float = 50.0,
+        - final_wait: float = 0.0,
+        """
 
         self.layer_thickness = None
         self.distance_up = distance_up
@@ -377,7 +462,7 @@ class PositionSettings:
         self.special_layer_techniques = special_layer_techniques
 
     def to_dict(self):
-        """Convert position settings to a dictionary."""
+        # """Convert position settings to a dictionary."""
         temp_dict = {
             "Layer thickness (um)": self.layer_thickness,
             "Distance up (mm)": self.distance_up,
@@ -402,6 +487,7 @@ class PositionSettings:
         return temp_dict
 
     def __eq__(self, other):
+        # """Check equality of position settings."""
         if not isinstance(other, PositionSettings):
             return False
         return self.to_dict() == other.to_dict()
@@ -424,6 +510,7 @@ class PositionSettings:
     def fill_with_defaults(
         self, defaults: PositionSettings, exceptions: list[str] = None
     ):
+        # """Fill in None values with defaults."""
         for var in vars(self):
             if exceptions and var in exceptions:
                 continue
@@ -436,11 +523,27 @@ class SpecialImageTechniques:
 
 class ZeroMicronLayer(SpecialImageTechniques):
     def __init__(self, enabled: bool = False, count: int = 0):
+        """
+        Settings for zero micron layers.
+
+        Parameters:
+
+        - enabled: Whether to enable zero micron layers.
+        - count: Number of zero micron layers to apply.
+        """
         self.enabled = enabled
         self.count = count
 
 class PrintOnFilm(SpecialImageTechniques):
     def __init__(self, enabled: bool = False, distance_up_mm: float = 0.3):
+        """
+        Settings for printing on film.
+
+        Parameters:
+
+        - enabled: Whether to enable printing on film.
+        - distance_up_mm: Distance to move up in mm when printing on film.
+        """
         self.enabled = enabled
         self.distance_up = distance_up_mm
 
@@ -461,19 +564,31 @@ class ExposureSettings:
         special_image_techniques: list[SpecialImageTechniques] = [],
         **kwargs,
     ):
-        # DEFAULT VALUES
-        # # image_file: str = "out0001.png",
-        # grayscale_correction: bool = False,
-        # # image_x_offset: float = 0.0,
-        # # image_y_offset: float = 0.0,
-        # exposure_time: float = 0.0,
-        # # light_engine: str = "visitech",
-        # power_setting: int = 100,
-        # wavelength: int = 365,
-        # relative_focus_position: float = 0.0,
-        # wait_before_exposure: float = 0.0,
-        # wait_after_exposure: float = 0.0,
+        """
+        Initialize exposure settings for layer exposure.
 
+        Parameters:
+
+        - grayscale_correction: Whether to apply grayscale correction.
+        - exposure_time: Exposure time in milliseconds.
+        - power_setting: Power setting of the light engine in percentage.
+        - wavelength: Wavelength of the light engine in nm.
+        - relative_focus_position: Relative focus position in microns.
+        - wait_before_exposure: Wait time before exposure in milliseconds.
+        - wait_after_exposure: Wait time after exposure in milliseconds.
+        - special_image_techniques: List of SpecialImageTechniques to apply.
+
+        Default Values:
+
+        - grayscale_correction: bool = False,
+        - exposure_time: float = 0.0,
+        - power_setting: int = 100,
+        - wavelength: int = 365,
+        - relative_focus_position: float = 0.0,
+        - wait_before_exposure: float = 0.0,
+        - wait_after_exposure: float = 0.0,
+        """
+        
         self.image_file = None
         self.grayscale_correction = grayscale_correction
         self.image_x_offset = None
@@ -489,7 +604,7 @@ class ExposureSettings:
         self.burnin = False
 
     def to_dict(self):
-        """Convert exposure settings to a dictionary."""
+        # """Convert exposure settings to a dictionary."""
         temp_dict = {
             "Image file": self.image_file,
             "Do light grayscale correction": self.grayscale_correction,
@@ -519,6 +634,7 @@ class ExposureSettings:
         return temp_dict
 
     def __eq__(self, other):
+        # """Check equality of exposure settings."""
         if not isinstance(other, ExposureSettings):
             return False
         return self.to_dict() == other.to_dict()
@@ -543,6 +659,7 @@ class ExposureSettings:
     def fill_with_defaults(
         self, defaults: ExposureSettings, exceptions: list[str] = None
     ):
+        # """Fill in None values with defaults."""
         for var in vars(self):
             if exceptions and var in exceptions:
                 continue
@@ -559,6 +676,18 @@ class MembraneSettings:
         defocus_um: float = 0.0,
         special_image_techniques: list[SpecialImageTechniques] = [],
     ):
+        """
+        Initialize membrane settings for membrane exposure.
+
+        Parameters:
+
+        - max_membrane_thickness_um: Maximum membrane thickness in microns.
+        - exposure_time: Exposure time for membrane in milliseconds.
+        - dilation_px: Dilation in pixels
+        - defocus_um: Defocus position in microns.
+        - special_image_techniques: List of SpecialImageTechniques to apply.
+        """
+
         self.max_membrane_thickness_um = max_membrane_thickness_um
         self.dilation_px = dilation_px
         self.exposure_settings = ExposureSettings(
@@ -568,6 +697,7 @@ class MembraneSettings:
         )
 
     def __eq__(self, other):
+        # """Check equality of membrane settings."""
         if not isinstance(other, MembraneSettings):
             return False
         return (
@@ -597,6 +727,19 @@ class SecondaryDoseSettings:
         roof_erosion_px: int = 0,
         roof_layers_above: int = 0,
     ):
+        """
+        Initialize secondary dose settings for edges and roofs.
+
+        Parameters:
+
+        - edge_exposure_time: Exposure time for edge features in milliseconds.
+        - edge_erosion_px: Erosion in pixels
+        - edge_dilation_px: Dilation in pixels
+        - roof_exposure_time: Exposure time for roof features in milliseconds.
+        - roof_erosion_px: Erosion in pixels
+        - roof_layers_above: Number of layers above roof features to apply secondary dose.
+        """
+
         if edge_exposure_time is None:
             if edge_erosion_px > 0 or edge_dilation_px > 0:
                 raise ValueError(
@@ -617,6 +760,7 @@ class SecondaryDoseSettings:
         )
 
     def __eq__(self, other):
+        # """Check equality of secondary dose settings."""
         if not isinstance(other, SecondaryDoseSettings):
             return False
         return (

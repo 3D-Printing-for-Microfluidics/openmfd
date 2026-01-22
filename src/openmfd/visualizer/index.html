@@ -5,45 +5,84 @@
   <meta charset="UTF-8">
   <title>OpenMFD Visualizer</title>
   <style>
+    :root {
+      --bg: #222222;
+      --panel: rgba(34, 34, 34, 0.95);
+      --text: #ffffff;
+      --button-bg: #3a3a3a;
+      --button-text: #ffffff;
+      --button-border: #555555;
+      --button-bg-active: #888888;
+    }
+
+    .theme-light {
+      --bg: #f5f5f5;
+      --panel: #ffffff;
+      --text: #111111;
+      --button-bg: #e6e6e6;
+      --button-text: #111111;
+      --button-border: #bbbbbb;
+      --button-bg-active: #cfcfcf;
+    }
+
     body {
       margin: 0;
       overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
     }
 
     canvas {
       display: block;
+    }
+
+    #modelSelector {
+      background: var(--panel);
+      color: var(--text);
+    }
+
+    .control-btn {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+      cursor: pointer;
+      border-radius: 0.35rem;
+      border: 1px solid var(--button-border);
+      background: var(--button-bg);
+      color: var(--button-text);
+    }
+
+    .control-btn.is-active {
+      background: var(--button-bg-active);
+    }
+
+    #controls {
+      position: fixed;
+      right: 1.25rem;
+      bottom: 1.25rem;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
     }
   </style>
 </head>
 
 <body>
   <div id="modelSelector"
-    style="position:fixed;top:1.25rem;right:1.25rem;z-index:200;background:rgba(34,34,34,0.95);padding:0.75rem 1.25rem;border-radius:0.5rem;box-shadow:0 2px 8px #0003;font-size:0.95rem;color:#fff;max-width:300px;">
-    <strong>Models</strong><br>
+    style="position:fixed;top:1.25rem;right:1.25rem;z-index:200;padding:0.75rem 1.25rem;border-radius:0.5rem;box-shadow:0 2px 8px #0003;font-size:0.95rem;max-width:300px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+      <strong>Models</strong>
+      <button id="toggleModelSelectorBtn" class="control-btn" style="padding:0.2rem 0.4rem;font-size:0.75rem;">–</button>
+    </div>
     <form id="glbForm"></form>
   </div>
   <script type="module" src="main.js"></script>
-  <button id="resetCameraBtn">Reset Camera</button>
-  <button id="reloadModelBtn">Reload Models</button>
-  <style>
-    #resetCameraBtn,
-    #reloadModelBtn {
-      position: fixed;
-      right: 1.25rem;
-      padding: 0.5rem 0.5rem;
-      font-size: 0.875rem;
-      cursor: pointer;
-      z-index: 100;
-    }
-
-    #resetCameraBtn {
-      bottom: 4.25rem;
-    }
-
-    #reloadModelBtn {
-      bottom: 1.25rem;
-    }
-  </style>
+  <div id="controls">
+    <button id="resetCameraBtn" class="control-btn">Reset Camera</button>
+    <button id="reloadModelBtn" class="control-btn">Auto Reload: ON</button>
+    <button id="toggleAxesBtn" class="control-btn">Axes: On</button>
+    <button id="themeToggleBtn" class="control-btn">Theme: Dark</button>
+  </div>
 </body>
 
 </html>

@@ -14,6 +14,17 @@ let models = [];
 let modelGroups = [];
 let lastModifieds = [];
 
+function getModelVisibility(idx) {
+    const cb = document.getElementById('glb_cb_' + idx);
+    if (!cb) return true;
+    const groups = (cb.dataset.groups || '').split('|').filter(Boolean);
+    const groupsOn = groups.every((groupId) => {
+        const groupCb = document.getElementById(groupId);
+        return groupCb ? groupCb.checked : true;
+    });
+    return cb.checked && groupsOn;
+}
+
 // Load all models
 function loadAllModels(preserveCamera = false) {
     console.log("\tLoading all models...");
@@ -58,8 +69,7 @@ function loadAllModels(preserveCamera = false) {
             modelGroups[idx] = gltf.scene;
             loadedScenes[idx] = gltf.scene;
             // Set initial visibility from checkbox
-            const cb = document.getElementById('glb_cb_' + idx);
-            gltf.scene.visible = cb ? cb.checked : true;
+            gltf.scene.visible = getModelVisibility(idx);
             world.add(gltf.scene);
             loadedCount++;
             // After all models are loaded, frame camera
@@ -75,6 +85,7 @@ function loadAllModels(preserveCamera = false) {
 // Build model selector widget
 function buildModelSelector() {
     const form = document.getElementById('glbForm');
+    const toggleBtn = document.getElementById('toggleModelSelectorBtn');
     form.innerHTML = '';
     // Group models by type
     const groups = { bulk: [], void: [], regional: [], ports: [], device: [], "bounding box": [] };
@@ -98,7 +109,7 @@ function buildModelSelector() {
     });
 
     // Helper to create a checkbox
-    function createCheckbox(id, checked, labelText, onChange, style = {}) {
+    function createCheckbox(id, checked, labelText, onChange, style = {}, meta = {}) {
         const label = document.createElement('label');
         label.style.display = 'block';
         label.style.marginBottom = '0.25em';
@@ -107,11 +118,43 @@ function buildModelSelector() {
         cb.type = 'checkbox';
         cb.id = id;
         cb.checked = checked;
+        if (meta.modelIdx !== undefined) cb.dataset.modelIdx = String(meta.modelIdx);
+        if (meta.groups) cb.dataset.groups = meta.groups.join('|');
         cb.style.marginRight = '0.5em';
         cb.addEventListener('change', onChange);
         label.appendChild(cb);
         label.appendChild(document.createTextNode(labelText));
         return label;
+    }
+
+    function setLabelDisabled(labelEl, disabled) {
+        labelEl.style.opacity = disabled ? '0.5' : '1';
+    }
+
+    function isGroupChecked(groupId) {
+        if (!groupId) return true;
+        const cb = document.getElementById(groupId);
+        return cb ? cb.checked : true;
+    }
+
+    function updateVisibility() {
+        const modelCbs = form.querySelectorAll('input[data-model-idx]');
+        modelCbs.forEach((cb) => {
+            const idx = Number(cb.dataset.modelIdx);
+            const groups = (cb.dataset.groups || '').split('|').filter(Boolean);
+            const groupsOn = groups.every(isGroupChecked);
+            const visible = cb.checked && groupsOn;
+            if (modelGroups[idx]) modelGroups[idx].visible = visible;
+            const label = document.getElementById('glb_cb_label_' + idx);
+            if (label) setLabelDisabled(label, !groupsOn);
+        });
+
+        const groupLabels = form.querySelectorAll('[data-group-label]');
+        groupLabels.forEach((label) => {
+            const parentGroup = label.dataset.parentGroup;
+            const enabled = parentGroup ? isGroupChecked(parentGroup) : true;
+            setLabelDisabled(label, !enabled);
+        });
     }
 
     // Top-level: device, bounding box, ports
@@ -125,8 +168,11 @@ function buildModelSelector() {
                 id,
                 checked,
                 name,
-                () => { if (modelGroups[idx]) modelGroups[idx].visible = document.getElementById(id).checked; }
+                updateVisibility,
+                {},
+                { modelIdx: idx, groups: [] }
             );
+            label.id = 'glb_cb_label_' + idx;
             form.appendChild(label);
         });
     });
@@ -148,7 +194,7 @@ function buildModelSelector() {
             // Expand/collapse
             const expBtn = document.createElement('button');
             expBtn.type = 'button';
-            expBtn.textContent = '▼';
+            expBtn.textContent = '►';
             expBtn.style.marginRight = '0.5em';
             expBtn.style.background = 'none';
             expBtn.style.border = 'none';
@@ -157,28 +203,14 @@ function buildModelSelector() {
             expBtn.style.fontWeight = 'bold';
             let expanded = false;
             const groupLabel = document.createElement('span');
+            groupLabel.dataset.groupLabel = 'true';
             groupLabel.textContent = 'Regional (' + groups[type].length + ')';
             const groupCb = document.createElement('input');
             groupCb.type = 'checkbox';
             groupCb.id = groupId;
             groupCb.checked = false;
             groupCb.style.marginRight = '0.5em';
-            // Toggle all in group, but only for subtypes that are checked
-            groupCb.addEventListener('change', () => {
-                Object.entries(regionalSubgroups).forEach(([subtype, models]) => {
-                    const subGroupId = 'group_cb_regional_' + subtype.replace(/\s+/g, '_');
-                    const subGroupCb = document.getElementById(subGroupId);
-                    if (subGroupCb && subGroupCb.checked) {
-                        models.forEach(({ idx }) => {
-                            const cb = document.getElementById('glb_cb_' + idx);
-                            if (cb) {
-                                cb.checked = groupCb.checked;
-                                if (modelGroups[idx]) modelGroups[idx].visible = cb.checked;
-                            }
-                        });
-                    }
-                });
-            });
+            groupCb.addEventListener('change', updateVisibility);
             // Expand/collapse logic
             expBtn.addEventListener('click', () => {
                 expanded = !expanded;
@@ -196,6 +228,7 @@ function buildModelSelector() {
             // Group content (subgroups)
             const groupContent = document.createElement('div');
             groupContent.style.display = 'none';
+            expBtn.textContent = expanded ? '▼' : '►';
             groupContent.style.marginLeft = '1.5em';
             Object.entries(regionalSubgroups).forEach(([subtype, models]) => {
                 // Subgroup master
@@ -206,43 +239,51 @@ function buildModelSelector() {
                 const subGroupHeader = document.createElement('div');
                 subGroupHeader.style.display = 'flex';
                 subGroupHeader.style.alignItems = 'center';
+                const subExpBtn = document.createElement('button');
+                subExpBtn.type = 'button';
+                subExpBtn.textContent = '►';
+                subExpBtn.style.marginRight = '0.5em';
+                subExpBtn.style.background = 'none';
+                subExpBtn.style.border = 'none';
+                subExpBtn.style.color = '#fff';
+                subExpBtn.style.cursor = 'pointer';
+                subExpBtn.style.fontWeight = 'bold';
                 const subGroupCb = document.createElement('input');
                 subGroupCb.type = 'checkbox';
                 subGroupCb.id = subGroupId;
                 subGroupCb.checked = true;
                 subGroupCb.style.marginRight = '0.5em';
-                // Toggle all in subgroup
-                subGroupCb.addEventListener('change', () => {
-                    models.forEach(({ idx }) => {
-                        const cb = document.getElementById('glb_cb_' + idx);
-                        if (cb) {
-                            cb.checked = subGroupCb.checked;
-                            if (modelGroups[idx]) modelGroups[idx].visible = cb.checked;
-                        }
-                    });
-                });
+                subGroupCb.addEventListener('change', updateVisibility);
                 const subGroupLabel = document.createElement('span');
+                subGroupLabel.id = subGroupId + '_label';
+                subGroupLabel.dataset.groupLabel = 'true';
+                subGroupLabel.dataset.parentGroup = groupId;
                 subGroupLabel.textContent = subtype.charAt(0).toUpperCase() + subtype.slice(1) + ' (' + models.length + ')';
+                subGroupHeader.appendChild(subExpBtn);
                 subGroupHeader.appendChild(subGroupCb);
                 subGroupHeader.appendChild(subGroupLabel);
                 subGroupDiv.appendChild(subGroupHeader);
                 // Subgroup content
                 const subGroupContent = document.createElement('div');
                 subGroupContent.style.marginLeft = '1.5em';
+                subGroupContent.style.display = 'none';
+                subExpBtn.addEventListener('click', () => {
+                    const isOpen = subGroupContent.style.display !== 'none';
+                    subGroupContent.style.display = isOpen ? 'none' : '';
+                    subExpBtn.textContent = isOpen ? '►' : '▼';
+                });
                 models.forEach(({ name, idx }) => {
                     const id = 'glb_cb_' + idx;
-                    const checked = false;
+                    const checked = true;
                     const label = createCheckbox(
                         id,
                         checked,
                         name,
-                        () => {
-                            if (modelGroups[idx]) modelGroups[idx].visible = document.getElementById(id).checked;
-                            // If any unchecked, uncheck subgroup; if all checked, check subgroup
-                            const allChecked = models.every(({ idx }) => document.getElementById('glb_cb_' + idx).checked);
-                            subGroupCb.checked = allChecked;
-                        }
+                        updateVisibility,
+                        {},
+                        { modelIdx: idx, groups: [groupId, subGroupId] }
                     );
+                    label.id = 'glb_cb_label_' + idx;
                     subGroupContent.appendChild(label);
                 });
                 subGroupDiv.appendChild(subGroupContent);
@@ -250,6 +291,7 @@ function buildModelSelector() {
             });
             groupDiv.appendChild(groupContent);
             form.appendChild(groupDiv);
+            updateVisibility();
             return;
         }
         // Default: non-regional expandable group
@@ -264,7 +306,7 @@ function buildModelSelector() {
         // Expand/collapse
         const expBtn = document.createElement('button');
         expBtn.type = 'button';
-        expBtn.textContent = '▼';
+        expBtn.textContent = '►';
         expBtn.style.marginRight = '0.5em';
         expBtn.style.background = 'none';
         expBtn.style.border = 'none';
@@ -273,22 +315,14 @@ function buildModelSelector() {
         expBtn.style.fontWeight = 'bold';
         let expanded = false;
         const groupLabel = document.createElement('span');
+        groupLabel.dataset.groupLabel = 'true';
         groupLabel.textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' (' + groups[type].length + ')';
         const groupCb = document.createElement('input');
         groupCb.type = 'checkbox';
         groupCb.id = groupId;
         groupCb.checked = false;
         groupCb.style.marginRight = '0.5em';
-        // Toggle all in group
-        groupCb.addEventListener('change', () => {
-            groups[type].forEach(({ idx }) => {
-                const cb = document.getElementById('glb_cb_' + idx);
-                if (cb) {
-                    cb.checked = groupCb.checked;
-                    if (modelGroups[idx]) modelGroups[idx].visible = cb.checked;
-                }
-            });
-        });
+        groupCb.addEventListener('change', updateVisibility);
         // Expand/collapse logic
         expBtn.addEventListener('click', () => {
             expanded = !expanded;
@@ -306,27 +340,42 @@ function buildModelSelector() {
         // Group content
         const groupContent = document.createElement('div');
         groupContent.style.display = 'none';
+        expBtn.textContent = expanded ? '▼' : '►';
         groupContent.style.marginLeft = '1.5em';
         groups[type].forEach(({ name, idx }) => {
             const id = 'glb_cb_' + idx;
             // Not checked by default
-            const checked = false;
+            const checked = true;
             const label = createCheckbox(
                 id,
                 checked,
                 name,
-                () => {
-                    if (modelGroups[idx]) modelGroups[idx].visible = document.getElementById(id).checked;
-                    // If any unchecked, uncheck group; if all checked, check group
-                    const allChecked = groups[type].every(({ idx }) => document.getElementById('glb_cb_' + idx).checked);
-                    groupCb.checked = allChecked;
-                }
+                updateVisibility,
+                {},
+                { modelIdx: idx, groups: [groupId] }
             );
+            label.id = 'glb_cb_label_' + idx;
             groupContent.appendChild(label);
         });
         groupDiv.appendChild(groupContent);
         form.appendChild(groupDiv);
+        updateVisibility();
     });
+
+    const savedCollapsed = localStorage.getItem('openmfd_model_selector_collapsed');
+    const isCollapsed = savedCollapsed === 'true';
+    if (toggleBtn) {
+        form.style.display = isCollapsed ? 'none' : '';
+        toggleBtn.textContent = isCollapsed ? '+' : '–';
+        toggleBtn.onclick = () => {
+            const nextCollapsed = form.style.display !== 'none' ? true : false;
+            form.style.display = nextCollapsed ? 'none' : '';
+            toggleBtn.textContent = nextCollapsed ? '+' : '–';
+            localStorage.setItem('openmfd_model_selector_collapsed', String(nextCollapsed));
+        };
+    }
+
+    updateVisibility();
 }
 
 // Watch for GLB file changes and model list changes
@@ -442,7 +491,38 @@ function resetCamera() {
 
 // Create Scene
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x222222);
+
+function getCssVar(name) {
+    return getComputedStyle(document.body).getPropertyValue(name).trim();
+}
+
+function applyTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.add('theme-light');
+    } else {
+        document.body.classList.remove('theme-light');
+    }
+    localStorage.setItem('openmfd_theme', theme);
+    const bg = getCssVar('--bg') || '#222222';
+    scene.background = new THREE.Color(bg);
+    if (axes && axes.setColors) {
+        if (theme === 'light') {
+            axes.setColors(0xDD0000, 0x00AA00, 0x0000CC);
+        } else {
+            axes.setColors(0xAA4444, 0x44AA44, 0x4444AA);
+        }
+    }
+}
+
+function initTheme() {
+    const saved = localStorage.getItem('openmfd_theme');
+    const theme = saved === 'light' ? 'light' : 'dark';
+    applyTheme(theme);
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) {
+        btn.textContent = theme === 'light' ? 'Theme: Light' : 'Theme: Dark';
+    }
+}
 const world = new THREE.Group();
 scene.add(world);
 world.rotation.x = -Math.PI / 2;
@@ -475,31 +555,49 @@ window.addEventListener('resize', () => {
 document.getElementById('resetCameraBtn').addEventListener('click', () => {
     resetCamera();
 });
-// Replace reloadModelBtn with a toggle button
+
 const reloadModelBtn = document.getElementById('reloadModelBtn');
 reloadModelBtn.textContent = 'Auto Reload: ON';
-// reloadModelBtn.style.background = '#4caf50';
-// reloadModelBtn.style.color = '#fff';
-// reloadModelBtn.style.fontWeight = 'bold';
-// reloadModelBtn.style.borderRadius = '0.3em';
-// reloadModelBtn.style.padding = '0.5em 1em';
-// reloadModelBtn.style.border = 'none';
-// reloadModelBtn.style.cursor = 'pointer';
+reloadModelBtn.classList.add('is-active');
 
 reloadModelBtn.addEventListener('click', () => {
     autoReloadEnabled = !autoReloadEnabled;
     if (autoReloadEnabled) {
         reloadModelBtn.textContent = 'Auto Reload: ON';
-        reloadModelBtn.style.background = 'buttonface';
+        reloadModelBtn.classList.add('is-active');
         if (!autoReloadInterval) {
             autoReloadInterval = setInterval(checkGLBUpdates, 1000);
         }
     } else {
         reloadModelBtn.textContent = 'Auto Reload: OFF';
-        reloadModelBtn.style.background = '#888';
+        reloadModelBtn.classList.remove('is-active');
         if (autoReloadInterval) {
             clearInterval(autoReloadInterval);
             autoReloadInterval = null;
         }
     }
 });
+
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+        const current = localStorage.getItem('openmfd_theme') === 'light' ? 'light' : 'dark';
+        const next = current === 'light' ? 'dark' : 'light';
+        applyTheme(next);
+        themeToggleBtn.textContent = next === 'light' ? 'Theme: Light' : 'Theme: Dark';
+    });
+}
+
+const toggleAxesBtn = document.getElementById('toggleAxesBtn');
+if (toggleAxesBtn) {
+    const savedAxes = localStorage.getItem('openmfd_axes_visible');
+    axes.visible = savedAxes !== 'false';
+    toggleAxesBtn.textContent = axes.visible ? 'Axes: On' : 'Axes: Off';
+    toggleAxesBtn.addEventListener('click', () => {
+        axes.visible = !axes.visible;
+        localStorage.setItem('openmfd_axes_visible', String(axes.visible));
+        toggleAxesBtn.textContent = axes.visible ? 'Axes: On' : 'Axes: Off';
+    });
+}
+
+initTheme();

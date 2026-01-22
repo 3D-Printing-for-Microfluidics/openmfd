@@ -6,12 +6,17 @@ import importlib.util
 CWD = Path.cwd()
 
 
-def get_openmfd_env_dir():
-    """Return the absolute path to the openmfd package directory."""
+def get_openmfd_env_dir() -> Path | None:
+    """
+    Return the absolute path to the openmfd package directory.
+
+    Returns:
+
+    - Path | None: The resolved package directory, or None if not found.
+    """
     spec = importlib.util.find_spec("openmfd")
     if spec and spec.origin:
         package_path = Path(spec.origin).parent
-        # print(f"\tFound openmfd package at: {package_path.relative_to(CWD)}")
         return package_path.relative_to(CWD)
     print("\topenmfd package not found in sys.path")
     return None
@@ -20,7 +25,18 @@ def get_openmfd_env_dir():
 def parse_colors_from_text(
     filename: str, prefix: str = ""
 ) -> dict[str, tuple[int, int, int]]:
-    """Parses a color file and returns a dictionary of colors."""
+    """
+    Parse a color CSV file and return a dictionary of colors.
+
+    Parameters:
+
+    - filename (str): Path to the color CSV file.
+    - prefix (str): Optional prefix to prepend to color names.
+
+    Returns:
+
+    - dict[str, tuple[int, int, int]]: Map of color names to RGB tuples.
+    """
     with open(filename, "r") as f:
         color_dict = {}
         for line in f:
@@ -56,7 +72,7 @@ XKCD_COLORS = parse_colors_from_text(
 
 class Color:
     """
-    Color class.
+    RGBA color utilities and constructors.
     """
 
     def __init__(self, r: int, g: int, b: int, a: int = 255):
@@ -64,11 +80,11 @@ class Color:
         Initialize the color.
 
         Parameters:
-        
-        - r (int): The red value.
-        - g (int): The green value.
-        - b (int): The blue value.
-        - a (int): The alpha value.
+
+        - r (int): The red value (0-255).
+        - g (int): The green value (0-255).
+        - b (int): The blue value (0-255).
+        - a (int): The alpha value (0-255).
         """
         self._r = self._clamp(r)
         self._g = self._clamp(g)
@@ -84,6 +100,14 @@ class Color:
 
         - name (str): The name of the color.
         - alpha (int): The alpha value.
+
+        Returns:
+
+        - Color: The color instance.
+
+        Raises:
+
+        - ValueError: If the name is not found in any color list.
         """
         name = name.lower()
         # check if name is in any of the color dictionaries
@@ -112,23 +136,40 @@ class Color:
     @classmethod
     def from_rgba(cls, rgba: tuple[int, int, int, int]) -> Color:
         """
-        Initialize the color from a tuple of 4 integers.
+        Initialize the color from a tuple of 4 integers (0 to 255).
 
         Parameters:
 
-        - rgba (tuple[int, int, int, int]): The RGBA values.
+        - rgba (tuple[int, int, int, int]): The RGBA values (each 0 to 255).
+
+        Returns:
+
+        - Color: The color instance.
+
+        Raises:
+
+        - ValueError: If the tuple length is not 4.
         """
         if len(rgba) != 4:
             raise ValueError("RGBA must be a tuple of 4 integers")
         return cls(*rgba)
 
+    @classmethod
     def from_rgba_percent(cls, rgba: tuple[float, float, float, float]) -> Color:
         """
         Initialize the color from a tuple of 4 floats (0.0 to 1.0).
 
         Parameters:
 
-        - rgba (tuple[float, float, float, float]): The RGBA values.
+        - rgba (tuple[float, float, float, float]): The RGBA values (each 0.0 to 1.0).
+
+        Returns:
+
+        - Color: The color instance.
+
+        Raises:
+
+        - ValueError: If the tuple length is not 4.
         """
         if len(rgba) != 4:
             raise ValueError("RGBA must be a tuple of 4 floats")
@@ -145,16 +186,25 @@ class Color:
 
         Parameters:
 
-        - hex_code (str): The hex code.
-        - alpha (int): The alpha value.
+        - hex_code (str): The hex code (#RRGGBB or #RRGGBBAA).
+        - alpha (int): The alpha value (used if hex code does not include alpha).
+
+        Returns:
+
+        - Color: The color instance.
+
+        Raises:
+
+        - ValueError: If the hex code is not 6 characters.
         """
         hex_code = hex_code.strip().lstrip("#")
-        if len(hex_code) != 6:
-            raise ValueError("Hex code must be 6 characters long")
+        if len(hex_code) not in (6, 8):
+            raise ValueError("Hex code must be 6 or 8 characters long")
         r = int(hex_code[0:2], 16)
         g = int(hex_code[2:4], 16)
         b = int(hex_code[4:6], 16)
-        return cls(r, g, b, alpha)
+        a = int(hex_code[6:8], 16) if len(hex_code) == 8 else alpha
+        return cls(r, g, b, a)
 
     def _change_to_color(self, color: Color) -> None:
         """
@@ -172,24 +222,40 @@ class Color:
     def _to_rgba(self) -> tuple[int, int, int, int]:
         """
         Convert the color to a tuple of 4 integers.
+
+        Returns:
+
+        - tuple[int, int, int, int]: RGBA values (0-255).
         """
         return (self._r, self._g, self._b, self._a)
 
     def _to_float(self) -> tuple[float, float, float, float]:
         """
         Convert the color to a tuple of 4 floats.
+
+        Returns:
+
+        - tuple[float, float, float, float]: RGBA values in [0.0, 1.0].
         """
-        return (self._r / 256, self._g / 256, self._b / 256, self._a / 256)
+        return (self._r / 255, self._g / 255, self._b / 255, self._a / 255)
 
     def __str__(self) -> str:
         # """
         # Convert the color to a string.
+
+        # Returns:
+
+        # - str: String representation.
         # """
         return f"rgba({self._r}, {self._g}, {self._b}, {self._a})"
 
     def __repr__(self) -> str:
         # """
         # Convert the color to a string.
+
+        # Returns:
+
+        # - str: Debug representation.
         # """
         return f"Color(r={self._r}, g={self._g}, b={self._b}, a={self._a})"
 
@@ -197,5 +263,13 @@ class Color:
     def _clamp(value: Union[float, int]) -> int:
         """
         Clamp the value between 0 and 255.
+
+        Parameters:
+
+        - value (Union[float, int]): The input value.
+
+        Returns:
+
+        - int: The clamped integer value.
         """
         return max(0, min(255, int(value)))

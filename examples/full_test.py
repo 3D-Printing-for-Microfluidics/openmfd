@@ -573,6 +573,7 @@ v2_flush = (
 )
 pump1 = Pump().translate((600, 700, 150))
 pump2 = Pump().translate((600, device_width - 700 - pump_width, 150))
+
 mixer = (
     TJunction()
     .rotate(270, in_place=True)
@@ -670,36 +671,6 @@ r.autoroute_channel(
 # Finalize routing
 r.route()
 
-# Color channels
-dev.relabel_labels(["pneumatic"], "control")
-dev.relabel_labels(["fluidic"], "fluidic")
-dev.relabel_labels(["bulk"], "device")
-dev.relabel_labels(
-    [
-        "V1_CONT.void",
-        "V1_FLUSH.void",
-        "DC_CONT.void",
-        "DC_FLUSH.void",
-        "V2_CONT.void",
-        "V2_FLUSH.void",
-    ],
-    "control",
-)
-dev.relabel_labels(
-    [
-        "F_IN1.void",
-        "F_IN2.void",
-        "F_OUT.void",
-    ],
-    "fluidic",
-)
-# dev.relabel_subcomponents(
-#     [v1_control, v1_flush, dc_control, dc_flush, v2_control, v2_flush], "control"
-# )
-# dev.relabel_subcomponents(
-#     [f_in1, f_in2, mixer, view1, harc, serp, view2, f_out], "fluidic"
-# )
-
 # Add regional settings
 dev.add_regional_settings(
     "EdgeExposure",
@@ -716,6 +687,42 @@ dev.add_bulk(
     Cube((2560, 1600, 250), center=False).translate((0, 0, 0)),
     label="device",
 )
+
+# Color channels
+dev.relabel({
+    "pneumatic": "control",
+    "fluidic": "fluidic",
+    "bulk": "device",
+    "device": "device",
+    "V1_CONT.void": "control",
+    "V1_FLUSH.void": "control",
+    "DC_CONT.void": "control",
+    "DC_FLUSH.void": "control",
+    "V2_CONT.void": "control",
+    "V2_FLUSH.void": "control",
+    "F_IN1.void": "fluidic",
+    "F_IN2.void": "fluidic",
+    "F_OUT.void": "fluidic",
+})
+
+# Loop through and check all labels and colors
+def print_labels(component: Component, prefix: str = ""):
+    print(f"{prefix}Component: {component._name}")
+    print(f"{prefix}\tLabels:")
+    print(f"{prefix}\t\t{component.labels.keys()}")
+    # for label, color in component.labels.items():
+    #     print(f"{prefix}\t\tLabel: {label}, Color: {color}")
+    print(f"{prefix}\tShapes:")
+    # print(f"{prefix}\t\t{component.shapes.keys()}")
+    # print(f"{prefix}\t\t{component.bulk_shapes.keys()}")
+    # print(f"{prefix}\t\t{component.regional_settings.keys()}")
+    for shape in [*component.bulk_shapes.values(),
+                  *component.shapes.values(),
+                  *[s for s, _ in component.regional_settings.values()]]:
+        print(f"{prefix}\t\tShape {shape._name} Label: {shape._label}, Color: {shape._color}")
+    for _, sub_comp in component.subcomponents.items():
+        print_labels(sub_comp, prefix + "\t")
+print_labels(dev)
 
 dev.preview()
 
@@ -763,4 +770,4 @@ slicer = Slicer(
     minimize_file=True,
     zip_output=False,
 )
-slicer.make_print_file()
+# slicer.make_print_file()

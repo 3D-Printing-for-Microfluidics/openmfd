@@ -246,16 +246,16 @@ class Port(_InstantiationTrackerMixin):
     def get_position(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        # """
-        # Get the position of the port in 3D space.
+        """
+        Get the position of the port in 3D space.
 
-        # Parameters:
-        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
 
-        # Returns:
-        # - A tuple of three integers representing the position of the port (x, y, z).
-        # """
+        Returns:
+        - A tuple of three integers representing the position of the port (x, y, z).
+        """
 
         _px_size = self._parent._px_size if px_size is None else px_size
         _layer_size = self._parent._layer_size if layer_size is None else layer_size
@@ -268,15 +268,15 @@ class Port(_InstantiationTrackerMixin):
     def get_size(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        # """
-        # Get the size of the port.
+        """
+        Get the size of the port.
 
-        # Parameters:
-        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        Parameters:
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
 
-        # Returns:
-        # - A tuple of three integers representing the size of the port (width, height, depth).
-        # """
+        Returns:
+        - A tuple of three integers representing the size of the port (width, height, depth).
+        """
         _px_size = self._parent._px_size if px_size is None else px_size
         _layer_size = self._parent._layer_size if layer_size is None else layer_size
         return (
@@ -301,13 +301,13 @@ class Port(_InstantiationTrackerMixin):
         # - Color: The color of the port.
         # """
         if self._type == Port.PortType.IN:
-            return Color.from_name("green", 255)  # Green
+            return Color.from_name("g", 255)  # Green
         elif self._type == Port.PortType.OUT:
-            return Color.from_name("red", 255)  # Red
+            return Color.from_name("r", 255)  # Red
         elif self._type == Port.PortType.INOUT:
-            return Color.from_name("blue", 255)  # Blue
+            return Color.from_name("b", 255)  # Blue
         else:
-            return Color.from_name("white", 255)  # White
+            return Color.from_name("w", 255)  # White
 
 
 class Component(_InstantiationTrackerMixin):
@@ -449,18 +449,18 @@ class Component(_InstantiationTrackerMixin):
     def get_size(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        # """
-        # Get the size of the component.
+        """
+        Get the size of the component.
 
-        # Parameters:
+        Parameters:
 
-        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
 
-        # Returns:
+        Returns:
 
-        # - A tuple of three integers representing the size of the component (width, height, depth).
-        # """
+        - A tuple of three integers representing the size of the component (width, height, depth).
+        """
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
         return (
@@ -472,18 +472,18 @@ class Component(_InstantiationTrackerMixin):
     def get_position(
         self, px_size: float = None, layer_size: float = None
     ) -> tuple[int, int, int]:
-        # """
-        # Get the position of the component in 3D space.
+        """
+        Get the position of the component in 3D space.
 
-        # Parameters:
+        Parameters:
 
-        # - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
-        # - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
+        - px_size (float, optional): The pixel size in mm. If not provided, uses the component's pixel size.
+        - layer_size (float, optional): The layer size in mm. If not provided, uses the component's layer size.
 
-        # Returns:
+        Returns:
 
-        # - A tuple of three integers representing the position of the component (x, y, z).
-        # """
+        - A tuple of three integers representing the position of the component (x, y, z).
+        """
         _px_size = self._px_size if px_size is None else px_size
         _layer_size = self._layer_size if layer_size is None else layer_size
         return (
@@ -491,6 +491,47 @@ class Component(_InstantiationTrackerMixin):
             round(self._position[1] * self._px_size / _px_size, 3),
             round(self._position[2] * self._layer_size / _layer_size, 3),
         )
+
+    def get_ports(self) -> dict[str, Port]:
+        """
+        Get a dictionary of ports in the component.
+
+        Returns:
+        - dict[str, Port]: A dictionary mapping port names to Port objects.
+        """
+        return self.ports
+    
+    def get_labels(self) -> dict[str, Color]:
+        """
+        Get a dictionary of labels in the component.
+        
+        Returns:
+        - dict[str, Color]: A dictionary mapping label names to Color objects.
+        """
+        return self.labels
+    
+    # return dictionary of lists with a dictionary for each type of shape
+    def get_shapes(self) -> dict[str, dict[str, Shape]]:
+        """
+        Get a dictionary of shapes in the component.
+
+        Returns:
+        - dict[str, dict[str, Shape]]: A dictionary with keys 'voids' and 'bulks' containing dictionaries of shape names.
+        """
+        return {
+            "voids": self.shapes,
+            "bulks": self.bulk_shapes,
+            "regional_settings": {k: v[0] for k, v in self.regional_settings.items()},
+        }
+    
+    def get_subcomponents(self) -> dict[str, Component]:
+        """
+        Get a dictionary of subcomponents in the component.
+        
+        Returns:
+        - dict[str, Component]: A dictionary mapping subcomponent names to Component objects.
+        """
+        return self.subcomponents
 
     def _validate_name(self, name):
         # """
@@ -505,6 +546,32 @@ class Component(_InstantiationTrackerMixin):
                 raise ValueError(
                     f"Port with name '{name}' already exists in component {self._name}"
                 )
+        for s in self.shapes.keys():
+            if s == name:
+                raise ValueError(
+                    f"Void with name '{name}' already exists in component {self._name}"
+                )
+        for s in self.bulk_shapes.keys():
+            if s == name:
+                raise ValueError(
+                    f"Bulk with name '{name}' already exists in component {self._name}"
+                )
+        for r in self.regional_settings.keys():
+            if r == name:
+                raise ValueError(
+                    f"Regional settings with name '{name}' already exists in component {self._name}"
+                )
+        for c in self.subcomponents.keys():
+            if c == name:
+                raise ValueError(
+                    f"Subcomponent with name '{name}' already exists in component {self._name}"
+                )
+        for l in self.labels.keys():
+            if l == name:
+                raise ValueError(
+                    f"Label with name '{name}' already exists in component {self._name}"
+                )
+        
         if not name.isidentifier():
             raise ValueError(
                 f"Name '{name}' is not a valid Python identifier (e.g. no spaces, starts with letter, etc.)"
@@ -524,6 +591,17 @@ class Component(_InstantiationTrackerMixin):
         self._validate_name(name)
         self.labels[name] = color
 
+    def add_labels(self, mapping: dict[str, Color]):
+        """
+        Add multiple labels to the component.
+
+        Parameters:
+
+        - mapping (dict[str, Color]): A dictionary mapping label names to their colors.
+        """
+        for name, color in mapping.items():
+            self.add_label(name, color)
+
     def add_void(self, name: str, shape: Shape, label: str):
         """
         Add a shape to the component.
@@ -535,6 +613,11 @@ class Component(_InstantiationTrackerMixin):
         - label (str): The label for the shape, which should be a key in the component's labels dictionary.
         """
         self._validate_name(name)
+        if shape._parent is not None:
+            raise ValueError(
+                f"Shape '{shape._name}' has already been added to component '{shape._parent._name}' and cannot be added again."
+            )
+
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
@@ -552,6 +635,11 @@ class Component(_InstantiationTrackerMixin):
         - label (str): The label for the bulk shape, which should be a key in the component's labels dictionary.
         """
         self._validate_name(name)
+        if shape._parent is not None:
+            raise ValueError(
+                f"Shape '{shape._name}' has already been added to component '{shape._parent._name}' and cannot be added again."
+            )
+
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
@@ -568,6 +656,11 @@ class Component(_InstantiationTrackerMixin):
         - port (Port): The port to be added.
         """
         self._validate_name(name)
+        if port._parent is not None:
+            raise ValueError(
+                f"Port '{port._name}' has already been added to component '{port._parent._name}' and cannot be added again."
+            )
+
         port._name = name
         port._parent = self
         self.ports[name] = port
@@ -584,13 +677,34 @@ class Component(_InstantiationTrackerMixin):
         - component (Component): The subcomponent to be added.
         """
         self._validate_name(name)
+        if component._parent is not None:
+            raise ValueError(
+                f"Component '{component._name}' has already been added to component '{component._parent._name}' and cannot be added again."
+            )
+
         component._name = name
         component._parent = self
         component.run_translate()
-        self.subcomponents[name] = component
 
-        for label, color in component.labels.items():
-            self.labels[f"{name}.{label}"] = color
+        def update_labels(comp: Component, prefix: str = None, parent_labels: dict = None):
+            """
+            Update labels in the component and its subcomponents to include the prefix.
+            If label matches a label in the parent component, it is not changed.
+            """
+            for label in list(comp.labels.keys()):
+                new_label = f"{prefix}.{label}"
+                comp.labels[new_label] = comp.labels.pop(label)
+            for shape in comp.shapes.values():
+                shape._label = f"{prefix}.{shape._label}"
+            for shape in comp.bulk_shapes.values():
+                shape._label = f"{prefix}.{shape._label}"
+            for shape, _ in comp.regional_settings.values():
+                shape._label = f"{prefix}.{shape._label}"
+            for subcomp in comp.subcomponents.values():
+                update_labels(subcomp, prefix, comp.labels)
+        update_labels(component, name, self.labels)
+
+        self.subcomponents[name] = component
 
         if hide_in_render:
             component.hide_in_render = True
@@ -644,6 +758,11 @@ class Component(_InstantiationTrackerMixin):
         - label (str): The label for the regional settings, which should be a key in the component's labels dictionary.
         """
         self._validate_name(name)
+        if shape._parent is not None:
+            raise ValueError(
+                f"Shape '{shape._name}' has already been added to component '{shape._parent._name}' and cannot be added again."
+            )
+
         shape._name = name
         shape._parent = self
         shape._color = self.labels[label]
@@ -674,85 +793,122 @@ class Component(_InstantiationTrackerMixin):
         """
         self.burnin_settings = exposure_times
 
-    def relabel_subcomponents(self, subcomponents: list[Component], label: str):
+    def relabel(self, mapping: dict[Union[Component, Shape, str], str], _color_mapping: dict[str, Color] = None):
         """
-        Relabel listed subcomponents with a new label.
+        Relabel listed shapes and labels with new labels.
 
         Parameters:
 
-        - subcomponents (list[Component]): List of subcomponents to relabel.
-        - label (str): The new label to apply to the subcomponents.
+        - mapping (dict[Union[Component, Shape, str], str]): A dictionary mapping shapes or labels (or their fully qualified names) to new label names.
+        - _color_mapping (dict[str, Color], optional): Internal use only. A dictionary mapping new label names to their colors.
+        
+        Raises:
+        - ValueError: If a shape or label is not found in the component.
         """
-        for c in subcomponents:
-            c.relabel_labels(
-                c.labels.keys(), label, recursive=True, _color=self.labels[label]
-            )
-            # c.relabel_labels(
-            #     c.labels.keys(), label, recursive=False, _color=self.labels[label]
-            # )
-            # c.relabel_subcomponents(c.subcomponents.values(), label)
+        
+        if _color_mapping is None:
+            _color_mapping = {}
+            for _, new_label in mapping.items():
+                if new_label in self.labels:
+                    _color_mapping[new_label] = self.labels[new_label]
+                    continue
+                raise ValueError(
+                    f"New label '{new_label}' not found in component '{self._name}'"
+                )
 
-    def relabel_labels(
-        self, labels: list[str], label: str, recursive: bool = True, _color: Color = None
-    ):
-        """
-        Relabel subcomponent labels with a new label and color.
+        for key, new_label in mapping.items():
+            shape = None
+            if isinstance(key, Shape):
+                shape = key
+            elif isinstance(key, str):
+                # try to resolve fqn to lowest level component
+                parts = key.split(".")
+                component = self
+                for part in parts[:-1]:
+                    if part in component.subcomponents:
+                        component = component.subcomponents[part]
+                    else:
+                        raise ValueError(
+                            f"Component '{part}' not found in '{component._name}'"
+                        )
+                last_part = parts[-1]
+                for subcomponent in component.subcomponents.values():
+                    subcomponent.relabel({last_part: new_label}, _color_mapping=_color_mapping)
+                print(f"Search term: {last_part}, Name: {component._name}, Is label: {last_part in component.labels},  Is label end: {any(key.endswith(f'.{last_part}') for key in component.labels.keys())}")
+                if last_part in component.labels or any(
+                    key.endswith(f".{last_part}") for key in component.labels.keys()
+                ):
+                    if last_part in component.labels:
+                        label_key = last_part
+                    else:
+                        label_matches = [
+                            key
+                            for key in component.labels.keys()
+                            if key.endswith(f".{last_part}")
+                        ]
+                        label_key = label_matches[0]
+                    component.labels[new_label] = component.labels.pop(label_key)
 
-        Parameters:
+                    for shape in [
+                        *component.shapes.values(),
+                        *component.bulk_shapes.values(),
+                        *[s for s, _ in component.regional_settings.values()],
+                    ]:
+                        if shape._label == label_key or shape._label.endswith(
+                            f".{last_part}"
+                        ):
+                            shape._label = new_label
+                            shape._color = _color_mapping[new_label]
+                    continue
+                elif last_part in component.shapes or any(
+                    key.endswith(f".{last_part}") for key in component.shapes.keys()
+                ):
+                    if last_part in component.shapes:
+                        shape = component.shapes[last_part]
+                    else:
+                        shape_matches = [
+                            key
+                            for key in component.shapes.keys()
+                            if key.endswith(f".{last_part}")
+                        ]
+                        shape = component.shapes[shape_matches[0]]
+                elif last_part in component.bulk_shapes or any(
+                    key.endswith(f".{last_part}") for key in component.bulk_shapes.keys()
+                ):
+                    if last_part in component.bulk_shapes:
+                        shape = component.bulk_shapes[last_part]
+                    else:
+                        shape_matches = [
+                            key
+                            for key in component.bulk_shapes.keys()
+                            if key.endswith(f".{last_part}")
+                        ]
+                        shape = component.bulk_shapes[shape_matches[0]]
+                elif last_part in component.regional_settings or any(
+                    key.endswith(f".{last_part}") for key in component.regional_settings.keys()
+                ):
+                    if last_part in component.regional_settings:
+                        shape = component.regional_settings[last_part][0]
+                    else:
+                        shape_matches = [
+                            key
+                            for key in component.regional_settings.keys()
+                            if key.endswith(f".{last_part}")
+                        ]
+                        shape = component.regional_settings[shape_matches[0]][0]
+                else:
+                    if _color_mapping is None:
+                        raise ValueError(
+                            f"Shape or label '{last_part}' not found in component '{component._name}'"
+                        )
+                    else:
+                        continue
+            else:
+                raise ValueError(f"Invalid key type: {type(key)}, must be Shape or str")
 
-        - labels (list[str]): List of labels to relabel.
-        - label (str): The new label to apply.
-        - recursive (bool): Whether to apply the relabeling recursively to subcomponents. Default is True.
-        - _color (Color, optional): The color to apply to the labels. If None, uses the color of the specified label. (internal use only)
-        """
-        if _color is None:
-            # print("Using color from label", label)
-            _color = self.labels[label]
-        for l, c in self.labels.items():
-            if l in labels:
-                # print(f"Relabeling {l} to {label}")
-                c._change_to_color(_color)
-
-        split_name = self.get_fully_qualified_name().split(".")
-        name = ""
-        for i, n in enumerate(split_name):
-            if i > 1:
-                name += f".{n}"
-            elif i == 1:
-                name += n
-
-        for s in self.shapes.values():
-            if s._label in labels or name + "." + s._label in labels:
-                # print(f"Relabeling shape {s._name} label from {s._label} to {label}")
-                s._label = label
-        for s in self.bulk_shapes.values():
-            if s._label in labels or name + "." + s._label in labels:
-                # print(f"Relabeling bulk shape {s._name} label from {s._label} to {label}")
-                s._label = label
-        for s in self.regional_settings.values():
-            if s[0]._label in labels or name + "." + s[0]._label in labels:
-                # print(
-                #     f"Relabeling regional setting shape {s[0]._name} label from {s[0]._label} to {label}"
-                # )
-                s[0]._label = label
-
-        if recursive:
-            for c in self.subcomponents.values():
-                # print(f"Recursing {c.get_fully_qualified_name()}")
-                c.relabel_labels(labels, label, recursive, _color)
-
-    def relabel_shapes(self, shapes: list[Shape], label: str):
-        """
-        Relabel shapes with a new label.
-
-        Parameters:
-
-        - shapes (list[Shape]): List of shapes to relabel.
-        - label (str): The new label to apply to the shapes.
-        """
-        for s in shapes:
-            s._color = self.labels[label]
-            s._label = label
+            # update shape label and color
+            shape._label = new_label
+            shape._color = _color_mapping[new_label]
 
     def connect_port(self, port: Port):
         """

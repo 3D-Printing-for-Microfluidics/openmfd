@@ -65,11 +65,15 @@ Add to component:
 
 - `component.add_subcomponent(name, subcomponent)`
 
-Relabeling helpers:
+Relabeling:
 
-- `component.relabel_subcomponents([...], label)`
-- `component.relabel_labels([...], label, recursive=True)`
-- `component.relabel_shapes([...], label)`
+- `component.relabel({shape_or_name_or_fqn: label})`
+
+Helpers:
+
+- `component.get_labels()`
+- `component.get_shapes()`
+- `component.get_subcomponents()`
 
 ## Polychannels
 
@@ -91,6 +95,10 @@ Rules:
 - `router.route_with_fractional_path(port_a, port_b, steps, label)`
 - `router.route_with_polychannel(port_a, port_b, shapes, label)`
 - `router.route()`
+
+Helpers:
+
+- `component.get_ports()`
 
 ## Preview and render
 

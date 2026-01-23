@@ -47,9 +47,9 @@ settings = Settings(
         # wait_after_exposure=0.0,
     ),
 )
-settings.save("settings.json")
-settings = Settings.from_file("settings.json")
-settings.save("settings2.json")
+# settings.save("settings.json")
+# settings = Settings.from_file("settings.json")
+# settings.save("settings2.json")
 
 
 device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=250, layer_size=0.01)
@@ -57,21 +57,22 @@ device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=250, layer_size=0
 device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
 device.add_label("pneumatic", Color.from_rgba((0, 255, 0, 127)))
 device.add_label("fluidic", Color.from_rgba((255, 0, 255, 127)))
-device.add_label("white", Color.from_rgba((255, 255, 255, 127)))
+device.add_label("highlight", Color.from_rgba((255, 255, 255, 127)))
+device.add_label("membrane", Color.from_rgba((255, 255, 0, 127)))
 
 chan_size = (8, 8, 6)
 
-# x = 2
-# y = 2
-# z = 2
+x = 2
+y = 2
+z = 2
 
 # x = 2
 # y = 2
 # z = 7
 
-x = 50
-y = 32
-z = 7
+# x = 50
+# y = 32
+# z = 7
 
 valve_grid = []
 for l in range(z):
@@ -101,11 +102,14 @@ for l in range(z):
             valve_col.append(valve_row)
     valve_grid.append(valve_col)
 
-device.relabel_labels([f"device"], "device")
-device.relabel_labels([f"pneumatic"], "pneumatic")
-device.relabel_labels([f"fluidic"], "fluidic")
-device.relabel_subcomponents([valve_grid[0][0][0]], "device")
-device.relabel_shapes([valve_grid[0][0][0].shapes["FluidicChamber"]], "white")
+device.relabel({
+    "device": "device",
+    "pneumatic": "pneumatic",
+    "fluidic": "fluidic",
+    "membrane": "membrane",
+    valve_grid[0][0][0].shapes["FluidicChamber"]: "highlight",
+    "Valve_1_1_1.PneumaticShapes": "highlight",
+})
 
 rtr = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
 for l in range(z):
@@ -152,4 +156,4 @@ slicer = Slicer(
     minimize_file=True,
     zip_output=False,
 )
-slicer.make_print_file()
+# slicer.make_print_file()

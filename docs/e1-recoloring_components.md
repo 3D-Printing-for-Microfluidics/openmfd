@@ -1,67 +1,73 @@
-# Customizing Subcomponent Labels and Colors
+# Customizing Labels and Colors
 Prev: [Part 12: Configuring Regional Settings](12-regional_settings.md)
 
-This section explains how to **relabel** subcomponents and shapes so they share consistent colors and labels across a full device.
+This section explains how to **relabel** shapes and labels so colors are consistent across a full device, including nested subcomponents.
 
-OpenMFD provides three relabeling tools:
+Relabeling uses a single function:
 
-1. `relabel_subcomponents(...)`
-2. `relabel_labels(...)`
-3. `relabel_shapes(...)`
+`relabel(mapping)`
 
-They solve different problems. Use the simplest one that matches your use case.
+The `mapping` keys can be:
+
+- a `Shape` instance
+- a string name (shape name or label name)
+- a fully qualified name (FQN) like `subcomponent.shape` or `subcomponent.label`
+
+All new labels must exist in `component.labels` (use `add_label()` to create them first).
 
 ---
 
-## 1) `relabel_subcomponents(...)`
+## Labels with prefixes (FQNs)
 
-**Use when:** You want to recolor **entire subcomponents** (all their labels and shapes) to a single target label.
+When a component is added as a subcomponent, all labels are **prefixed** with the subcomponent name.
 
-**Why:** This is the fastest way to standardize a library component under a single device-level label (e.g., make all pneumatics red).
+Example:
+
+- Original label: `control`
+- Subcomponent name: `valve`
+- Prefixed label: `valve.control`
+
+This allows the visualizer to distinguish hierarchy levels. Relabeling is recursive; prefixed labels are replaced with the destination label.
+
+---
+
+## Examples
+
+### Relabel a specific shape
 
 ```python
-# Make all shapes inside the listed subcomponents use the "control" label
-device.relabel_subcomponents([valve, pump], "control")
+# Relabel a specific shape object
+device.relabel({some_shape: "fluidic"})
 ```
 
----
-
-## 2) `relabel_labels(...)`
-
-**Use when:** You want to replace **specific label names** (possibly across nested subcomponents) with a new label.
-
-**Why:** This is the most flexible way to standardize labeling without flattening everything into one label.
+### Relabel by shape name (current component)
 
 ```python
-# Replace any existing "pneumatic" labels with "control" (recursive by default)
-device.relabel_labels(["pneumatic"], "control")
+# Relabel a shape by its name in the current component
+device.relabel({"channel_void": "fluidic"})
 ```
 
-Notes:
-
-- This can be applied recursively across subcomponents.
-- It preserves structure but updates colors and label names.
-
----
-
-## 3) `relabel_shapes(...)`
-
-**Use when:** You want to recolor **specific shapes only** (e.g., a single void or region).
-
-**Why:** This is the most precise tool. Use it when only a few shapes need to change.
+### Relabel by fully qualified shape name
 
 ```python
-# Relabel only a specific set of shapes
-device.relabel_shapes([some_shape, other_shape], "fluidic")
+# Relabel a shape inside a subcomponent
+device.relabel({"valve.channel_void": "control"})
 ```
 
----
+### Relabel a label (all shapes with label)
 
-## Choosing the right approach
+```python
+# Recursivly relabel a label (all pneumatics become controls)
+device.relabel({"pneumatic": "control"})
+```
 
-- **Whole subcomponent → one label:** use `relabel_subcomponents`
-- **Replace label names globally:** use `relabel_labels`
-- **Target a few shapes:** use `relabel_shapes`
+### Relabel by fully qualified label name
+
+```python
+# Relabel a prefixed label
+device.relabel({"valve.pneumatic": "control"})
+# Shapes labeled "valve.pneumatic" become "control"
+```
 
 ---
 
@@ -73,7 +79,7 @@ Relabeling makes multi‑component devices readable and consistent:
 - All pneumatic/control lines can share another
 - You can override library defaults without editing the library code
 
-This also makes slice previews and debugging much easier.
+This also makes debugging much easier.
 
 ---
 

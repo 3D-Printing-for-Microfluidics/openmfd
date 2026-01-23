@@ -834,7 +834,6 @@ class Component(_InstantiationTrackerMixin):
                 last_part = parts[-1]
                 for subcomponent in component.subcomponents.values():
                     subcomponent.relabel({last_part: new_label}, _color_mapping=_color_mapping)
-                print(f"Search term: {last_part}, Name: {component._name}, Is label: {last_part in component.labels},  Is label end: {any(key.endswith(f'.{last_part}') for key in component.labels.keys())}")
                 if last_part in component.labels or any(
                     key.endswith(f".{last_part}") for key in component.labels.keys()
                 ):

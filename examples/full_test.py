@@ -705,25 +705,6 @@ dev.relabel({
     "F_OUT.void": "fluidic",
 })
 
-# Loop through and check all labels and colors
-def print_labels(component: Component, prefix: str = ""):
-    print(f"{prefix}Component: {component._name}")
-    print(f"{prefix}\tLabels:")
-    print(f"{prefix}\t\t{component.labels.keys()}")
-    # for label, color in component.labels.items():
-    #     print(f"{prefix}\t\tLabel: {label}, Color: {color}")
-    print(f"{prefix}\tShapes:")
-    # print(f"{prefix}\t\t{component.shapes.keys()}")
-    # print(f"{prefix}\t\t{component.bulk_shapes.keys()}")
-    # print(f"{prefix}\t\t{component.regional_settings.keys()}")
-    for shape in [*component.bulk_shapes.values(),
-                  *component.shapes.values(),
-                  *[s for s, _ in component.regional_settings.values()]]:
-        print(f"{prefix}\t\tShape {shape._name} Label: {shape._label}, Color: {shape._color}")
-    for _, sub_comp in component.subcomponents.items():
-        print_labels(sub_comp, prefix + "\t")
-print_labels(dev)
-
 dev.preview()
 
 settings = Settings(

@@ -9,8 +9,15 @@ from . import Cube
 
 def _is_clockwise(polygon: np.ndarray) -> bool:
     """
-    Returns True if the 2D polygon (Nx2) is clockwise.
-    Based on the signed area.
+    Return True if the 2D polygon (Nx2) is clockwise.
+
+    Parameters:
+
+    - polygon (np.ndarray): Polygon points as an Nx2 array.
+
+    Returns:
+
+    - bool: True when the polygon is clockwise.
     """
     x = polygon[:, 0]
     y = polygon[:, 1]
@@ -22,23 +29,23 @@ def _slice(
     device: "Device",
     composite_shape: "Shape",
     directory: Path,
-    sliced_devices: list,
-    sliced_devices_info: list,
-):
+    sliced_devices: list["Device"],
+    sliced_devices_info: list[dict],
+) -> None:
     """
-    # Slice the device and save slices in the directory.
-    #
-    # Parameters:
-    #
-    # - _type: String indicating the type of slice (e.g. "masks").
-    # - device: Device to be sliced.
-    # - composite_shape: Composite shape of the device to be sliced.
-    # - directory: Directory to save the slices.
-    # - sliced_devices: List of already sliced devices.
-    # - sliced_devices_info: List of dictionaries to store slice info.
+    Slice the device and save slices in the directory.
+
+    Parameters:
+
+    - _type (str): String indicating the type of slice (e.g. "masks").
+    - device (Device): Device to be sliced.
+    - composite_shape (Shape): Composite shape of the device to be sliced.
+    - directory (Path): Directory to save the slices.
+    - sliced_devices (list[Device]): List of already sliced devices.
+    - sliced_devices_info (list[dict]): List of dictionaries to store slice info.
     """
 
-    ############## Slice manifold at layer height and resolution ##############
+    # Slice manifold at layer height and resolution.
     from .. import VariableLayerThicknessComponent
 
     resolution = (int(device.get_size()[0]), int(device.get_size()[1]))
@@ -46,7 +53,7 @@ def _slice(
     if isinstance(device, VariableLayerThicknessComponent):
         expanded_layer_sizes = device._expand_layer_sizes()
 
-    # Slice at layer size
+    # Slice at layer size.
     slice_num = 0
     slice_position = 0
     actual_slice_position = 0.5
@@ -63,49 +70,45 @@ def _slice(
             flush=True,
         )
 
-        # Translate polygons from device position to pixel space
-        # subtract device position (x&y only, convert to pixel space) from polygons
-        # This assumes polygons are in mm, so we need to convert to pixel space
+        # Translate polygons into device-local pixel space (XY only).
         polygons = [poly - np.array(device.get_position()[:2]) for poly in polygons]
 
-        # Create a new blank grayscale image
+        # Create a blank grayscale image.
         img = Image.new("L", resolution, 0)
         draw = ImageDraw.Draw(img)
 
-        # Step 3: Draw each polygon
         for poly in polygons:
-            # snap to pixel grid
+            # Snap to the pixel grid.
             transformed = np.round(poly).astype(int)
             transformed[:, 1] = img.height - transformed[:, 1]
             points = [tuple(p) for p in transformed]
 
-            # Determine fill color based on orientation
+            # Determine fill color based on orientation.
             if _is_clockwise(transformed):
                 fill_color = 255  # solid
             else:
                 fill_color = 0  # hole
 
-            # Convert poly (Nx2 numpy array) to shapely polygon and offset inward by small amount in px sdpace
+            # Convert polygon and offset inward slightly to avoid edge artifacts.
             p = Polygon(points)
             px_offset = 0.1
             shrunk = p.buffer(-px_offset)
-            # Only process if still valid
+            # Only process if still valid.
             if not shrunk.is_empty and shrunk.geom_type == "Polygon":
                 coords = np.array(shrunk.exterior.coords)
-                # do floor to fix issues with polygon inclusivity
+                # Floor to fix polygon inclusivity issues.
                 transformed = np.floor(coords).astype(int)
                 points = [tuple(p) for p in transformed]
 
-            # Draw polygon
             draw.polygon(points, fill=fill_color)
 
-        # 5. Save or show the image
+        # Save the slice image.
         img.save(
             f"{directory}/{device.get_fully_qualified_name()}-slice{slice_num:04}.png"
         )
 
         if isinstance(device, VariableLayerThicknessComponent):
-            # If the device has variable layer thickness, use the layer size from the device
+            # If the device has variable layer thickness, use the per-layer values.
             slice_position += expanded_layer_sizes[slice_num]
             if slice_num < len(expanded_layer_sizes) - 1:
                 actual_slice_position += (
@@ -113,7 +116,7 @@ def _slice(
                     + expanded_layer_sizes[slice_num + 1] / device._layer_size / 2
                 )
             else:
-                #     # If this is the last slice, just use the layer size
+                # If this is the last slice, just use the layer size.
                 actual_slice_position += (
                     expanded_layer_sizes[slice_num] / device._layer_size
                 )
@@ -148,19 +151,24 @@ def _slice(
 def slice_component(
     device: "Device",
     temp_directory: Path,
-    sliced_devices: list,
-    sliced_devices_info: list,
+    sliced_devices: list["Device"],
+    sliced_devices_info: list[dict],
     _recursed: bool = False,
-):
+) -> None:
     """
     Slice the device's components and save them in the temporary directory.
 
     Parameters:
-    
-    - device: Device to be sliced.
-    - temp_directory: Path to the temporary directory where slices will be saved.
-    - sliced_devices: Dictionary to store sliced devices.
-    - _create_subdirectory: Whether to create a subdirectory for the slices.
+
+    - device (Device): Device to be sliced.
+    - temp_directory (Path): Path to the temporary directory where slices will be saved.
+    - sliced_devices (list[Device]): List to store sliced devices.
+    - sliced_devices_info (list[dict]): List of dictionaries to store slice info.
+    - _recursed (bool): Whether this call is from a recursive slice.
+
+    Raises:
+
+        - RuntimeError: Attempted to subtract without a bulk shape.
     """
     # Calculate device relative position
     if device._parent is None:
@@ -180,8 +188,7 @@ def slice_component(
         y_pos = device_pos[1] - parent_pos[1]
         z_pos = (device_pos[2] - parent_pos[2]) * parent._layer_size
 
-    ############## Only slice components when nessicary ##############
-    # Check if component with same instantiation parameters has already been sliced
+    # Skip slicing when this component instance was already processed.
     if device in sliced_devices:
         device_index = sliced_devices.index(device)
         sliced_devices_info[device_index]["positions"].append(
@@ -197,12 +204,11 @@ def slice_component(
             }
         )
 
-    # Create a subdirectory for this device
+    # Create a subdirectory for this device.
     device_subdirectory = temp_directory / device.get_fully_qualified_name()
     device_subdirectory.mkdir(parents=True)
 
-    ############## Create manifold of component ##############
-    # Start by unioning this component's bulk shapes
+    # Start by unioning this component's bulk shapes.
     composite_shape = None
     for bulk in device.bulk_shapes.values():
         composite_shape = (
@@ -212,7 +218,7 @@ def slice_component(
         )
 
     local_shapes = None
-    # Accumulate this component's shapes (e.g. voids or cutouts)
+    # Accumulate this component's shapes (e.g., voids or cutouts).
     for shape in device.shapes.values():
         local_shapes = (
             shape.copy(_internal=True)
@@ -220,7 +226,7 @@ def slice_component(
             else local_shapes + shape.copy(_internal=True)
         )
 
-    # Accumulate subcomponent bboxes and recursively process subcomponents
+    # Accumulate subcomponent bounding boxes and recursively process subcomponents.
     for sub in device.subcomponents.values():
         bbox = sub.get_bounding_box(device._px_size, device._layer_size)
         bbox_cube = Cube(
@@ -248,14 +254,14 @@ def slice_component(
             _recursed=True,
         )
 
-    # Subtract this component's shapes (e.g. voids or cutouts)
+    # Subtract this component's shapes (e.g., voids or cutouts).
     if composite_shape is None:
         raise RuntimeError("Tried to subtract without bulk")
     composite_shape = (
         composite_shape - local_shapes if local_shapes is not None else composite_shape
     )
 
-    # Slice the device
+    # Slice the device.
     _slice(
         "",
         device,
@@ -265,7 +271,7 @@ def slice_component(
         sliced_devices_info,
     )
 
-    # Slice the device's masks
+    # Slice the device's masks.
     for key, (mask, settings) in device.regional_settings.items():
         masks_subdirectory = (
             temp_directory / "masks" / device.get_fully_qualified_name() / key

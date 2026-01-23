@@ -52,7 +52,7 @@ def parse_colors_from_text(
     return color_dict
 
 
-# Load color dictionaries
+# Load bundled color tables once.
 BASE_COLORS = parse_colors_from_text(
     get_openmfd_env_dir() / "backend" / "colors" / "base_colors.csv"
 )
@@ -110,7 +110,7 @@ class Color:
         - ValueError: If the name is not found in any color list.
         """
         name = name.lower()
-        # check if name is in any of the color dictionaries
+        # Resolve named colors across bundled palettes.
         if (
             name not in BASE_COLORS
             and name not in TAB_COLORS
@@ -118,7 +118,7 @@ class Color:
             and name not in X11_COLORS
             and name not in XKCD_COLORS
         ):
-            # check if name is in maplotlib color cycle (c0, c1, c2, ...) if so use TAB_COLORS
+            # Support matplotlib color cycle shorthand (c0, c1, ...).
             if name.startswith("c") and name[1:].isdigit():
                 index = int(name[1:])
                 tab_color_keys = list(TAB_COLORS.keys())

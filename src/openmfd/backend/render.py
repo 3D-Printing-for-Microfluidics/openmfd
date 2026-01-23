@@ -16,8 +16,20 @@ def _draw_bounding_box(
     layer_size: float,
     name: str = "bbox",
 ) -> None:
-    """Helper function to draw a bounding box in the scene."""
-    # draw lines for component bounding box
+    """
+    Draw a bounding box in the scene.
+
+    Parameters:
+
+    - scene (Scene): Scene to draw into.
+    - size (tuple[int, int, int]): Bounding box size in px/layer units.
+    - origin (tuple[int, int, int]): Bounding box origin in px/layer units.
+    - color (Color): Color to use for the bounding box.
+    - px_size (float): Pixel size scaling.
+    - layer_size (float): Layer height scaling.
+    - name (str): Geometry name.
+    """
+    # Build a wireframe box in world units.
     bbox_size = (size[0] * px_size, size[1] * px_size, size[2] * layer_size)
     bbox_origin = (origin[0] * px_size, origin[1] * px_size, origin[2] * layer_size)
     translation = trimesh.transformations.translation_matrix(bbox_origin)
@@ -39,8 +51,20 @@ def _draw_arrow(
     reflect: bool = False,
     half_size: bool = False,
 ) -> None:
-    """Helper function to draw an arrow in the scene."""
-    # Align Z axis with arrow direction
+    """
+    Draw an arrow in the scene.
+
+    Parameters:
+
+    - scene (Scene): Scene to draw into.
+    - length (float): Arrow length in world units.
+    - position (np.typing.NDArray[np.int_]): Arrow position.
+    - direction (np.typing.NDArray[np.int_]): Arrow direction vector.
+    - port (Port): Port that defines the color.
+    - reflect (bool): Whether to reflect the arrow along its axis.
+    - half_size (bool): Whether to offset by half length instead of full length.
+    """
+    # Align the local Z axis to the arrow direction.
     axis = np.array([0, 0, 1])
     if not np.allclose(axis, direction):
         rot = trimesh.geometry.align_vectors(axis, direction)
@@ -73,7 +97,15 @@ def _draw_arrow(
 
 
 def _draw_port(scene: Scene, port: "Port", component: "Component") -> None:
-    """Helper function to draw a port in the scene."""
+    """
+    Draw a port in the scene.
+
+    Parameters:
+
+    - scene (Scene): Scene to draw into.
+    - port (Port): Port to draw.
+    - component (Component): Component owning the port.
+    """
     arrow_direction = np.array(port.to_vector())
     adjusted_pos = np.array(port.get_origin())
 
@@ -123,13 +155,11 @@ def _draw_port(scene: Scene, port: "Port", component: "Component") -> None:
             half_size=True,
         )
 
-    # IN arrow
     if port._type.name == "IN":
         _draw_arrow(
             scene, arrow_length, arrow_position, arrow_direction, port, reflect=True
         )
 
-    # OUT arrow
     if port._type.name == "OUT":
         _draw_arrow(
             scene, arrow_length, arrow_position, arrow_direction, port, reflect=False
@@ -146,7 +176,7 @@ def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
 
     Returns:
 
-    - tm (trimesh.Trimesh): The converted trimesh object.
+    - trimesh.Trimesh: The converted trimesh object.
     """
     m = shape._object.to_mesh()
     tm = trimesh.Trimesh(vertices=m.vert_properties, faces=m.tri_verts)
@@ -156,26 +186,28 @@ def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
 
 
 def _manifold3d_shape_to_wireframe(
-    shape: "Shape", coplanar_tol=1e-5
+    shape: "Shape", coplanar_tol: float = 1e-5
 ) -> trimesh.path.Path3D:
     """
     Convert a Manifold3D shape to a wireframe Path3D, removing edges between coplanar faces.
 
     Parameters:
+
     - shape (Shape): The Manifold3D shape.
     - coplanar_tol (float): Cosine similarity tolerance for coplanarity (1.0 = perfectly coplanar).
 
     Returns:
+
     - Path3D: A wireframe path with redundant coplanar internal edges removed.
     """
     m = shape._object.to_mesh()
     vertices = np.asarray(m.vert_properties)
     faces = np.asarray(m.tri_verts)
 
-    # Compute face normals
+    # Compute face normals.
     face_normals, _ = trimesh.triangles.normals(vertices[faces])
 
-    # Map edges to the faces that share them
+    # Map edges to faces that share them.
     edge_face_map = {}
 
     for face_idx, face in enumerate(faces):
@@ -192,20 +224,20 @@ def _manifold3d_shape_to_wireframe(
 
     for edge, face_indices in edge_face_map.items():
         if len(face_indices) == 1:
-            # Border edge
+            # Border edge.
             retained_edges.append(edge)
         elif len(face_indices) == 2:
-            # Shared by two triangles — check if they're coplanar
+            # Shared by two triangles — check coplanarity.
             n1 = face_normals[face_indices[0]]
             n2 = face_normals[face_indices[1]]
             cos_angle = np.dot(n1, n2)
             if cos_angle < 1.0 - coplanar_tol:
                 retained_edges.append(edge)
         else:
-            # Non-manifold (shared by more than 2 faces) — optional handling
-            retained_edges.append(edge)  # or skip
+            # Non-manifold edge (shared by more than 2 faces) — keep for visibility.
+            retained_edges.append(edge)
 
-    # Create Path3D
+    # Create the wireframe path.
     entities = [trimesh.path.entities.Line([e[0], e[1]]) for e in retained_edges]
     del retained_edges, face_normals, edge_face_map
     return trimesh.path.Path3D(entities=entities, vertices=vertices)
@@ -215,7 +247,13 @@ def _component_to_manifold(
     component: "Component",
     render_bulk: bool = True,
     do_bulk_difference: bool = True,
-) -> tuple[dict[str, "Shape"], dict[str, "Shape"], list[tuple["Port", "Component"]]]:
+) -> tuple[
+    dict[str, "Shape"],
+    dict[str, "Shape"],
+    dict[str, "Shape"],
+    "Shape" | None,
+    list[tuple["Port", "Component"]],
+]:
     """
     Convert a Component to manifolds and bulk shapes for rendering.
 
@@ -227,18 +265,27 @@ def _component_to_manifold(
 
     Returns:
 
-    - manifolds (dict): Dictionary of manifolds keyed by color.
-    - bulk_manifolds (dict): Dictionary of bulk shapes keyed by color.
-    - ports (list): List of ports to draw.
+        - tuple[dict[str, Shape], dict[str, Shape], dict[str, Shape], Shape | None, list[tuple[Port, Component]]]:
+            Manifolds, bulk manifolds, regional manifolds, bulk diff, and ports to draw.
+
+    Raises:
+
+    - ValueError: Bulk difference requested without bulk rendering.
     """
     bulk_manifolds = {}
     manifolds = {}
     regional_manifolds = {}
     ports = []
 
-    def accumulate_shape(comp: "Component"):
-        """Accumulate shapes from the component and its subcomponents."""
-        # itterate shapes (will also draw an inverted device)
+    def accumulate_shape(comp: "Component") -> None:
+        """
+        Accumulate shapes from the component and its subcomponents.
+
+        Parameters:
+
+        - comp (Component): Component to traverse.
+        """
+        # Iterate shapes (includes inverted devices).
         for shape in comp.shapes.values():
             # key = str(shape._color)
             key = str(shape._label)
@@ -251,14 +298,24 @@ def _component_to_manifold(
             else:
                 manifolds[key] = tmp_shape
 
-        # itterate subcomponents
+        # Iterate subcomponents.
         for sub in comp.subcomponents.values():
             if not sub.hide_in_render:
                 accumulate_shape(sub)
 
-    def accumulate_bulk_shape(comp: "Component"):
-        """Accumulate bulk shapes from the component and its subcomponents."""
-        # itterate bulk shapes (if device and not inverted)
+    def accumulate_bulk_shape(comp: "Component") -> dict[str, "Shape"]:
+        """
+        Accumulate bulk shapes from the component and its subcomponents.
+
+        Parameters:
+
+        - comp (Component): Component to traverse.
+
+        Returns:
+
+        - dict[str, Shape]: Bulk shapes grouped by label.
+        """
+        # Iterate bulk shapes (device-only).
         bulks = {}
         comp_cubes = None
         comp_bulks = {}
@@ -274,7 +331,7 @@ def _component_to_manifold(
             else:
                 bulks[key] = temp_bulk
 
-        # itterate subcomponents
+        # Iterate subcomponents.
         for sub in comp.subcomponents.values():
             bbox = sub.get_bounding_box(comp._px_size, comp._layer_size)
             from . import Cube
@@ -318,8 +375,14 @@ def _component_to_manifold(
                 bulks[key] = item
         return bulks
 
-    def accumulate_regional_settings(comp: "Component"):
-        """Accumulate regional settings from the component and its subcomponents."""
+    def accumulate_regional_settings(comp: "Component") -> None:
+        """
+        Accumulate regional settings from the component and its subcomponents.
+
+        Parameters:
+
+        - comp (Component): Component to traverse.
+        """
         for shape, setting in comp.regional_settings.values():
             if type(setting).__name__ == "MembraneSettings":
                 prefix = "membrane_settings_"
@@ -342,21 +405,25 @@ def _component_to_manifold(
             else:
                 regional_manifolds[key] = tmp_shape
 
-        # itterate subcomponents
+        # Iterate subcomponents.
         for sub in comp.subcomponents.values():
             if not sub.hide_in_render:
                 accumulate_regional_settings(sub)
 
-    def get_unconnected_ports(comp: "Component"):
+    def get_unconnected_ports(comp: "Component") -> None:
         """
         Recursive function to traverse the component tree and collect unconnected ports.
+
+        Parameters:
+
+        - comp (Component): Component to traverse.
         """
-        # append ports not in a route
+        # Append ports not in a route.
         for port in comp.ports.values():
             if port.get_name() not in comp.connected_ports:
                 ports.append((port, comp))
 
-        # itterate subcomponents
+        # Iterate subcomponents.
         for sub in comp.subcomponents.values():
             get_unconnected_ports(sub)
 
@@ -404,10 +471,14 @@ def render_component(
     - render_bulk (bool): Whether to render bulk shapes.
     - do_bulk_difference (bool): Whether to perform a difference operation on bulk shapes.
     - preview (bool): If True, exports individual GLB files for previewing. If False, exports a single file.
-    
+
     Returns:
-    
-    - scene (Scene or trimesh.Trimesh): The rendered scene or flattened mesh.
+
+    - trimesh.Trimesh | Scene: The rendered scene or flattened mesh.
+
+    Raises:
+
+    - ValueError: Bulk difference requested without bulk rendering.
     """
 
     manifolds, bulk_manifolds, regional_manifolds, diff, ports = _component_to_manifold(
@@ -420,7 +491,7 @@ def render_component(
         try:
             p.mkdir(parents=True, exist_ok=False)
         except FileExistsError:
-            # delete old files
+            # Clear existing previews before exporting.
             for f in p.iterdir():
                 if f.is_file():
                     f.unlink()

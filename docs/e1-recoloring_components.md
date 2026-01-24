@@ -5,7 +5,7 @@ This section explains how to **relabel** shapes and labels so colors are consist
 
 Relabeling uses a single function:
 
-`relabel(mapping)`
+`relabel(mapping, recursive=False)`
 
 The `mapping` keys can be:
 
@@ -14,6 +14,10 @@ The `mapping` keys can be:
 - a fully qualified name (FQN) like `subcomponent.shape` or `subcomponent.label`
 
 All new labels must exist in `component.labels` (use `add_label()` to create them first).
+
+### Recursive relabeling
+
+Set `recursive=True` to search beyond only the current level. If the key is a fully qualified name, relabeling first navigates to the lowest component in that FQN and then searches that component and its descendants for the key (shape name or label). If no FQN is provided, the search starts at the current component and traverses the full tree. This is useful when you want to update labels across nested subcomponents without using fully qualified names. Fully qualified names still work without `recursive=True`.
 
 ---
 
@@ -58,7 +62,7 @@ device.relabel({"valve.channel_void": "control"})
 
 ```python
 # Recursivly relabel a label (all pneumatics become controls)
-device.relabel({"pneumatic": "control"})
+device.relabel({"pneumatic": "control"}, recursive=True)
 ```
 
 ### Relabel by fully qualified label name
@@ -67,6 +71,14 @@ device.relabel({"pneumatic": "control"})
 # Relabel a prefixed label
 device.relabel({"valve.pneumatic": "control"})
 # Shapes labeled "valve.pneumatic" become "control"
+```
+
+### Relabel by fully qualified label name (recursive)
+```python
+# Relabel a prefixed label
+device.relabel({"pump.pneumatic": "control"}, recursive=True)
+# Shapes labeled "pump.pneumatic" become "control"
+# Will also relabel any pneumatic below pump. i.e. pump.valve1.pneumatic
 ```
 
 ---

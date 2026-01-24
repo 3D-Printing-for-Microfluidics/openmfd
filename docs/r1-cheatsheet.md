@@ -67,7 +67,7 @@ Add to component:
 
 Relabeling:
 
-- `component.relabel({shape_or_name_or_fqn: label})`
+- `component.relabel({shape_or_name_or_fqn: label}, recursive=False)`
 
 Helpers:
 

@@ -793,13 +793,14 @@ class Component(_InstantiationTrackerMixin):
         """
         self.burnin_settings = exposure_times
 
-    def relabel(self, mapping: dict[Union[Component, Shape, str], str], _color_mapping: dict[str, Color] = None):
+    def relabel(self, mapping: dict[Union[Component, Shape, str], str], recursive = False, _color_mapping: dict[str, Color] = None):
         """
         Relabel listed shapes and labels with new labels.
 
         Parameters:
 
         - mapping (dict[Union[Component, Shape, str], str]): A dictionary mapping shapes or labels (or their fully qualified names) to new label names.
+        - recursive (bool): If True, relabel subcomponents recursively. Default is False.
         - _color_mapping (dict[str, Color], optional): Internal use only. A dictionary mapping new label names to their colors.
         
         Raises:
@@ -831,19 +832,18 @@ class Component(_InstantiationTrackerMixin):
                         raise ValueError(
                             f"Component '{part}' not found in '{component._name}'"
                         )
-                last_part = parts[-1]
+                key_ending = parts[-1]
+
                 for subcomponent in component.subcomponents.values():
-                    subcomponent.relabel({last_part: new_label}, _color_mapping=_color_mapping)
-                if last_part in component.labels or any(
-                    key.endswith(f".{last_part}") for key in component.labels.keys()
-                ):
-                    if last_part in component.labels:
-                        label_key = last_part
+                    subcomponent.relabel({key_ending: new_label}, recursive=recursive, _color_mapping=_color_mapping)
+                if key_ending in component.labels or (recursive and any(key.endswith(f".{key_ending}") for key in component.labels.keys())):
+                    if key_ending in component.labels:
+                        label_key = key_ending
                     else:
                         label_matches = [
                             key
                             for key in component.labels.keys()
-                            if key.endswith(f".{last_part}")
+                            if key.endswith(f".{key_ending}")
                         ]
                         label_key = label_matches[0]
                     component.labels[new_label] = component.labels.pop(label_key)
@@ -853,52 +853,50 @@ class Component(_InstantiationTrackerMixin):
                         *component.bulk_shapes.values(),
                         *[s for s, _ in component.regional_settings.values()],
                     ]:
-                        if shape._label == label_key or shape._label.endswith(
-                            f".{last_part}"
-                        ):
+                        if shape._label == label_key or (recursive and shape._label.endswith(
+                            f".{key_ending}"
+                        )):
                             shape._label = new_label
                             shape._color = _color_mapping[new_label]
                     continue
-                elif last_part in component.shapes or any(
-                    key.endswith(f".{last_part}") for key in component.shapes.keys()
-                ):
-                    if last_part in component.shapes:
-                        shape = component.shapes[last_part]
+                elif key_ending in component.shapes or (recursive and any(key.endswith(f".{key_ending}") for key in component.shapes.keys())):
+                    if key_ending in component.shapes:
+                        shape = component.shapes[key_ending]
                     else:
                         shape_matches = [
                             key
                             for key in component.shapes.keys()
-                            if key.endswith(f".{last_part}")
+                            if key.endswith(f".{key_ending}")
                         ]
                         shape = component.shapes[shape_matches[0]]
-                elif last_part in component.bulk_shapes or any(
-                    key.endswith(f".{last_part}") for key in component.bulk_shapes.keys()
-                ):
-                    if last_part in component.bulk_shapes:
-                        shape = component.bulk_shapes[last_part]
+                elif key_ending in component.bulk_shapes or (recursive and any(
+                    key.endswith(f".{key_ending}") for key in component.bulk_shapes.keys()
+                )):
+                    if key_ending in component.bulk_shapes:
+                        shape = component.bulk_shapes[key_ending]
                     else:
                         shape_matches = [
                             key
                             for key in component.bulk_shapes.keys()
-                            if key.endswith(f".{last_part}")
+                            if key.endswith(f".{key_ending}")
                         ]
                         shape = component.bulk_shapes[shape_matches[0]]
-                elif last_part in component.regional_settings or any(
-                    key.endswith(f".{last_part}") for key in component.regional_settings.keys()
-                ):
-                    if last_part in component.regional_settings:
-                        shape = component.regional_settings[last_part][0]
+                elif key_ending in component.regional_settings or (recursive and any(
+                    key.endswith(f".{key_ending}") for key in component.regional_settings.keys()
+                )):
+                    if key_ending in component.regional_settings:
+                        shape = component.regional_settings[key_ending][0]
                     else:
                         shape_matches = [
                             key
                             for key in component.regional_settings.keys()
-                            if key.endswith(f".{last_part}")
+                            if key.endswith(f".{key_ending}")
                         ]
                         shape = component.regional_settings[shape_matches[0]][0]
                 else:
                     if _color_mapping is None:
                         raise ValueError(
-                            f"Shape or label '{last_part}' not found in component '{component._name}'"
+                            f"Shape or label '{key_ending}' not found in component '{component._name}'"
                         )
                     else:
                         continue

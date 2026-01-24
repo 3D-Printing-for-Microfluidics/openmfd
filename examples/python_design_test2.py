@@ -109,7 +109,7 @@ device.relabel({
     "membrane": "membrane",
     valve_grid[0][0][0].shapes["FluidicChamber"]: "highlight",
     "Valve_1_1_1.PneumaticShapes": "highlight",
-})
+}, recursive=True)
 
 rtr = Router(component=device, channel_size=chan_size, channel_margin=chan_size)
 for l in range(z):

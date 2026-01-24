@@ -197,7 +197,10 @@ class Pump(Component):
         self.add_label("device", Color.from_name("cyan", 255))
         self.add_label("pneumatic", Color.from_name("red", 255))
         self.add_label("fluidic", Color.from_name("blue", 255))
-        self.add_label("membrane", Color.from_name("green", 128))
+        self.add_label("dc_membrane", Color.from_name("green", 128))
+        self.add_label("valve_membrane", Color.from_name("lime", 128))
+        self.add_label("slow", Color.from_name("pink", 128))
+        self.add_label("extra", Color.from_name("gray", 128))
 
         # Add ports
         self.add_port(
@@ -261,6 +264,19 @@ class Pump(Component):
 
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((125, 36, 36), center=False), label="device")
+
+        # Color channels
+        self.relabel({
+            "pneumatic": "pneumatic",
+            "fluidic": "fluidic",
+            "device": "device",
+            "Valve1.membrane": "valve_membrane",
+            "DC.membrane": "dc_membrane",
+            "Valve2.membrane": "valve_membrane",
+            "slow": "slow",
+            "extra": "extra",
+        }, recursive=True)
+
 
 
 # Pump().rotate(270, in_place=True).mirror(
@@ -703,7 +719,7 @@ dev.relabel({
     "F_IN1.void": "fluidic",
     "F_IN2.void": "fluidic",
     "F_OUT.void": "fluidic",
-})
+}, recursive=True)
 
 dev.preview()
 

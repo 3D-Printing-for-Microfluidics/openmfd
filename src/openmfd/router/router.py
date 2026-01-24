@@ -251,29 +251,12 @@ class Router:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port._parent is None:
             raise ValueError("Port must be added to component before routing! (output)")
-
-        # if input_port.get_name().startswith("None_"):
-        #     input_port = input_port.copy()
-        #     vect = input_port.to_vector()
-        #     size = list(input_port._size)
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             size[i] = 0
-        #     input_port._size = tuple(size)
-        # if output_port.get_name().startswith("None_"):
-        #     output_port = output_port.copy()
-        #     vect = output_port.to_vector()
-        #     size = list(output_port._size)
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             size[i] = 0
-        #     output_port._size = tuple(size)
-
+        
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
-        input_size = input_port.get_size(
+        input_size = list(input_port.get_size(
             self._component._px_size, self._component._layer_size
-        )
+        ))
         input_pos = (
             np.array(
                 input_port.get_origin(
@@ -287,7 +270,8 @@ class Router:
             vect = input_port.to_vector()
             for i in range(3):
                 if vect[i] != 0:
-                    input_pos[i] += vect[i] * (input_size[i] / 2)
+                    input_pos[i] -= vect[i] * input_size[i]/2
+                    input_size[i] = 0
         polychannel_shapes.insert(
             0,
             PolychannelShape(
@@ -297,9 +281,9 @@ class Router:
                 absolute_position=True,
             ),
         )
-        output_size = output_port.get_size(
+        output_size = list(output_port.get_size(
             self._component._px_size, self._component._layer_size
-        )
+        ))
         output_pos = (
             np.array(
                 output_port.get_origin(
@@ -313,7 +297,8 @@ class Router:
             vect = output_port.to_vector()
             for i in range(3):
                 if vect[i] != 0:
-                    output_pos[i] -= vect[i] * output_size[i]
+                    output_pos[i] -= vect[i] * output_size[i]/2
+                    output_size[i] = 0
         polychannel_shapes.append(
             PolychannelShape(
                 "cube",
@@ -331,6 +316,9 @@ class Router:
             "label": label,
             "_path": polychannel_shapes,
         }
+
+        for shape in polychannel_shapes:
+            print(f"Polychannel shape: {shape._size} at {shape._position}")
 
     def route_with_fractional_path(
         self,
@@ -360,23 +348,6 @@ class Router:
 
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
-        # if input_port.get_name().startswith("None_"):
-        #     input_port = input_port.copy()
-        #     vect = input_port.to_vector()
-        #     size = list(input_port._size)
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             size[i] = 0
-        #     input_port._size = tuple(size)
-        # if output_port.get_name().startswith("None_"):
-        #     output_port = output_port.copy()
-        #     vect = output_port.to_vector()
-        #     size = list(output_port._size)
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             size[i] = 0
-        #     output_port._size = tuple(size)
-
         # get locations
         input_size = input_port.get_size(
             self._component._px_size, self._component._layer_size
@@ -392,18 +363,7 @@ class Router:
         )
         start_loc = [round(x) for x in start_loc]
         end_loc = [round(x) for x in end_loc]
-        # if input_port.get_name().startswith("None_"):
-        #     # shift position to edge of port
-        #     vect = input_port.to_vector()
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             start_loc[i] += vect[i] * input_size[i]
-        # if output_port.get_name().startswith("None_"):
-        #     # shift position to edge of port
-        #     vect = output_port.to_vector()
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             end_loc[i] += vect[i] * output_size[i]
+        
         diff = tuple(a - b for a, b in zip(end_loc, start_loc))
 
         # relative positions to absolute path

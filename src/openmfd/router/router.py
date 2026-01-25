@@ -181,11 +181,40 @@ class Router:
         (x0, y0, z0, x1, y1, z1) = bbox
         mx, my, mz = margin
         return (x0 - mx, y0 - my, z0 - mz, x1 + mx, y1 + my, z1 + mz)
+    
+    def _port_from_fqn(self, fqn: str) -> "Port":
+        """
+        Retrieves a Port instance from its fully qualified name (FQN).
+
+        Parameters:
+
+        - fqn: The fully qualified name of the port (str).
+
+        Returns:
+
+        - The Port instance corresponding to the FQN.
+
+        Raises:
+
+        - ValueError: If the port cannot be found.
+        """
+        parts = fqn.split(".")
+        component = self._component
+        for part in parts[:-1]:
+            if part in component.subcomponents:
+                component = component.subcomponents[part]
+            else:
+                raise ValueError(f"Component '{part}' not found in FQN '{fqn}'")
+        port_name = parts[-1]
+        if port_name in component.ports:
+            return component.ports[port_name]
+        else:
+            raise ValueError(f"Port '{port_name}' not found in FQN '{fqn}'")
 
     def autoroute_channel(
         self,
-        input_port: "Port",
-        output_port: "Port",
+        input_port: "Port" | str,
+        output_port: "Port" | str,
         label: str,
         timeout: int = 120,
         heuristic_weight: int = 10,
@@ -208,6 +237,11 @@ class Router:
 
         - ValueError: If either port has not been added to the component before routing.
         """
+        if isinstance(input_port, str):
+            input_port = self._port_from_fqn(input_port)
+        if isinstance(output_port, str):
+            output_port = self._port_from_fqn(output_port)
+
         if input_port._parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port._parent is None:
@@ -228,8 +262,8 @@ class Router:
 
     def route_with_polychannel(
         self,
-        input_port: "Port",
-        output_port: "Port",
+        input_port: "Port" | str,
+        output_port: "Port" | str,
         polychannel_shapes: list[Union[PolychannelShape, BezierCurveShape]],
         label: str,
     ):
@@ -247,6 +281,11 @@ class Router:
 
         - ValueError: If either port has not been added to the component before routing.
         """
+        if isinstance(input_port, str):
+            input_port = self._port_from_fqn(input_port)
+        if isinstance(output_port, str):
+            output_port = self._port_from_fqn(output_port)
+
         if input_port._parent is None:
             raise ValueError("Port must be added to component before routing! (input)")
         if output_port._parent is None:
@@ -319,8 +358,8 @@ class Router:
 
     def route_with_fractional_path(
         self,
-        input_port: "Port",
-        output_port: "Port",
+        input_port: "Port" | str,
+        output_port: "Port" | str,
         route: list[tuple[float, float, float]],
         label: str,
     ):
@@ -338,10 +377,10 @@ class Router:
 
         - ValueError: If either port has not been added to the component before routing.
         """
-        if input_port._parent is None:
-            raise ValueError("Port must be added to component before routing! (input)")
-        if output_port._parent is None:
-            raise ValueError("Port must be added to component before routing! (output)")
+        if isinstance(input_port, str):
+            input_port = self._port_from_fqn(input_port)
+        if isinstance(output_port, str):
+            output_port = self._port_from_fqn(output_port)
 
         name = f"{input_port.get_name()}__to__{output_port.get_name()}"
 
@@ -483,9 +522,9 @@ class Router:
 
         return polychannel_shapes
 
-    def route(self):
+    def finalize_routes(self):
         """
-        outes all defined channels in the component.
+        Routes all defined channels in the component.
         This method checks for cached routes, loads them if valid, and reroutes if necessary.
         It handles both manual routing with polychannels and autorouting using the A* algorithm.
         """

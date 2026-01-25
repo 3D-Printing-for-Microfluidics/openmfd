@@ -137,7 +137,7 @@ for l in range(z):
             except TypeError:
                 pass
 
-rtr.route()
+rtr.finalize_routes()
 
 # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
 bulk_cube = Cube(device._size, center=False)

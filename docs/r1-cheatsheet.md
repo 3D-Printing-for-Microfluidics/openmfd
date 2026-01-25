@@ -94,7 +94,7 @@ Rules:
 - `router.autoroute_channel(port_a, port_b, label)`
 - `router.route_with_fractional_path(port_a, port_b, steps, label)`
 - `router.route_with_polychannel(port_a, port_b, shapes, label)`
-- `router.route()`
+- `router.finalize_routes()`
 
 Helpers:
 

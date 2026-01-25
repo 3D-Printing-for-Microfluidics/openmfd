@@ -190,7 +190,7 @@ After defining all your routes, run the router to add the channels to your compo
 
 ```python
 # Run the routing process (adds all channels to the component)
-router.route()
+router.finalize_routes()
 
 # Add a bulk shape for visualization
 bulk_cube = Cube((150, 150, 150))
@@ -315,7 +315,7 @@ bulk_cube = Cube((150, 150, 150))
 component.add_bulk("bulk", bulk_cube, label="bulk")
 
 # Route
-router.route()
+router.finalize_routes()
 
 # Preview the result
 component.preview()

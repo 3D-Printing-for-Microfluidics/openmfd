@@ -90,7 +90,7 @@ class TJunction(Component):
         r.route_with_fractional_path(
             self.F_IN1, self.F_OUT, [(1, 0, 1), (0, 1, 0)], label="fluidic"
         )
-        r.route()
+        r.finalize_routes()
 
         # Build bulk shape
         self.add_bulk("BulkShape", Cube(self._size, center=False), label="device")

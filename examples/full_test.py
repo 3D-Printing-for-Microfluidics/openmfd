@@ -251,7 +251,7 @@ class Pump(Component):
         r.autoroute_channel(self.F_IN, v1.F_IN, label="fluidic")
         r.autoroute_channel(v1.F_OUT, dc.F_IN, label="fluidic")
         r.autoroute_channel(dc.F_OUT, v2.F_IN, label="fluidic")
-        r.route()
+        r.finalize_routes()
 
         # Mark unrouted ports as connected
         v1.connect_port(v1.P_IN.get_name())
@@ -321,7 +321,7 @@ class TJunction(Component):
         r.route_with_fractional_path(
             self.F_IN1, self.F_OUT, [(1, 0, 1), (0, 1, 0)], label="fluidic"
         )
-        r.route()
+        r.finalize_routes()
 
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((24, 24, 18), center=False), label="device")
@@ -366,7 +366,7 @@ class ViewingRegion(Component):
             ],
             label="fluidic",
         )
-        r.route()
+        r.finalize_routes()
 
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((48, 48, 18), center=False), label="device")
@@ -411,7 +411,7 @@ class HARChannel(Component):
             ],
             label="fluidic",
         )
-        r.route()
+        r.finalize_routes()
 
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((72, 24, 36), center=False), label="device")
@@ -512,7 +512,7 @@ class SerpentineChannel(Component):
             shape_list,
             "fluidic",
         )
-        r.route()
+        r.finalize_routes()
 
         # Build bulk shape
         self.add_bulk(
@@ -685,7 +685,7 @@ r.autoroute_channel(
 )
 
 # Finalize routing
-r.route()
+r.finalize_routes()
 
 # Add regional settings
 dev.add_regional_settings(

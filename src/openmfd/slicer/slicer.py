@@ -16,6 +16,37 @@ from ..backend import slice_component
 from .uniqueimagestore import get_unique_path, load_image_from_file, UniqueImageStore
 from .json_prettier import pretty_json
 
+from .settings import (
+            MembraneSettings,
+            SecondaryDoseSettings,
+            ExposureSettings,
+            PositionSettings,
+        )
+
+def _unpack_image_from_meta(meta: dict) -> np.ndarray:
+    """Unpack a packed binary image from slice metadata into a uint8 image."""
+    image = meta["image_data"]
+    bits = np.unpackbits(image, axis=1)
+    width = meta["image_width"]
+    bits = bits[:, :width]
+    return (bits * 255).astype(np.uint8)
+
+
+def _pack_binary_image(image: np.ndarray) -> tuple[np.ndarray, int]:
+    """Pack a uint8 image into binary packed bits and return (packed, width)."""
+    image = np.array(image)
+    _, width = image.shape
+    binary = (image != 0).astype(np.uint8)
+    packed_image = np.packbits(binary, axis=1)
+    return packed_image, width
+
+from .image_generation import (
+            generate_membrane_images_from_folders,
+            generate_secondary_images_from_folders,
+            generate_exposure_images_from_folders,
+            generate_position_images_from_folders,
+        )
+
 
 class Slicer:
     def __init__(
@@ -344,96 +375,6 @@ class Slicer:
                 slice["exposure_settings"].exposure_time = device.burnin_settings[i]
                 slice["exposure_settings"].burnin = True
 
-    def _make_secondary_images(
-        self, device, temp_directory, sliced_devices, sliced_devices_info
-    ):
-        from . import (
-            generate_membrane_images_from_folders,
-            generate_secondary_images_from_folders,
-            generate_exposure_images_from_folders,
-            generate_position_images_from_folders,
-            MembraneSettings,
-            SecondaryDoseSettings,
-            ExposureSettings,
-            PositionSettings,
-        )
-
-        device_subdirectory = temp_directory / device.get_fully_qualified_name()
-
-        # Create membrane images from the sliced devices
-        for name, (_, settings) in device.regional_settings.items():
-            masks_subdirectory = (
-                temp_directory / "masks" / device.get_fully_qualified_name() / name
-            )
-            device_index = sliced_devices.index(device)
-            if isinstance(settings, MembraneSettings):
-                settings.exposure_settings.fill_with_defaults(
-                    device.default_exposure_settings,
-                    exceptions=["exposure_time"],
-                )
-                generate_membrane_images_from_folders(
-                    image_dir=device_subdirectory,
-                    mask_dir=masks_subdirectory,
-                    membrane_settings=settings,
-                    slice_metadata=sliced_devices_info[device_index],
-                )
-
-        # Create secondary images from the sliced devices
-        for name, (_, settings) in device.regional_settings.items():
-            masks_subdirectory = (
-                temp_directory / "masks" / device.get_fully_qualified_name() / name
-            )
-            device_index = sliced_devices.index(device)
-            if isinstance(settings, SecondaryDoseSettings):
-                settings.edge_exposure_settings.fill_with_defaults(
-                    device.default_exposure_settings,
-                    exceptions=["exposure_time"],
-                )
-                settings.roof_exposure_settings.fill_with_defaults(
-                    device.default_exposure_settings,
-                    exceptions=["exposure_time"],
-                )
-                generate_secondary_images_from_folders(
-                    image_dir=device_subdirectory,
-                    mask_dir=masks_subdirectory,
-                    settings=settings,
-                    slice_metadata=sliced_devices_info[device_index],
-                )
-
-        # Create exposure images from the sliced devices
-        for name, (_, settings) in device.regional_settings.items():
-            masks_subdirectory = (
-                temp_directory / "masks" / device.get_fully_qualified_name() / name
-            )
-            device_index = sliced_devices.index(device)
-            if isinstance(settings, ExposureSettings):
-                settings.fill_with_defaults(
-                    device.default_exposure_settings,
-                )
-                generate_exposure_images_from_folders(
-                    image_dir=device_subdirectory,
-                    mask_dir=masks_subdirectory,
-                    settings=settings,
-                    slice_metadata=sliced_devices_info[device_index],
-                )
-
-        # Create position images from the sliced devices
-        for name, (_, settings) in device.regional_settings.items():
-            masks_subdirectory = (
-                temp_directory / "masks" / device.get_fully_qualified_name() / name
-            )
-            device_index = sliced_devices.index(device)
-            if isinstance(settings, PositionSettings):
-                settings.fill_with_defaults(
-                    device.default_position_settings,
-                )
-                generate_position_images_from_folders(
-                    image_dir=device_subdirectory,
-                    mask_dir=masks_subdirectory,
-                    settings=settings,
-                    slice_metadata=sliced_devices_info[device_index],
-                )
-
     def _embed_image(self, pos, resolution, image_data, fqn):
         x = round(pos[0])
         y = round(pos[1])
@@ -593,10 +534,7 @@ class Slicer:
                             / slice["image_name"]
                         )
                         slice_img = slice["image_data"]
-                        bits = np.unpackbits(slice_img, axis=1)
-                        W = slice["image_width"]
-                        bits = bits[:, :W]
-                        slice_img2 = (bits * 255).astype(np.uint8)
+                        slice_img2 = _unpack_image_from_meta(slice)
                         # slice_img = None
                         # if slice_path.exists():
                         #     slice_img = cv2.imread(str(slice_path), cv2.IMREAD_UNCHANGED)
@@ -659,7 +597,7 @@ class Slicer:
                                             "image_name": slice["image_name"],
                                             "parent": None,
                                             "image_data": slice_img,
-                                            "image_width": W,
+                                            "image_width": slice["image_width"],
                                             "device": device,
                                             "position": None,
                                             "layer_position": (
@@ -681,7 +619,7 @@ class Slicer:
                                             "image_name": slice["image_name"],
                                             "parent": parent_device,
                                             "image_data": slice_img,
-                                            "image_width": W,
+                                            "image_width": slice["image_width"],
                                             "device": device,
                                             "position": (round(pos[1]), round(pos[2])),
                                             "layer_position": (
@@ -745,12 +683,7 @@ class Slicer:
                                     end="",
                                     flush=True,
                                 )
-                                slice_image = np.array(slice_image)
-                                H, W = slice_image.shape
-                                packed_width = (W + 7) // 8
-                                packed_image = np.zeros((H, packed_width), dtype=np.uint8)
-                                binary = (slice_image != 0).astype(np.uint8)
-                                packed_image = np.packbits(binary, axis=1)
+                                packed_image, W = _pack_binary_image(slice_image)
                                 sliced_devices_info[parent_index]["slices"].append(
                                     {
                                         "image_name": slice_image_path.name,
@@ -920,10 +853,7 @@ class Slicer:
         """
 
         def image_from_dict(slice_info):
-            bits = np.unpackbits(slice_info["image_data"], axis=1)
-            W = slice_info["image_width"]
-            bits = bits[:, :W]
-            image = (bits * 255).astype(np.uint8)
+            image = _unpack_image_from_meta(slice_info)
             if slice_info.get("parent") is None:
                 return image
             resolution = (
@@ -1019,9 +949,63 @@ class Slicer:
                 self._fill_device_default_settings(device, info)
 
                 # Generate secondary, membrane, and regional images
-                self._make_secondary_images(
-                    device, temp_directory, sliced_devices, sliced_devices_info
-                )
+                device_subdirectory = temp_directory / device.get_fully_qualified_name()
+
+                device_index = sliced_devices.index(device)
+                for name, (_, settings) in device.regional_settings.items():
+                    masks_subdirectory = (
+                        temp_directory / "masks" / device.get_fully_qualified_name() / name
+                    )
+
+                    if isinstance(settings, MembraneSettings):
+                        settings.exposure_settings.fill_with_defaults(
+                            device.default_exposure_settings,
+                            exceptions=["exposure_time"],
+                        )
+                        generate_membrane_images_from_folders(
+                            image_dir=device_subdirectory,
+                            mask_dir=masks_subdirectory,
+                            membrane_settings=settings,
+                            slice_metadata=sliced_devices_info[device_index],
+                        )
+
+                    if isinstance(settings, SecondaryDoseSettings):
+                        settings.edge_exposure_settings.fill_with_defaults(
+                            device.default_exposure_settings,
+                            exceptions=["exposure_time"],
+                        )
+                        settings.roof_exposure_settings.fill_with_defaults(
+                            device.default_exposure_settings,
+                            exceptions=["exposure_time"],
+                        )
+                        generate_secondary_images_from_folders(
+                            image_dir=device_subdirectory,
+                            mask_dir=masks_subdirectory,
+                            settings=settings,
+                            slice_metadata=sliced_devices_info[device_index],
+                        )
+
+                    if isinstance(settings, ExposureSettings):
+                        settings.fill_with_defaults(
+                            device.default_exposure_settings,
+                        )
+                        generate_exposure_images_from_folders(
+                            image_dir=device_subdirectory,
+                            mask_dir=masks_subdirectory,
+                            settings=settings,
+                            slice_metadata=sliced_devices_info[device_index],
+                        )
+
+                    if isinstance(settings, PositionSettings):
+                        settings.fill_with_defaults(
+                            device.default_position_settings,
+                        )
+                        generate_position_images_from_folders(
+                            image_dir=device_subdirectory,
+                            mask_dir=masks_subdirectory,
+                            settings=settings,
+                            slice_metadata=sliced_devices_info[device_index],
+                        )
 
             # Make slices directory
             if self.minimize_file:
@@ -1156,11 +1140,7 @@ class Slicer:
                                 }
                             )
                         else:
-                            image = slice_info["image_data"]
-                            bits = np.unpackbits(image, axis=1)
-                            W = slice_info["image_width"]
-                            bits = bits[:, :W]
-                            image = (bits * 255).astype(np.uint8)
+                            image = _unpack_image_from_meta(slice_info)
                             group_images.append(image)
 
                     # Compress exposures

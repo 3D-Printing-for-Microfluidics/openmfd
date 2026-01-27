@@ -4,11 +4,11 @@ Quick reference to build, render, and slice a device.
 
 ## Core classes
 
-- `Component(size, position, px_size, layer_size)`
-- `Device(name, position, layers, layer_size, px_count, px_size)`
-- `StitchedDevice(name, position, layers, layer_size, tiles_x, tiles_y, base_px_count=(2560,1600), overlap_px=0, px_size=0.0076)`
+- `Component(size, position, px_size, layer_size, quiet=False)`
+- `Device(name, position, layers, layer_size, px_count, px_size, quiet=False)`
+- `StitchedDevice(name, position, layers, layer_size, tiles_x, tiles_y, base_px_count=(2560,1600), overlap_px=0, px_size=0.0076, quiet=False)`
 - `Visitech_LRS10_Device`, `Visitech_LRS20_Device`, `Wintech_Device`
-- `VariableLayerThicknessComponent(size, position, px_size, layer_sizes)`
+- `VariableLayerThicknessComponent(size, position, px_size, layer_sizes, quiet=False)`
 
 ## Labels and colors
 
@@ -22,13 +22,13 @@ Quick reference to build, render, and slice a device.
 
 Primitives and key parameters:
 
-- `Cube(size, center=False)`
-- `Cylinder(height, radius, center_z=False)`
-- `Sphere(size)`
-- `RoundedCube(size, radius)`
-- `TextExtrusion(text, height, font_size)`
-- `ImportModel(path, scale, rotation)`
-- `TPMS(size, function, period, threshold)`
+- `Cube(size, center=False, quiet=False)`
+- `Cylinder(height, radius, center_z=False, quiet=False)`
+- `Sphere(size, quiet=False)`
+- `RoundedCube(size, radius, quiet=False)`
+- `TextExtrusion(text, height, font_size, quiet=False)`
+- `ImportModel(path, scale, rotation, quiet=False)`
+- `TPMS(size, function, period, threshold, quiet=False)`
 
 Transforms (shapes):
 
@@ -77,7 +77,7 @@ Helpers:
 
 ## Polychannels
 
-- `Polychannel([PolychannelShape, ...])`
+- `Polychannel([PolychannelShape, ...], quiet=False)`
 - `PolychannelShape(shape_type, position, size, absolute_position=False, rotation=(0,0,0), corner_radius=0, corner_segments=10, rounded_cube_radius=(...))`
 - `BezierCurveShape(control_points, bezier_segments, position, size, absolute_position=False, shape_type=..., rounded_cube_radius=(...))`
 
@@ -90,7 +90,7 @@ Rules:
 
 ## Routing
 
-- `Router(component, channel_size, channel_margin)`
+- `Router(component, channel_size, channel_margin, quiet=False)`
 - `router.autoroute_channel(port_a, port_b, label)`
 - `router.route_with_fractional_path(port_a, port_b, steps, label)`
 - `router.route_with_polychannel(port_a, port_b, shapes, label)`

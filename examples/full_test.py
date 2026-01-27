@@ -7,7 +7,7 @@ set_fn(50)
 
 
 class Valve20px(VariableLayerThicknessComponent):
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         # Setup initial args/kwargs
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -18,6 +18,7 @@ class Valve20px(VariableLayerThicknessComponent):
             position=(0, 0, 0),
             px_size=0.0076,
             layer_sizes=[(6, 0.01), (2, 0.005), (16, 0.01)],
+            quiet=quiet,
         )
 
         # Setup labels
@@ -99,7 +100,7 @@ class Valve20px(VariableLayerThicknessComponent):
 
 
 class DC(VariableLayerThicknessComponent):
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         # Setup initial args/kwargs
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -110,6 +111,7 @@ class DC(VariableLayerThicknessComponent):
             position=(0, 0, 0),
             px_size=0.0076,
             layer_sizes=[(6, 0.01), (2, 0.005), (16, 0.01)],
+            quiet=quiet,
         )
 
         # Setup labels
@@ -180,7 +182,7 @@ class DC(VariableLayerThicknessComponent):
 
 
 class Pump(Component):
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         # Setup initial args/kwargs
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -191,6 +193,7 @@ class Pump(Component):
             position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
+            quiet=quiet,
         )
 
         # Setup labels
@@ -285,14 +288,14 @@ class Pump(Component):
 
 
 class TJunction(Component):
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]
         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
-            size=(24, 24, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+            size=(24, 24, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
         )
 
         # Setup labels
@@ -331,14 +334,14 @@ class TJunction(Component):
 
 
 class ViewingRegion(Component):
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]
         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
-            size=(48, 48, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+            size=(48, 48, 18), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
         )
 
         # Setup labels
@@ -376,14 +379,14 @@ class ViewingRegion(Component):
 
 
 class HARChannel(Component):
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
         self.init_args = [values[arg] for arg in args if arg != "self"]
         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
-            size=(72, 24, 36), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+            size=(72, 24, 36), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
         )
 
         # Setup labels
@@ -427,6 +430,7 @@ class SerpentineChannel(Component):
         width: int = 4,
         turns: int = 4,
         layers: int = 3,
+        quiet: bool = False,
     ):
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -442,6 +446,7 @@ class SerpentineChannel(Component):
             position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
+            quiet=quiet,
         )
 
         # Setup labels
@@ -767,4 +772,4 @@ slicer = Slicer(
     minimize_file=True,
     zip_output=False,
 )
-# slicer.make_print_file()
+slicer.make_print_file()

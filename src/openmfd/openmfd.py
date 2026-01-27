@@ -326,6 +326,7 @@ class Component(_InstantiationTrackerMixin):
         px_size: float = 0.0076,
         layer_size: float = 0.01,
         hide_in_render: bool = False,
+        quiet: bool = False,
     ):
         """
         Parameters:
@@ -335,9 +336,11 @@ class Component(_InstantiationTrackerMixin):
         - px_size (float): The size of a pixel in mm. Default is 0.0076 m.
         - layer_size (float): The size of a layer in mm. Default is 0.01 m.
         - hide_in_render (bool): Whether to hide the component in renders (nessiary for complex components like TPMS). Default is False.
+        - quiet (bool): Whether to suppress creation messages. Default is False.
         """
         super().__init__()
-        print(f"Creating {type(self).__name__} component...")
+        if not quiet:
+            print(f"Creating {type(self).__name__} component...")
         self._parent = None
         self._name = None
         self._position = position
@@ -345,6 +348,7 @@ class Component(_InstantiationTrackerMixin):
         self._px_size = px_size
         self._layer_size = layer_size
         self.hide_in_render = hide_in_render
+        self.quiet = quiet
         self._translations = [0, 0, 0]
         self._rotation = 0
         self._mirroring = [False, False]
@@ -773,9 +777,10 @@ class Component(_InstantiationTrackerMixin):
             existing_shape,
             existing_settings,
         ) in self.regional_settings.items():
+            combined_shape = shape.copy() & existing_shape.copy()
             if (
                 type(settings) == type(existing_settings)
-                and not (existing_shape.copy() & shape.copy())._object.is_empty()
+                and not combined_shape._object.is_empty()
             ):
                 raise ValueError(
                     f"Regional settings '{name}' collides with existing settings '{existing_name}' in component {self._name}"
@@ -1290,7 +1295,8 @@ class Component(_InstantiationTrackerMixin):
 
         - None: The rendered scene is exported to the specified file.
         """
-        print("Rendering Component...")
+        if not self.quiet:
+            print("Rendering Component...")
         scene = render_component(
             component=self,
             path=filename,
@@ -1314,7 +1320,8 @@ class Component(_InstantiationTrackerMixin):
 
         - None: The rendered scene is exported to the specified file.
         """
-        print("Rendering Component...")
+        if not self.quiet:
+            print("Generating Preview...")
         scene = render_component(
             component=self,
             path=preview_dir,
@@ -1359,6 +1366,7 @@ class VariableLayerThicknessComponent(Component):
         position: tuple[int, int, int],
         px_size: float = 0.0076,
         layer_sizes: list[tuple[int, float]] = [(1, 0.01)],
+        quiet: bool = False,
     ):
         """
         Initialize a VariableLayerThicknessComponent.
@@ -1369,6 +1377,7 @@ class VariableLayerThicknessComponent(Component):
         - position (tuple[int, int, int]): The position of the component in parent pixels/layers (x, y, z).
         - px_size (float): The pixel size in mm. Default is 0.0076.
         - layer_sizes (list[tuple[int, float]]): A list of layer sizes (as tuples) where each tuple contains the number of duplicates and its size in mm.
+        - quiet (bool): If True, suppresses informational output. Default is False.
         """
         self._layer_sizes = layer_sizes
 
@@ -1379,13 +1388,14 @@ class VariableLayerThicknessComponent(Component):
                 f"Layers in layer sizes {layer_count} does not match component height {size[2]}"
             )
         layer_size = float_gcf([layer_size[1] for layer_size in layer_sizes])
-        print(
-            f"\tℹ️ Using common denominator of {layer_size} for layer size for modeling."
-        )
-        print(
-            "\t\tFor best results, component height should be an integer multiple of parent component layers."
-        )
-        super().__init__(size, position, px_size, layer_size)
+        if not quiet:
+            print(
+                f"\tℹ️ Using common denominator of {layer_size} for layer size for modeling."
+            )
+            print(
+                "\t\tFor best results, component height should be an integer multiple of parent component layers."
+            )
+        super().__init__(size, position, px_size, layer_size, quiet=quiet)
 
     def _expand_layer_sizes(self) -> list[float]:
         """Expand the layer sizes into a list of heights for each layer."""
@@ -1468,6 +1478,7 @@ class Device(Component):
         layer_size: float = 0.01,
         px_count: tuple[int, int] = (2560, 1600),
         px_size: float = 0.0076,
+        quiet: bool = False,
     ):
         """
         Initialize a generic Device.
@@ -1480,6 +1491,7 @@ class Device(Component):
         - layer_size (float): The layer size in mm.
         - px_count (tuple[int, int]): The pixel count of the device (width, height). Default is (2560, 1600).
         - px_size (float): The pixel size in mm. Default is 0.0076.
+        - quiet (bool): If True, suppresses informational output. Default is False.
         """
         
         frame = inspect.currentframe()
@@ -1492,6 +1504,7 @@ class Device(Component):
             position,
             px_size,
             layer_size,
+            quiet=quiet,
         )
         self._name = name
 
@@ -1508,6 +1521,7 @@ class StitchedDevice(Device):
         base_px_count: tuple[int, int] = (2560, 1600),
         overlap_px: int = 0,
         px_size: float = 0.0076,
+        quiet: bool = False,
     ):
         """
         Initialize a StitchedDevice.
@@ -1523,6 +1537,7 @@ class StitchedDevice(Device):
         - base_px_count (tuple[int, int]): The pixel count of a single tile (width, height). Default is (2560, 1600).
         - overlap_px (int): The number of overlapping pixels between tiles. Default is 0.
         - px_size (float): The pixel size in mm. Default is 0.0076.
+        - quiet (bool): If True, suppresses informational output. Default is False.
         """
 
         frame = inspect.currentframe()
@@ -1550,6 +1565,7 @@ class StitchedDevice(Device):
             layer_size,
             px_count=stitched_px_count,
             px_size=px_size,
+            quiet=quiet,
         )
         self.tiles_x = tiles_x
         self.tiles_y = tiles_y
@@ -1564,6 +1580,7 @@ class Visitech_LRS10_Device(Device):
         position: tuple[int, int, int],
         layers: int = 0,
         layer_size: float = 0.01,
+        quiet: bool = False,
     ):
         """
         Initialize a device for a Visitech light engine with LRS10 Lens.
@@ -1572,6 +1589,7 @@ class Visitech_LRS10_Device(Device):
         - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
         - layers (int): The number of layers in the device.
         - layer_size (float): The layer size in mm.
+        - quiet (bool): If True, suppresses informational output. Default is False.
         """
 
         frame = inspect.currentframe()
@@ -1585,6 +1603,7 @@ class Visitech_LRS10_Device(Device):
             layer_size,
             px_count=(2560, 1600),
             px_size=0.0076,
+            quiet=quiet,
         )
 
 
@@ -1595,6 +1614,7 @@ class Visitech_LRS20_Device(Device):
         position: tuple[int, int, int],
         layers: int = 0,
         layer_size: float = 0.01,
+        quiet: bool = False,
     ):
         """
         Initialize a device for a Visitech light engine with LRS20 Lens.
@@ -1603,6 +1623,7 @@ class Visitech_LRS20_Device(Device):
         - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
         - layers (int): The number of layers in the device.
         - layer_size (float): The layer size in mm.
+        - quiet (bool): If True, suppresses informational output. Default is False.
         """
 
         frame = inspect.currentframe()
@@ -1617,6 +1638,7 @@ class Visitech_LRS20_Device(Device):
             layer_size,
             px_count=(2560, 1600),
             px_size=0.0152,
+            quiet=quiet,
         )
 
 
@@ -1627,6 +1649,7 @@ class Wintech_Device(Device):
         position: tuple[int, int, int],
         layers: int = 0,
         layer_size: float = 0.0015,
+        quiet: bool = False,
     ):
         """
         Initialize a Wintech light engine device.
@@ -1635,6 +1658,7 @@ class Wintech_Device(Device):
         - position (tuple[int, int, int]): The position of the device in parent pixels/layers (x, y, z).
         - layers (int): The number of layers in the device.
         - layer_size (float): The layer size in mm.
+        - quiet (bool): If True, suppresses informational output. Default is False.
         """
 
         frame = inspect.currentframe()
@@ -1649,4 +1673,5 @@ class Wintech_Device(Device):
             layer_size,
             px_count=(1920, 1080),
             px_size=0.00075,
+            quiet=quiet,
         )

@@ -44,7 +44,7 @@ class YJunctionMixer(Component):
     Simple Y-junction mixer with two inlets and one outlet.
     """
 
-    def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6)):
+    def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6, quiet=False)):
         # Store constructor arguments for equality comparison.
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -61,6 +61,7 @@ class YJunctionMixer(Component):
             position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
+            quiet=quiet
         )
 
         self.add_label("bulk", Color.from_name("gray", 255))

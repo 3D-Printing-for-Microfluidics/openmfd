@@ -21,7 +21,7 @@ class TJunction(Component):
         - Size: channel_size
         - Normal: POS_Y
     """
-    def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6)):
+    def __init__(self, channel_size=(8, 8, 6), channel_margin=(8, 8, 6), quiet: bool = False):
         """Initialize a T Junction component."""
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -37,6 +37,7 @@ class TJunction(Component):
             position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
+            quiet=quiet,
         )
 
         # Setup labels

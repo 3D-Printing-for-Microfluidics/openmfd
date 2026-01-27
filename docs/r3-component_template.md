@@ -8,7 +8,7 @@ import inspect
 # import components from custom classes or openmfd.component_library
 
 class ***MyComponent***(***Component or VariableLayerThicknessComponent***):
-    def __init__(self, ***component_parameters***):
+    def __init__(self, ***component_parameters***, quiet = False):
         # Store constructor arguments for equality comparison.
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -21,6 +21,7 @@ class ***MyComponent***(***Component or VariableLayerThicknessComponent***):
             position=(0, 0, 0),
             px_size=#component pixel size
             layer_size=#component layer size
+            quiet=quiet
         )
 
 		# Add slicing settings (bulk exposure, default settings, etc)

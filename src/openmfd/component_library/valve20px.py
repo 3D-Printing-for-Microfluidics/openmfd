@@ -30,7 +30,7 @@ class Valve20px(Component):
         - Normal: POS_Y
     """
 
-    def __init__(self):
+    def __init__(self, quiet: bool = False):
         """Initialize a 20px Valve component."""
         frame = inspect.currentframe()
         args, _, _, values = inspect.getargvalues(frame)
@@ -38,7 +38,7 @@ class Valve20px(Component):
         self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
-            size=(36, 36, 24), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
+            size=(36, 36, 24), position=(0, 0, 0), px_size=0.0076, layer_size=0.01, quiet=quiet
         )  # px_size=1.0, layer_size=1.0)
 
         self.add_label("device", Color.from_name("cyan", 255))

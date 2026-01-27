@@ -14,7 +14,7 @@ class Pinhole(Component):
         - Normal: POS_X
     """
 
-    def __init__(self, channel_size: tuple[int, int, int] = (8, 8, 6)):
+    def __init__(self, channel_size: tuple[int, int, int] = (8, 8, 6), quiet: bool = False):
         """Initialize a Pinhole component."""
         pinhole_height = 144
         pinhole_width = 110
@@ -32,6 +32,7 @@ class Pinhole(Component):
             position=(0, 0, 0),
             px_size=0.0076,
             layer_size=0.01,
+            quiet=quiet,
         )  # px_size=1.0, layer_size=1.0)
 
         self.add_label("bulk", Color.from_name("aqua", 255))

@@ -78,6 +78,7 @@ class Router:
         component: "Component",
         channel_size: tuple[int, int, int] = (0, 0, 0),
         channel_margin: tuple[int, int, int] = (0, 0, 0),
+        quiet: bool = False,
     ):
         """
         Initializes the Router with a component and channel specifications.
@@ -87,11 +88,13 @@ class Router:
         - component: The Component instance to route channels within.
         - channel_size: The size of the channels to be routed (tuple of 3 ints).
         - channel_margin: The margin to apply around the channels (tuple of 3 ints).
+        - quiet: If True, suppresses informational output.
         """
         self._routes = {}
         self._component = component
         self._channel_size = channel_size
         self._channel_margin = channel_margin
+        self._quiet = quiet
         self._bounds = self._component.get_bounding_box()
         self.nonrouted_keepouts = {}
         self.routed_keepouts = {}
@@ -528,23 +531,26 @@ class Router:
         This method checks for cached routes, loads them if valid, and reroutes if necessary.
         It handles both manual routing with polychannels and autorouting using the A* algorithm.
         """
-        print(f"\tRouting {type(self._component).__name__}...")
+        if not self._quiet:
+            print(f"\tRouting {type(self._component).__name__}...")
         keepouts, self.cached_routes = self._load_cached_route()
         self._generate_keepout_index(keepouts)
         new_routes = []
         loaded_routes = []
-        print("\r\t\t📦 Loading cached routes...", end="", flush=True)
+        if not self._quiet:
+            print("\r\t\t📦 Loading cached routes...", end="", flush=True)
         for i, (name, route_info) in enumerate(
             self._routes.items()
         ):  # Route cached paths if valid
             input_port = route_info["input"]
             output_port = route_info["output"]
             if self.cached_routes is not None:
-                print(
-                    f"\r\t\tLoading cached routes ({(i+1)/len(self._routes)*100:.2f}%)...",
-                    end="",
-                    flush=True,
-                )
+                if not self._quiet:
+                    print(
+                        f"\r\t\tLoading cached routes ({(i+1)/len(self._routes)*100:.2f}%)...",
+                        end="",
+                        flush=True,
+                    )
             removed_keepouts = self._remove_port_keepouts(input_port, output_port)
             if self.cached_routes is not None and name in self.cached_routes:
                 if self._load_route(name, route_info, self.cached_routes[name]):
@@ -552,49 +558,57 @@ class Router:
                     loaded_routes.append(name)
                     continue
                 else:
-                    print(f"\r\n\t\t\tRerouting {name}...")
+                    if not self._quiet:
+                        print(f"\r\n\t\t\tRerouting {name}...")
             self._add_port_keepouts(removed_keepouts)
             new_routes.append((name, route_info))  # Cache is stale/missing → reroute
 
         # Add keepouts for cached routes
-        print("\r\n\t\tGenerating keepouts...", end="", flush=True)
+        if not self._quiet:
+            print("\r\n\t\tGenerating keepouts...", end="", flush=True)
         self._generate_keepout_index()
         for i, name in enumerate(loaded_routes):
-            print(
-                f"\r\t\tGenerating keepouts ({(i+1)/len(loaded_routes)*100:.2f}%)...",
-                end="",
-                flush=True,
-            )
+            if not self._quiet:
+                print(
+                    f"\r\t\tGenerating keepouts ({(i+1)/len(loaded_routes)*100:.2f}%)...",
+                    end="",
+                    flush=True,
+                )
             self._add_keepouts_from_polychannel(name, self._component.shapes[name])
 
-        print(f"\r\n\t\tManual Routing...", end="", flush=True)
+        if not self._quiet:
+            print(f"\r\n\t\tManual Routing...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):
             input_port = route_info["input"]
             output_port = route_info["output"]
-            print(
-                f"\r\t\tManual Routing ({(i+1)/len(new_routes)*100:.2f}%)...",
-                end="",
-                flush=True,
-            )
+            if not self._quiet:
+                print(
+                    f"\r\t\tManual Routing ({(i+1)/len(new_routes)*100:.2f}%)...",
+                    end="",
+                    flush=True,
+                )
             if route_info["route_type"] != "autoroute":  # Manual routing
                 removed_keepouts = self._remove_port_keepouts(input_port, output_port)
                 self._route(name, route_info)
                 self._add_port_keepouts(removed_keepouts)
 
-        print(f"\r\n\t\tAutorouting...", end="", flush=True)
+        if not self._quiet:
+            print(f"\r\n\t\tAutorouting...", end="", flush=True)
         for i, (name, route_info) in enumerate(new_routes):  # Autoroute paths
             input_port = route_info["input"]
             output_port = route_info["output"]
-            print(
-                f"\r\t\tAutorouting ({(i+1)/len(new_routes)*100:.2f}%)...",
-                end="",
-                flush=True,
-            )
+            if not self._quiet:
+                print(
+                    f"\r\t\tAutorouting ({(i+1)/len(new_routes)*100:.2f}%)...",
+                    end="",
+                    flush=True,
+                )
             if route_info["route_type"] == "autoroute":  # Autorouting
                 removed_keepouts = self._remove_port_keepouts(input_port, output_port)
                 self._autoroute(name, route_info)
                 self._add_port_keepouts(removed_keepouts)
-        print()
+        if not self._quiet:
+            print()
         self._cache_routes()
 
         # release memory
@@ -626,7 +640,8 @@ class Router:
         )
 
         if os.path.exists(cache_file):
-            print(f"\t\t📦 Loading cached route from {cache_file}...")
+            if not self._quiet:
+                print(f"\t\t📦 Loading cached route from {cache_file}...")
             with open(cache_file, "rb") as f:
                 return pickle.load(f)
         return None, None
@@ -731,10 +746,12 @@ class Router:
         # validate keepouts if autoroute
         if not self._validate_keepouts(polychannel):
             if route_info["route_type"] == "autoroute":
-                print(f"\r\n\t\t\t⚠️ Autoroute failed for {name}!")
+                if not self._quiet:
+                    print(f"\r\n\t\t\t⚠️ Autoroute failed for {name}!")
                 return False
             else:
-                print(f"\r\n\t\t\t⚠️ {name} violates keepouts!")
+                if not self._quiet:
+                    print(f"\r\n\t\t\t⚠️ {name} violates keepouts!")
 
         # add polychannel keepout
         if not loaded:
@@ -881,25 +898,7 @@ class Router:
 
         - None
         """
-        # if route_info["input"].get_name().startswith("None_"):
-        #     input_port = route_info["input"].copy()
-        #     vect = input_port.to_vector()
-        #     size = list(input_port._size)
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             size[i] = 0
-        #     input_port._size = tuple(size)
-        # else:
         input_port = route_info["input"]
-        # if route_info["output"].get_name().startswith("None_"):
-        #     output_port = route_info["output"].copy()
-        #     vect = output_port.to_vector()
-        #     size = list(output_port._size)
-        #     for i in range(3):
-        #         if vect[i] != 0:
-        #             size[i] = 0
-        #     output_port._size = tuple(size)
-        # else:
         output_port = route_info["output"]
 
         # A*
@@ -918,7 +917,8 @@ class Router:
             violation = True
 
         if violation:
-            print(f"\r\n\t\t\t⚠️ Error: failed to route {name}")
+            if not self._quiet:
+                print(f"\r\n\t\t\t⚠️ Error: failed to route {name}")
             return
 
         # path to constant cross-section polychannel shapes
@@ -969,7 +969,8 @@ class Router:
             ),
             exclude_axis=input_port.to_vector(),
         ):
-            print("\r\n\t\t\t⚠️ Input port cannot be routed with given router.")
+            if not self._quiet:
+                print("\r\n\t\t\t⚠️ Input port cannot be routed with given router.")
             return None
 
         pos = list(
@@ -986,7 +987,8 @@ class Router:
             ),
             exclude_axis=output_port.to_vector(),
         ):
-            print("\r\n\t\t\t⚠️ Output port cannot be routed with given router.")
+            if not self._quiet:
+                print("\r\n\t\t\t⚠️ Output port cannot be routed with given router.")
             return None
 
         # Get start and goal positions
@@ -996,10 +998,12 @@ class Router:
         # Validate start and goal positions
         start_valid, goal_valid = self._is_valid_points([start, goal])
         if not start_valid:
-            print("\r\n\t\t\t⚠️ Input port is blocked or invalid")
+            if not self._quiet:
+                print("\r\n\t\t\t⚠️ Input port is blocked or invalid")
             return None
         if not goal_valid:
-            print("\r\n\t\t\t⚠️ Output port is blocked or invalid")
+            if not self._quiet:
+                print("\r\n\t\t\t⚠️ Output port is blocked or invalid")
             return None
 
         directions = []
@@ -1026,7 +1030,8 @@ class Router:
 
         while open_heap:
             if time.time() - start_time > timeout:
-                print("\r\n\t\t\t⚠️ Channel routing timed out")
+                if not self._quiet:
+                    print("\r\n\t\t\t⚠️ Channel routing timed out")
                 return None
             current = heapq.heappop(open_heap)
 

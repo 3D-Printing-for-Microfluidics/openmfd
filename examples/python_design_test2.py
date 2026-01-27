@@ -80,7 +80,7 @@ for l in range(z):
     for c in range(x):
         valve_row = []
         for r in range(y):
-            v = Valve20px()
+            v = Valve20px(quiet=True)
             mirror = False
             if c % 2 == 1:
                 mirror = not mirror
@@ -156,4 +156,4 @@ slicer = Slicer(
     minimize_file=True,
     zip_output=False,
 )
-# slicer.make_print_file()
+slicer.make_print_file()

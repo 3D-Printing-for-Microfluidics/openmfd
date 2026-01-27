@@ -290,6 +290,7 @@ class Polychannel(Shape):
         self,
         shapes: list[Union["PolychannelShape", "BezierCurveShape"]],
         show_only_shapes: bool = False,
+        quiet: bool = False,
     ) -> None:
         """
         Initialize a Polychannel object.
@@ -298,6 +299,7 @@ class Polychannel(Shape):
 
         - shapes (list[Union[PolychannelShape, BezierCurveShape]]): Shapes defining the polychannel.
         - show_only_shapes (bool): If True, only show the shapes without hulls.
+        - quiet (bool): If True, suppresses informational output.
 
         Raises:
 
@@ -313,13 +315,16 @@ class Polychannel(Shape):
                 s = Cube(
                     shape._size,
                     center=True,
+                    quiet=quiet,
                     _no_validation=shape._no_validation,
+
                 )
             elif shape._shape_type == "sphere":
                 s = Sphere(
                     shape._size,
                     center=True,
                     fn=shape._fn,
+                    quiet=quiet,
                     _no_validation=shape._no_validation,
                 )
             elif shape._shape_type == "rounded_cube":
@@ -328,6 +333,7 @@ class Polychannel(Shape):
                     shape._rounded_cube_radius,
                     center=True,
                     fn=shape._fn,
+                    quiet=quiet,
                     _no_validation=shape._no_validation,
                 )
             else:

@@ -488,6 +488,7 @@ class Cube(Shape):
         self,
         size: tuple[int, int, int],
         center: bool = False,
+        quiet: bool = False,
         _no_validation: bool = False,
     ) -> None:
         """
@@ -497,6 +498,7 @@ class Cube(Shape):
 
         - size (tuple[int, int, int]): Size of the cube in px/layer space.
         - center (bool): Whether to center the cube at the origin.
+        - quiet (bool): If True, suppresses informational output.
         - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
         super().__init__()
@@ -507,19 +509,22 @@ class Cube(Shape):
         z = 0
         if center and not _no_validation:
             if size[0] % 2 != 0:
-                print(
-                    f"\t⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
-                )
+                if not quiet:
+                    print(
+                        f"\t⚠️ Centered cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                    )
                 x = 0.5
             if size[1] % 2 != 0:
-                print(
-                    f"\t⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
-                )
+                if not quiet:
+                    print(
+                        f"\t⚠️ Centered cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                    )
                 y = 0.5
             if size[2] % 2 != 0:
-                print(
-                    f"\t⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
-                )
+                if not quiet:
+                    print(
+                        f"\t⚠️ Centered cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                    )
                 z = 0.5
 
         if size[0] == 0:
@@ -550,6 +555,7 @@ class Cylinder(Shape):
         center_xy: bool = True,
         center_z: bool = False,
         fn: int = 0,
+        quiet: bool = False,
     ) -> None:
         """
         Create a cylinder.
@@ -563,6 +569,7 @@ class Cylinder(Shape):
         - center_xy (bool): Whether to center the cylinder in XY plane.
         - center_z (bool): Whether to center the cylinder in Z plane.
         - fn (int): Number of facets for the circular segments.
+        - quiet (bool): If True, suppresses informational output.
 
         Raises:
 
@@ -598,17 +605,19 @@ class Cylinder(Shape):
         xy = 0
         z = 0
         if center_z and height % 2 != 0:
-            print(
-                f"\t⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
-            )
+            if not quiet:
+                print(
+                    f"\t⚠️ Centered cylinder z dimension is odd. Shifting 0.5 px to align with px grid"
+                )
             z = 0.5
         if height == 0:
             height = 0.0001
         if center_xy:
             if top * 2 % 2 != 0:  # can check either to or bottom
-                print(
-                    f"\t⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
-                )
+                if not quiet:
+                    print(
+                        f"\t⚠️ Centered cylinder radius is odd. Shifting 0.5 px to align with px grid"
+                    )
                 xy = 0.5
             self._object = Manifold.cylinder(
                 height=height,
@@ -639,7 +648,8 @@ class Sphere(Shape):
         size: tuple[int, int, int],
         center: bool = True,
         fn: int = 0,
-        _no_validation: bool = False,
+        quiet: bool = False,
+        _no_validation: bool = False, 
     ) -> None:
         """
         Create a sphere.
@@ -649,6 +659,7 @@ class Sphere(Shape):
         - size (tuple[int, int, int]): Size of the sphere in px/layer space.
         - center (bool): Whether to center the sphere at the origin.
         - fn (int): Number of facets for the circular segments.
+        - quiet (bool): If True, suppresses informational output.
         - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
         super().__init__()
@@ -658,19 +669,22 @@ class Sphere(Shape):
             z = 0
             if not _no_validation:
                 if size[0] % 2 != 0:
-                    print(
-                        f"\t⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
-                    )
+                    if not quiet:
+                        print(
+                            f"\t⚠️ Centered sphere x dimension is odd. Shifting 0.5 px to align with px grid"
+                        )
                     x = 0.5
                 if size[1] % 2 != 0:
-                    print(
-                        f"\t⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
-                    )
+                    if not quiet:
+                        print(
+                            f"\t⚠️ Centered sphere y dimension is odd. Shifting 0.5 px to align with px grid"
+                        )
                     y = 0.5
                 if size[2] % 2 != 0:
-                    print(
-                        f"\t⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
-                    )
+                    if not quiet:
+                        print(
+                            f"\t⚠️ Centered sphere z dimension is odd. Shifting 0.5 px to align with px grid"
+                        )
                     z = 0.5
 
         if size[0] == 0:
@@ -710,6 +724,7 @@ class RoundedCube(Shape):
         radius: tuple[float, float, float],
         center: bool = False,
         fn: int = 0,
+        quiet: bool = False,
         _no_validation: bool = False,
     ) -> None:
         """
@@ -721,6 +736,7 @@ class RoundedCube(Shape):
         - radius (tuple[float, float, float]): Radius of the rounded corners in px/layer space.
         - center (bool): Whether to center the rounded cube at the origin.
         - fn (int): Number of facets for the circular segments.
+        - quiet (bool): If True, suppresses informational output.
         - _no_validation (bool): If True, skip validation checks for odd dimensions (internal use).
         """
         super().__init__()
@@ -731,19 +747,22 @@ class RoundedCube(Shape):
         z = 0
         if center and not _no_validation:
             if size[0] % 2 != 0:
-                print(
-                    f"\t⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
-                )
+                if not quiet:
+                    print(
+                        f"\t⚠️ Centered rounded cube x dimension is odd. Shifting 0.5 px to align with px grid"
+                    )
                 x = 0.5
             if size[1] % 2 != 0:
-                print(
-                    f"\t⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
-                )
+                if not quiet:
+                    print(
+                        f"\t⚠️ Centered rounded cube y dimension is odd. Shifting 0.5 px to align with px grid"
+                    )
                 y = 0.5
             if size[2] % 2 != 0:
-                print(
-                    f"\t⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
-                )
+                if not quiet:
+                    print(
+                        f"\t⚠️ Centered rounded cube z dimension is odd. Shifting 0.5 px to align with px grid"
+                    )
                 z = 0.5
 
         if size[0] == 0:
@@ -811,6 +830,7 @@ class TextExtrusion(Shape):
         height: int = 1,
         font: str = "arial",
         font_size: int = 10,
+        quiet: bool = False,
     ) -> None:
         """
         Create a text extrusion.
@@ -821,6 +841,7 @@ class TextExtrusion(Shape):
         - height (int): Height of the extrusion in layer space.
         - font (str): Font name to use for the text.
         - font_size (int): Font size in px.
+        - quiet (bool): If True, suppresses informational output.
         """
         super().__init__()
 
@@ -950,12 +971,14 @@ class TextExtrusion(Shape):
                 # Create cross section with outer + holes
                 xsec = CrossSection(all_loops)
                 if xsec.is_empty():
-                    print(f"\t⚠️ Invalid CrossSection for character '{char}'")
+                    if not quiet:
+                        print(f"\t⚠️ Invalid CrossSection for character '{char}'")
                     continue
 
                 extruded = xsec.extrude(height)
                 if extruded.num_vert() == 0:
-                    print(f"\t⚠️ Extrusion failed for character '{char}'")
+                    if not quiet:
+                        print(f"\t⚠️ Extrusion failed for character '{char}'")
                     continue
                 result += extruded
                 offset_x += (face.glyph.advance.x / 64.0) * spacing
@@ -989,6 +1012,7 @@ class ImportModel(Shape):
         self,
         filename: str,
         auto_repair: bool = True,
+        quiet: bool = False,
     ) -> None:
         """
         Create an imported model.
@@ -997,6 +1021,7 @@ class ImportModel(Shape):
 
         - filename (str): Path to the 3D model file.
         - auto_repair (bool): Whether to automatically repair the mesh if it has issues.
+        - quiet (bool): If True, suppresses informational output.
 
         Raises:
 
@@ -1025,13 +1050,15 @@ class ImportModel(Shape):
             """
 
             ext = os.path.splitext(filename)[1].lower()
-            print(f"\t📦 Loading: {filename} (.{ext[1:]})")
+            if not quiet:
+                print(f"\t📦 Loading: {filename} (.{ext[1:]})")
 
             # try:
             mesh = trimesh.load(filename, force="mesh")
 
             if isinstance(mesh, trimesh.Scene):
-                print("\t🔁 Flattening scene...")
+                if not quiet:
+                    print("\t🔁 Flattening scene...")
                 mesh = mesh.to_mesh()
 
             issues = []
@@ -1045,14 +1072,17 @@ class ImportModel(Shape):
                 issues.append("⚠️ Mesh may not define a solid volume.")
 
             if issues:
-                print("\n\t".join(issues))
+                if not quiet:
+                    print("\t⚠️ Mesh issues detected:")
+                    print("\n\t".join(issues))
                 if not auto_repair:
                     raise ValueError(
                         "Mesh has critical issues. Aborting due to `auto_repair=False`."
                     )
 
             if auto_repair:
-                print("\t🛠️ Attempting repair steps...")
+                if not quiet:
+                    print("\t🛠️ Attempting repair steps...")
                 mesh = mesh.copy()
                 trimesh.repair.fill_holes(mesh)
                 trimesh.repair.fix_normals(mesh)
@@ -1072,7 +1102,8 @@ class ImportModel(Shape):
             mesh_obj = Mesh(verts, faces)
 
             manifold = Manifold(mesh_obj)
-            print("\t✅ Successfully converted mesh to Manifold.")
+            if not quiet:
+                print("\t✅ Successfully converted mesh to Manifold.")
             return manifold
 
         self._object = load_3d_file_to_manifold(filename, auto_repair)
@@ -1143,6 +1174,7 @@ class TPMS(Shape):
         func: Callable[[int, int, int], int] = diamond,
         fill: float = 0.0,
         refinement: int = 10,
+        quiet: bool = False,
     ) -> None:
         """
         Create a TPMS shape.
@@ -1154,6 +1186,7 @@ class TPMS(Shape):
         - func (Callable[[float, float, float], float]): Function defining the TPMS shape. Can use gyroid, diamond, or a custom function.
         - fill (float): Level set value for the TPMS shape ranges from -1 to 1 (isosurface at 0).
         - refinement (int): Number of subdivisions for the level set grid.
+        - quiet (bool): If True, suppresses informational output.
         """
         super().__init__()
 

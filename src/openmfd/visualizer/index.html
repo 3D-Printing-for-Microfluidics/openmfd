@@ -2,87 +2,165 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <title>OpenMFD Visualizer</title>
-  <style>
-    :root {
-      --bg: #222222;
-      --panel: rgba(34, 34, 34, 0.95);
-      --text: #ffffff;
-      --button-bg: #3a3a3a;
-      --button-text: #ffffff;
-      --button-border: #555555;
-      --button-bg-active: #888888;
-    }
-
-    .theme-light {
-      --bg: #f5f5f5;
-      --panel: #ffffff;
-      --text: #111111;
-      --button-bg: #e6e6e6;
-      --button-text: #111111;
-      --button-border: #bbbbbb;
-      --button-bg-active: #cfcfcf;
-    }
-
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: var(--bg);
-      color: var(--text);
-    }
-
-    canvas {
-      display: block;
-    }
-
-    #modelSelector {
-      background: var(--panel);
-      color: var(--text);
-    }
-
-    .control-btn {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
-      cursor: pointer;
-      border-radius: 0.35rem;
-      border: 1px solid var(--button-border);
-      background: var(--button-bg);
-      color: var(--button-text);
-    }
-
-    .control-btn.is-active {
-      background: var(--button-bg-active);
-    }
-
-    #controls {
-      position: fixed;
-      right: 1.25rem;
-      bottom: 1.25rem;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-  </style>
+	<meta charset="UTF-8">
+	<title>OpenMFD Visualizer</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+	<link rel="stylesheet" href="static/css/visualizer.css">
 </head>
 
 <body>
-  <div id="modelSelector"
-    style="position:fixed;top:1.25rem;right:1.25rem;z-index:200;padding:0.75rem 1.25rem;border-radius:0.5rem;box-shadow:0 2px 8px #0003;font-size:0.95rem;max-width:300px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-      <strong>Models</strong>
-      <button id="toggleModelSelectorBtn" class="control-btn" style="padding:0.2rem 0.4rem;font-size:0.75rem;">–</button>
-    </div>
-    <form id="glbForm"></form>
-  </div>
-  <script type="module" src="main.js"></script>
-  <div id="controls">
-    <button id="resetCameraBtn" class="control-btn">Reset Camera</button>
-    <button id="reloadModelBtn" class="control-btn">Auto Reload: ON</button>
-    <button id="toggleAxesBtn" class="control-btn">Axes: On</button>
-    <button id="themeToggleBtn" class="control-btn">Theme: Dark</button>
-  </div>
+	<div id="modelSelector"
+		style="position:fixed;top:1.25rem;right:1.25rem;z-index:200;padding:0.75rem 1.25rem;border-radius:0.5rem;box-shadow:0 2px 8px #0003;font-size:0.95rem;max-width:300px;">
+		<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+			<strong>Models</strong>
+			<button id="toggleModelSelectorBtn" class="control-btn" style="padding:0.2rem 0.4rem;font-size:0.75rem;">–</button>
+		</div>
+		<form id="glbForm"></form>
+	</div>
+
+	<div id="controls">
+		<button id="reloadModelBtn" class="control-btn">Auto Reload: ON</button>
+	</div>
+
+	<div id="cameraStripWrapper">
+		<button id="docsBtn" class="control-btn" title="Documentation">
+			<i class="fa-solid fa-book-open"></i>
+		</button>
+		<div class="camera-strip-divider" aria-hidden="true"></div>
+		<button id="homeCameraBtn" class="control-btn" title="Home Camera">
+			<i class="fa-solid fa-house"></i>
+		</button>
+		<div id="cameraStrip"></div>
+		<div class="camera-strip-divider" aria-hidden="true"></div>
+		<button id="settingsDialogBtn" class="control-btn" title="Settings">
+			<i class="fa-solid fa-gear"></i>
+		</button>
+	
+	</div>
+
+	<div id="settingsDialog" class="modal">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3>Settings</h3>
+				<button id="settingsDialogClose" class="control-btn">Close</button>
+			</div>
+			<div class="settings-tabs">
+				<button class="tab-btn is-active" data-tab="general">General</button>
+				<button class="tab-btn" data-tab="appearance">Appearance</button>
+				<button class="tab-btn" data-tab="camera">Camera & Lights</button>
+			</div>
+			<div class="tab-panels">
+				<div class="tab-panel" data-tab-panel="general">
+					<div class="general-grid">
+						<div class="modal-section">
+							<h4>Environment</h4>
+							<div class="input-grid">
+								<label>Current Directory (CWD) <input id="cwdValue" type="text" readonly></label>
+								<label>Model Source <input id="modelSourceValue" type="text" readonly></label>
+							</div>
+							<div class="input-grid" style="margin-top:0.5rem;">
+								<label>Preview Folder (from CWD)
+									<input id="previewDirInput" type="text" placeholder="relative/path">
+								</label>
+								<div class="row-actions row-actions-inline">
+									<button id="previewDirSetBtn" class="control-btn" type="button">Set Folder</button>
+									<button id="previewDirResetBtn" class="control-btn" type="button">Reset Folder</button>
+								</div>
+							</div>
+							<div id="previewDirWarning" class="settings-warning" role="alert"></div>
+						</div>
+						<div class="modal-section">
+							<h4>Auto Reload</h4>
+							<div class="input-grid">
+								<label>Interval (ms)
+									<input id="autoReloadIntervalInput" type="number" min="250" step="250">
+								</label>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="tab-panel" data-tab-panel="appearance">
+					<div class="appearance-grid">
+						<div class="modal-section">
+							<h4>Axes</h4>
+							<button id="axesToggleBtn" class="control-btn">Axes: On</button>
+						</div>
+						<div class="modal-section">
+							<h4>Themes</h4>
+							<div class="input-grid" style="margin-bottom:0.5rem;">
+								<label>Theme
+									<select id="themeSelect" class="control-btn" style="padding:0.35rem 0.4rem;">
+										<option value="dark">Dark</option>
+										<option value="light">Light</option>
+										<option value="custom">Custom</option>
+									</select>
+								</label>
+							</div>
+							<div class="input-grid">
+								<label>Background <input id="themeBg" type="color"></label>
+								<label>Panel <input id="themePanel" type="color"></label>
+								<label>Section <input id="themeSection" type="color"></label>
+								<label>Text <input id="themeText" type="color"></label>
+								<label>Button BG <input id="themeButtonBg" type="color"></label>
+								<label>Button Text <input id="themeButtonText" type="color"></label>
+								<label>Button Border <input id="themeButtonBorder" type="color"></label>
+								<label>Button Active <input id="themeButtonActive" type="color"></label>
+								<label>Axis X <input id="themeAxisX" type="color"></label>
+								<label>Axis Y <input id="themeAxisY" type="color"></label>
+								<label>Axis Z <input id="themeAxisZ" type="color"></label>
+							</div>
+							<div class="row-actions">
+								<button id="themeToCustomBtn" class="control-btn" type="button">Save as Custom</button>
+								<button id="themeResetBtn" class="control-btn" type="button">Reset Theme</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="tab-panel is-active" data-tab-panel="camera">
+					<div class="modal-body">
+						<div class="viewer-pane" id="lightDialogViewer"></div>
+						<div class="controls-pane">
+							<div class="modal-section">
+								<h4>Camera</h4>
+								<div class="camera-list" id="cameraList"></div>
+								<div class="camera-action-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+									<button id="cameraModeBtn" class="control-btn" type="button">Camera: Perspective</button>
+									<button id="resetCameraBtn" class="control-btn" type="button">Reset Camera</button>
+									<button id="centerTargetBtn" class="control-btn" type="button">Center Target</button>
+								</div>
+								<div class="input-grid">
+									<label>Pos X <input id="camPosX" type="number" step="0.1"></label>
+									<label>Pos Y <input id="camPosY" type="number" step="0.1"></label>
+									<label>Pos Z <input id="camPosZ" type="number" step="0.1"></label>
+									<label>Target X <input id="camTargetX" type="number" step="0.1"></label>
+									<label>Target Y <input id="camTargetY" type="number" step="0.1"></label>
+									<label>Target Z <input id="camTargetZ" type="number" step="0.1"></label>
+								</div>
+							</div>
+
+							<div class="modal-section">
+								<h4>Ambient Light</h4>
+								<div class="input-grid">
+									<label>Color <input id="ambientColor" type="color"></label>
+									<label>Intensity <input id="ambientIntensity" type="number" step="0.1" min="0"></label>
+								</div>
+							</div>
+
+							<div class="modal-section">
+								<h4>Directional Lights</h4>
+								<div id="directionalLightsList"></div>
+								<div class="row-actions">
+									<button id="addDirLightBtn" class="control-btn" type="button">Add Directional Light</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script type="module" src="static/js/app.js"></script>
 </body>
 
 </html>

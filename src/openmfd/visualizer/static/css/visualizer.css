@@ -1,0 +1,321 @@
+:root {
+  --bg: #222222;
+  --panel: rgba(34, 34, 34, 0.95);
+  --section-bg: rgba(0, 0, 0, 0.1);
+  --text: #ffffff;
+  --button-bg: #3a3a3a;
+  --button-text: #ffffff;
+  --button-border: #555555;
+  --button-bg-active: #888888;
+}
+
+.theme-light {
+  --bg: #f5f5f5;
+  --panel: #ffffff;
+  --section-bg: rgba(0, 0, 0, 0.05);
+  --text: #111111;
+  --button-bg: #e6e6e6;
+  --button-text: #111111;
+  --button-border: #bbbbbb;
+  --button-bg-active: #cfcfcf;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+canvas {
+  display: block;
+}
+
+#modelSelector {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.control-btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.control-btn.is-active {
+  background: var(--button-bg-active);
+}
+
+.control-btn.is-warning {
+  border-color: #d4a000;
+  color: #ffd166;
+}
+
+#controls {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+#cameraStripWrapper {
+  position: fixed;
+  left: 50%;
+  bottom: 0.75rem;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--button-border);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  align-items: center;
+}
+
+#cameraStrip {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.camera-strip-divider {
+  width: 1px;
+  height: 1.6rem;
+  background: var(--button-border);
+  opacity: 0.8;
+}
+
+#homeCameraBtn,
+#settingsDialogBtn,
+#docsBtn {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.85rem;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+
+.modal.is-open {
+  display: flex;
+}
+
+.modal-content {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--button-border);
+  border-radius: 0.5rem;
+  width: min(1040px, 94vw);
+  max-height: 88vh;
+  overflow: hidden;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 0.9fr);
+  gap: 0.75rem;
+  overflow: hidden;
+  min-height: 320px;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--button-border);
+}
+
+.tab-btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.tab-btn.is-active {
+  background: var(--button-bg-active);
+}
+
+.tab-panels {
+  display: block;
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.is-active {
+  display: block;
+}
+
+.appearance-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1fr);
+  gap: 0.75rem;
+}
+
+.general-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(320px, 1fr);
+  gap: 0.75rem;
+}
+
+#cwdValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+#modelSourceValue,
+#previewDirInput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.viewer-pane {
+  border: 1px solid var(--button-border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #000000;
+  min-height: 320px;
+}
+
+.viewer-pane canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.controls-pane {
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.modal-section {
+  border: 1px solid var(--button-border);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--section-bg);
+}
+
+.modal-section h4 {
+  margin: 0 0 0.5rem;
+}
+
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.input-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.input-grid input {
+  padding: 0.35rem 0.4rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.camera-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.camera-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.camera-btn.is-active {
+  background: var(--button-bg-active);
+}
+
+.light-list {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.light-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
+.light-btn.is-active {
+  background: var(--button-bg-active);
+}
+
+.dir-light-row {
+  border-top: 1px solid var(--button-border);
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.row-actions-inline {
+  justify-content: flex-start;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-top: 0;
+}
+
+.settings-warning {
+  margin-top: 0.5rem;
+  color: #ffb703;
+  font-size: 0.85rem;
+}

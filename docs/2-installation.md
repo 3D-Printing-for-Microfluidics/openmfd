@@ -13,6 +13,10 @@ OpenMFD is available on PyPI. The recommended installation method uses [uv](http
 - Provides a simpler, more reliable workflow for modern Python projects
 - Works as a drop-in replacement for pip in most cases
 
+## Python versions
+
+Our core dependency (manifold3d) currently supports python 3.8 - 3.13
+
 ---
 
 ## Recommended: Install with uv

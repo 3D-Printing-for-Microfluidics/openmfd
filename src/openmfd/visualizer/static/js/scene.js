@@ -1,5 +1,6 @@
 import * as THREE from '../lib/three/three.module.js';
 import { OrbitControls } from '../lib/three/controls/OrbitControls.js';
+import { TrackballControls } from '../lib/three/controls/TrackballControls.js';
 
 export function createScene() {
   const scene = new THREE.Scene();
@@ -25,7 +26,33 @@ export function createScene() {
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   document.body.appendChild(renderer.domElement);
 
-  const controls = new OrbitControls(perspectiveCamera, renderer.domElement);
+  const orbitControls = new OrbitControls(perspectiveCamera, renderer.domElement);
+  orbitControls.enableDamping = true;
+  orbitControls.dampingFactor = 0.08;
+
+  const trackballControls = new TrackballControls(perspectiveCamera, renderer.domElement);
+  trackballControls.enabled = false;
+  trackballControls.rotateSpeed = 4.0;
+  trackballControls.zoomSpeed = 1.2;
+  trackballControls.panSpeed = 0.3;
+  trackballControls.staticMoving = false;
+  trackballControls.dynamicDampingFactor = 0.2;
+
+  let activeControls = orbitControls;
+
+  function setControlsType(type) {
+    const next = type === 'trackball' ? trackballControls : orbitControls;
+    if (next === activeControls) return activeControls;
+    if (activeControls && activeControls.target && next.target) {
+      next.target.copy(activeControls.target);
+    }
+    if (activeControls) {
+      activeControls.enabled = false;
+    }
+    next.enabled = true;
+    activeControls = next;
+    return activeControls;
+  }
 
   return {
     THREE,
@@ -33,7 +60,10 @@ export function createScene() {
     world,
     axes,
     renderer,
-    controls,
+    controls: activeControls,
+    orbitControls,
+    trackballControls,
+    setControlsType,
     perspectiveCamera,
     orthographicCamera,
   };

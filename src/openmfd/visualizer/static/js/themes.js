@@ -106,6 +106,14 @@ export function createThemeManager({ scene, axes }) {
     }
   }
 
+  function resetAllThemes() {
+    themes = { ...DEFAULT_THEMES };
+    saveThemeDefs(themes);
+    activeTheme = 'dark';
+    localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
+    applyTheme(activeTheme);
+  }
+
   function updateThemeValue(themeName, key, value) {
     if (!themes[themeName]) return;
     themes[themeName] = { ...themes[themeName], [key]: value };
@@ -131,6 +139,7 @@ export function createThemeManager({ scene, axes }) {
     themeInputs,
     resetBtn,
     saveCustomBtn,
+    resetAllBtn,
   }) {
     if (!themeSelect || !themeInputs) return;
 
@@ -165,6 +174,14 @@ export function createThemeManager({ scene, axes }) {
       });
     }
 
+    if (resetAllBtn) {
+      resetAllBtn.addEventListener('click', () => {
+        resetAllThemes();
+        themeSelect.value = activeTheme;
+        syncInputs(activeTheme);
+      });
+    }
+
     if (saveCustomBtn) {
       saveCustomBtn.addEventListener('click', () => {
         saveAsCustom(themeSelect.value);
@@ -178,5 +195,28 @@ export function createThemeManager({ scene, axes }) {
     initTheme,
     applyTheme,
     bindThemeUI,
+    resetAllThemes,
+    getThemeState: () => ({
+      activeTheme,
+      themes: { ...themes },
+    }),
+    setThemeState: (state) => {
+      if (!state || typeof state !== 'object') return;
+      const incomingThemes = state.themes || state.themeDefs;
+      if (incomingThemes && typeof incomingThemes === 'object') {
+        themes = {
+          dark: { ...DEFAULT_THEMES.dark, ...(incomingThemes.dark || {}) },
+          light: { ...DEFAULT_THEMES.light, ...(incomingThemes.light || {}) },
+          custom: { ...DEFAULT_THEMES.custom, ...(incomingThemes.custom || {}) },
+        };
+        saveThemeDefs(themes);
+      }
+      if (state.activeTheme && themes[state.activeTheme]) {
+        activeTheme = state.activeTheme;
+      } else {
+        activeTheme = localStorage.getItem(THEME_STORAGE_KEY) || activeTheme;
+      }
+      applyTheme(activeTheme);
+    },
   };
 }

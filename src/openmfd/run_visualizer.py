@@ -93,14 +93,29 @@ def start_server():
 
         return glb_list
 
+    def list_settings_files(preview_dir):
+        candidates = ["openmfd-settings.json", "settings.json"]
+        files = []
+        for name in candidates:
+            path = preview_dir / name
+            if path.is_file():
+                stat = path.stat()
+                files.append(
+                    {
+                        "name": path.name,
+                        "path": str(path.resolve().relative_to(CWD)),
+                        "mtime": stat.st_mtime,
+                        "size": stat.st_size,
+                    }
+                )
+        return files
+
     @app.route("/")
     def index():
-        print("Serving index.html")
         return send_from_directory(str(visualizer_dir), "index.html")
 
     @app.route("/favicon.ico")
     def favicon():
-        print("Serving favicon.ico")
         return send_from_directory(str(visualizer_dir), "favicon.ico")
 
     @app.route("/docs")
@@ -122,17 +137,14 @@ def start_server():
 
     @app.route("/main.js")
     def main_js():
-        print("Serving main.js")
         return send_from_directory(str(visualizer_dir), "main.js")
 
     @app.route("/visualizer/<path:subpath>")
     def visualizer_assets(subpath):
-        print(f"Serving visualizer asset: {subpath}")
         return send_from_directory(str(visualizer_dir), subpath)
 
     @app.route("/glb_list.json")
     def glb_list():
-        print("Serving glb_list.json")
         preview_dir = get_glb_dir()
         if not preview_dir:
             return jsonify({"error": "No valid .glb directory found."}), 404
@@ -161,6 +173,44 @@ def start_server():
             }
         )
 
+    @app.route("/preview_settings_list.json")
+    def preview_settings_list():
+        preview_dir = get_glb_dir()
+        if not preview_dir:
+            return jsonify({"preview_dir": "", "files": [], "signature": ""})
+        files = list_settings_files(preview_dir)
+        signature = "|".join(
+            f"{item['path']}:{item['mtime']}:{item['size']}" for item in files
+        )
+        return jsonify(
+            {
+                "preview_dir": str(preview_dir),
+                "files": files,
+                "signature": signature,
+            }
+        )
+
+    @app.route("/preview_settings_file")
+    def preview_settings_file():
+        preview_dir = get_glb_dir()
+        if not preview_dir:
+            return jsonify({"error": "No preview directory"}), 404
+        rel_path = (request.args.get("path") or "").strip()
+        if not rel_path:
+            return jsonify({"error": "path required"}), 400
+        candidate = (CWD / rel_path).resolve()
+        try:
+            candidate.relative_to(preview_dir)
+        except ValueError:
+            return jsonify({"error": "Path must be inside preview folder"}), 400
+        if not candidate.is_file() or candidate.suffix.lower() != ".json":
+            return jsonify({"error": "File not found"}), 404
+        try:
+            data = json.loads(candidate.read_text())
+        except json.JSONDecodeError:
+            return jsonify({"error": "Invalid JSON"}), 400
+        return jsonify(data)
+
     @app.route("/set_preview_dir", methods=["POST"])
     def set_preview_dir():
         nonlocal selected_preview_dir
@@ -187,7 +237,6 @@ def start_server():
 
     @app.route("/<path:filename>")
     def serve_glb(filename):
-        print(f"Serving GLB file: {filename}")
         if filename.endswith(".glb"):
             return send_from_directory(str(CWD), filename)
         abort(404)

@@ -1,7 +1,8 @@
 import * as THREE from '../lib/three/three.module.js';
 import { OrbitControls } from '../lib/three/controls/OrbitControls.js';
 
-export function createPreviewSystem({ scene, controls, cameraSystem }) {
+export function createPreviewSystem({ scene, controls: initialControls, cameraSystem }) {
+  let controls = initialControls;
   let dialogViewer = null;
   let previewRenderer = null;
   let previewCamera = null;
@@ -14,10 +15,15 @@ export function createPreviewSystem({ scene, controls, cameraSystem }) {
       previewRenderer = new THREE.WebGLRenderer({ antialias: true });
       previewRenderer.setPixelRatio(window.devicePixelRatio || 1);
       dialogViewer.appendChild(previewRenderer.domElement);
+      previewRenderer.domElement.style.display = 'block';
+      previewRenderer.domElement.style.width = '100%';
+      previewRenderer.domElement.style.height = '100%';
       previewCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 5000);
       previewControls = new OrbitControls(previewCamera, previewRenderer.domElement);
       previewControls.enableDamping = true;
       previewControls.dampingFactor = 0.08;
+    } else if (previewRenderer.domElement.parentElement !== dialogViewer) {
+      dialogViewer.appendChild(previewRenderer.domElement);
     }
   }
 
@@ -44,7 +50,9 @@ export function createPreviewSystem({ scene, controls, cameraSystem }) {
     if (!previewCamera || !previewControls) return;
     const activeCamera = cameraSystem.getCamera();
     previewCamera.position.copy(activeCamera.position);
-    previewControls.target.copy(controls.target);
+    if (controls?.target) {
+      previewControls.target.copy(controls.target);
+    }
     previewCamera.lookAt(previewControls.target);
     previewCamera.updateProjectionMatrix();
     previewControls.update();
@@ -73,5 +81,11 @@ export function createPreviewSystem({ scene, controls, cameraSystem }) {
     syncFromMain,
     setOpen,
     render,
+    setControls: (nextControls) => {
+      controls = nextControls;
+      if (isOpen) {
+        syncFromMain();
+      }
+    },
   };
 }

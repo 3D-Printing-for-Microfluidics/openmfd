@@ -20,6 +20,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
   let ambientIntensityInput = null;
   let directionalLightsList = null;
   let addDirLightBtn = null;
+  let removeDirLightBtn = null;
 
 
   function createDirectionalHelper(light) {
@@ -76,6 +77,22 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     }
   }
 
+  function clearDirectionalLights() {
+    for (let i = directionalLights.length - 1; i >= 0; i -= 1) {
+      removeDirectionalLight(i);
+    }
+    directionalLights.length = 0;
+    directionalHelpers.length = 0;
+    activeDirLightIndex = 0;
+  }
+
+  function updateRemoveDirLightButton() {
+    if (!removeDirLightBtn) return;
+    const hasSelection = directionalLights.length > 0;
+    const canRemove = hasSelection && directionalLights.length > 1;
+    removeDirLightBtn.disabled = !canRemove;
+  }
+
   function updateDirectionalLightTargets() {
     const modelCenter = getModelCenterModel();
     directionalLights.forEach((light, index) => {
@@ -114,7 +131,10 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
   function renderDirectionalLightsList() {
     if (!directionalLightsList) return;
     directionalLightsList.innerHTML = '';
-    if (directionalLights.length === 0) return;
+    if (directionalLights.length === 0) {
+      updateRemoveDirLightButton();
+      return;
+    }
 
     const buttonsRow = document.createElement('div');
     buttonsRow.className = 'light-list';
@@ -134,6 +154,8 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     });
     directionalLightsList.appendChild(buttonsRow);
 
+    updateRemoveDirLightButton();
+
     const light = directionalLights[activeDirLightIndex];
     if (!light) return;
     const modelCenter = getModelCenterModel();
@@ -141,8 +163,8 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     const editor = document.createElement('div');
     editor.className = 'dir-light-row';
 
-    const grid = document.createElement('div');
-    grid.className = 'input-grid';
+    const gridPrimary = document.createElement('div');
+    gridPrimary.className = 'input-grid';
 
     const colorLabel = document.createElement('label');
     colorLabel.textContent = 'Color';
@@ -150,7 +172,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     colorInput.type = 'color';
     colorInput.value = toHexColor(light.color);
     colorLabel.appendChild(colorInput);
-    grid.appendChild(colorLabel);
+    gridPrimary.appendChild(colorLabel);
 
     const intensityLabel = document.createElement('label');
     intensityLabel.textContent = 'Intensity';
@@ -160,7 +182,10 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     intensityInput.min = '0';
     intensityInput.value = light.intensity.toFixed(3);
     intensityLabel.appendChild(intensityInput);
-    grid.appendChild(intensityLabel);
+    gridPrimary.appendChild(intensityLabel);
+
+    const gridPosition = document.createElement('div');
+    gridPosition.className = 'input-grid';
 
     const posXLabel = document.createElement('label');
     posXLabel.textContent = 'Pos X';
@@ -169,7 +194,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     posXInput.step = '0.1';
     posXInput.value = (light.position.x - modelCenter.x).toFixed(3);
     posXLabel.appendChild(posXInput);
-    grid.appendChild(posXLabel);
+    gridPosition.appendChild(posXLabel);
 
     const posYLabel = document.createElement('label');
     posYLabel.textContent = 'Pos Y';
@@ -178,7 +203,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     posYInput.step = '0.1';
     posYInput.value = (light.position.y - modelCenter.y).toFixed(3);
     posYLabel.appendChild(posYInput);
-    grid.appendChild(posYLabel);
+    gridPosition.appendChild(posYLabel);
 
     const posZLabel = document.createElement('label');
     posZLabel.textContent = 'Pos Z';
@@ -187,18 +212,11 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     posZInput.step = '0.1';
     posZInput.value = (light.position.z - modelCenter.z).toFixed(3);
     posZLabel.appendChild(posZInput);
-    grid.appendChild(posZLabel);
+    gridPosition.appendChild(posZLabel);
 
-    editor.appendChild(grid);
+    editor.appendChild(gridPrimary);
+    editor.appendChild(gridPosition);
 
-    const actions = document.createElement('div');
-    actions.className = 'row-actions';
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'control-btn';
-    removeBtn.textContent = 'Remove';
-    actions.appendChild(removeBtn);
-    editor.appendChild(actions);
 
     function updateLight() {
       const nextIntensity = parseFloat(intensityInput.value);
@@ -224,13 +242,63 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     posXInput.addEventListener('input', updateLight);
     posYInput.addEventListener('input', updateLight);
     posZInput.addEventListener('input', updateLight);
-    removeBtn.addEventListener('click', () => {
-      if (directionalLights.length <= 1) return;
-      removeDirectionalLight(activeDirLightIndex);
-      renderDirectionalLightsList();
-    });
-
     directionalLightsList.appendChild(editor);
+  }
+
+  function getLightState() {
+    const modelCenter = getModelCenterModel();
+    return {
+      ambient: {
+        color: toHexColor(ambientLight.color),
+        intensity: ambientLight.intensity,
+      },
+      directional: directionalLights.map((light) => {
+        const offset = light.position.clone().sub(modelCenter);
+        return {
+          color: toHexColor(light.color),
+          intensity: light.intensity,
+          offset: { x: offset.x, y: offset.y, z: offset.z },
+        };
+      }),
+    };
+  }
+
+  function applyLightState(state) {
+    if (!state || typeof state !== 'object') return;
+    if (state.ambient) {
+      if (state.ambient.color) {
+        ambientLight.color.set(state.ambient.color);
+      }
+      if (Number.isFinite(state.ambient.intensity)) {
+        ambientLight.intensity = Math.max(0, state.ambient.intensity);
+      }
+    }
+
+    clearDirectionalLights();
+    const modelCenter = getModelCenterModel();
+    const dirList = Array.isArray(state.directional) ? state.directional : [];
+    if (dirList.length === 0) {
+      addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10) });
+    } else {
+      dirList.forEach((item) => {
+        const offset = item?.offset || { x: 10, y: 10, z: 10 };
+        addDirectionalLight({
+          color: item?.color ? new THREE.Color(item.color) : 0xffffff,
+          intensity: Number.isFinite(item?.intensity) ? item.intensity : 1.0,
+          offset: new THREE.Vector3(offset.x, offset.y, offset.z),
+          position: modelCenter.clone().add(new THREE.Vector3(offset.x, offset.y, offset.z)),
+        });
+      });
+    }
+    syncLightInputs();
+  }
+
+  function resetLights() {
+    ambientLight.color.set(0xffffff);
+    ambientLight.intensity = 1.0;
+    clearDirectionalLights();
+    addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10) });
+    syncLightInputs();
   }
 
   function syncLightInputs() {
@@ -257,6 +325,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     ambientIntensity,
     directionalList,
     addDirLight,
+    removeDirLight,
     onOpen,
   }) {
     dialogEl = dialog;
@@ -269,6 +338,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     ambientIntensityInput = ambientIntensity;
     directionalLightsList = directionalList;
     addDirLightBtn = addDirLight;
+    removeDirLightBtn = removeDirLight;
 
     if (ambientColorInput) {
       ambientColorInput.addEventListener('input', () => {
@@ -288,6 +358,14 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     if (addDirLightBtn) {
       addDirLightBtn.addEventListener('click', () => {
         addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10) });
+        renderDirectionalLightsList();
+      });
+    }
+
+    if (removeDirLightBtn) {
+      removeDirLightBtn.addEventListener('click', () => {
+        if (directionalLights.length <= 1) return;
+        removeDirectionalLight(activeDirLightIndex);
         renderDirectionalLightsList();
       });
     }
@@ -328,5 +406,8 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     bindLightUI,
     renderDirectionalLightsList,
     setDialogOpen,
+    getLightState,
+    applyLightState,
+    resetLights,
   };
 }

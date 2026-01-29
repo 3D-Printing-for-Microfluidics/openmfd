@@ -1,35 +1,50 @@
 import * as THREE from '../lib/three/three.module.js';
 
 const CAMERA_STORAGE_KEY = 'openmfd_cameras_v1';
-const MAX_CAMERAS = 5;
+const CAMERA_DEFAULT_COUNT = 3;
 
 export function createCameraSystem({
   scene,
   world,
-  controls,
+  controls: initialControls,
   perspectiveCamera,
   orthographicCamera,
   getFrameBox,
   getBoundingBoxScene,
   buildVisibleGroup,
   onCameraChange,
+  onControlTypeChange,
+  onActiveCameraChange,
 }) {
   let cameraMode = 'perspective';
   let orthoState = null;
   let camera = perspectiveCamera;
+  const defaultFov = perspectiveCamera.fov;
+  let controls = initialControls;
   let camerasState = [];
   let activeCameraIndex = 0;
+  let cameraSlotCount = CAMERA_DEFAULT_COUNT;
   let isApplyingCameraState = false;
   let isHomeMode = false;
 
   let cameraListEl = null;
   let cameraStripEl = null;
   let cameraModeBtn = null;
+  let updateButton = null;
+  let addButtons = [];
+  let removeButton = null;
+  let presetButtons = [];
   let inputs = null;
+
+  let allowRoll = true;
 
   let cameraHelper = null;
   let cameraHelperVisible = false;
   let cameraHelperRef = null;
+
+  let currentDirty = false;
+  let currentControlType = 'orbit';
+  let defaultControlType = 'orbit';
 
   const cameraIcon = new THREE.Group();
   const cameraBody = new THREE.Mesh(
@@ -146,6 +161,8 @@ export function createCameraSystem({
   }
 
   function resetCamera() {
+    perspectiveCamera.fov = 20;
+    perspectiveCamera.updateProjectionMatrix();
     const bboxScene = getBoundingBoxScene();
     if (bboxScene && bboxScene.visible) {
       frameModel(bboxScene);
@@ -160,7 +177,25 @@ export function createCameraSystem({
     if (box) {
       updateOrthographicFromBox(box, perspectiveCamera.position, controls.target);
     }
-    updateActiveCameraStateFromControls();
+    if (currentControlType === 'trackball') {
+      setCameraPose(camera.position.clone(), controls.target.clone(), 0);
+    }
+    syncCameraInputs();
+    if (!isHomeMode && camerasState[activeCameraIndex]) {
+      const nextType = defaultControlType || 'orbit';
+      if (nextType !== currentControlType) {
+        currentControlType = nextType;
+        camerasState[activeCameraIndex].controlType = nextType;
+        if (onControlTypeChange) {
+          onControlTypeChange(nextType);
+        }
+      } else {
+        camerasState[activeCameraIndex].controlType = nextType;
+      }
+      commitActiveCameraState();
+    } else {
+      updateActiveCameraStateFromControls();
+    }
     if (onCameraChange) onCameraChange();
   }
 
@@ -180,18 +215,65 @@ export function createCameraSystem({
     if (box) {
       updateOrthographicFromBox(box, perspectiveCamera.position, controls.target);
     }
+    if (currentControlType === 'trackball') {
+      setCameraPose(camera.position.clone(), controls.target.clone(), 0);
+    }
+    syncCameraInputs();
+    currentDirty = false;
     renderCameraList();
+    updateUpdateButton();
     if (onCameraChange) onCameraChange();
   }
 
-  function setCameraPose(position, target) {
+  function getReferenceUp(viewDir) {
+    let baseUp = new THREE.Vector3(0, 1, 0);
+    if (Math.abs(viewDir.dot(baseUp)) > 0.999) {
+      baseUp = new THREE.Vector3(0, 0, 1);
+    }
+    let projUp = baseUp.clone().sub(viewDir.clone().multiplyScalar(baseUp.dot(viewDir)));
+    if (projUp.length() < 1e-6) {
+      projUp = new THREE.Vector3(0, 0, 1);
+      projUp.sub(viewDir.clone().multiplyScalar(projUp.dot(viewDir)));
+    }
+    return projUp.normalize();
+  }
+
+  function getCameraRollDeg() {
+    const viewDir = camera.getWorldDirection(new THREE.Vector3()).normalize();
+    if (viewDir.lengthSq() < 1e-6) return 0;
+    const baseUp = getReferenceUp(viewDir);
+    const camUp = camera.up.clone().normalize();
+    const cross = baseUp.clone().cross(camUp);
+    const sin = viewDir.dot(cross);
+    const cos = baseUp.dot(camUp);
+    return THREE.MathUtils.radToDeg(Math.atan2(sin, cos));
+  }
+
+  function applyCameraRoll(position, target, rollDeg) {
+    const viewDir = target.clone().sub(position).normalize();
+    if (viewDir.lengthSq() < 1e-6) return new THREE.Vector3(0, 1, 0);
+    const baseUp = getReferenceUp(viewDir);
+    const rollRad = THREE.MathUtils.degToRad(rollDeg || 0);
+    const quat = new THREE.Quaternion().setFromAxisAngle(viewDir, rollRad);
+    return baseUp.clone().applyQuaternion(quat);
+  }
+
+  function clampFov(value) {
+    if (!Number.isFinite(value)) return defaultFov;
+    return Math.min(120, Math.max(5, value));
+  }
+
+  function setCameraPose(position, target, rollDeg = 0) {
+    const useRoll = allowRoll ? rollDeg : 0;
+    const up = allowRoll ? applyCameraRoll(position, target, useRoll) : new THREE.Vector3(0, 1, 0);
+
     perspectiveCamera.position.copy(position);
-    perspectiveCamera.up.set(0, 1, 0);
+    perspectiveCamera.up.copy(up);
     perspectiveCamera.lookAt(target);
     perspectiveCamera.updateProjectionMatrix();
 
     orthographicCamera.position.copy(position);
-    orthographicCamera.up.set(0, 1, 0);
+    orthographicCamera.up.copy(up);
     orthographicCamera.lookAt(target);
     orthographicCamera.updateProjectionMatrix();
 
@@ -211,6 +293,9 @@ export function createCameraSystem({
     return {
       pos: { x: pos.x, y: pos.y, z: pos.z },
       target: { x: target.x, y: target.y, z: target.z },
+      roll: allowRoll ? getCameraRollDeg() : 0,
+      fov: perspectiveCamera.fov,
+      controlType: currentControlType,
       mode: cameraMode,
     };
   }
@@ -218,7 +303,11 @@ export function createCameraSystem({
   function saveCameraStates() {
     localStorage.setItem(
       CAMERA_STORAGE_KEY,
-      JSON.stringify({ activeIndex: activeCameraIndex, cameras: camerasState })
+      JSON.stringify({
+        activeIndex: activeCameraIndex,
+        cameras: camerasState,
+        slotCount: cameraSlotCount,
+      })
     );
   }
 
@@ -229,8 +318,16 @@ export function createCameraSystem({
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed.cameras)) {
         camerasState = parsed.cameras;
+        if (Number.isInteger(parsed.slotCount) && parsed.slotCount > 0) {
+          cameraSlotCount = parsed.slotCount;
+        } else {
+          cameraSlotCount = Math.max(camerasState.length, CAMERA_DEFAULT_COUNT);
+        }
         if (Number.isInteger(parsed.activeIndex)) {
-          activeCameraIndex = Math.min(Math.max(parsed.activeIndex, 0), MAX_CAMERAS - 1);
+          activeCameraIndex = Math.min(
+            Math.max(parsed.activeIndex, 0),
+            Math.max(cameraSlotCount - 1, 0)
+          );
         }
         return camerasState.length > 0;
       }
@@ -243,8 +340,38 @@ export function createCameraSystem({
   function updateActiveCameraStateFromControls() {
     if (isHomeMode) return;
     if (!camerasState[activeCameraIndex]) return;
+    currentDirty = isCameraDirty();
+    updateUpdateButton();
+  }
+
+  function commitActiveCameraState() {
+    if (!camerasState[activeCameraIndex]) return;
     camerasState[activeCameraIndex] = getCurrentCameraState();
     saveCameraStates();
+    currentDirty = false;
+    updateUpdateButton();
+  }
+
+  function isCameraDirty() {
+    const saved = camerasState[activeCameraIndex];
+    if (!saved) return false;
+    const current = getCurrentCameraState();
+    const eps = 1e-4;
+    const diff = (a, b) => Math.abs(a - b) > eps;
+    const savedRoll = saved.roll ?? 0;
+    const savedFov = saved.fov ?? perspectiveCamera.fov;
+    return (
+      diff(current.pos.x, saved.pos.x) ||
+      diff(current.pos.y, saved.pos.y) ||
+      diff(current.pos.z, saved.pos.z) ||
+      diff(current.target.x, saved.target.x) ||
+      diff(current.target.y, saved.target.y) ||
+      diff(current.target.z, saved.target.z) ||
+      diff(current.roll || 0, savedRoll) ||
+      diff(current.fov || perspectiveCamera.fov, savedFov) ||
+      (current.controlType || defaultControlType) !== (saved.controlType || defaultControlType) ||
+      (saved.mode || 'perspective') !== (current.mode || 'perspective')
+    );
   }
 
   function getModelCenterWorld() {
@@ -268,8 +395,100 @@ export function createCameraSystem({
     if (box) {
       updateOrthographicFromBox(box, camera.position, controls.target);
     }
-    updateActiveCameraStateFromControls();
+    syncCameraInputs();
+    if (!isHomeMode && camerasState[activeCameraIndex]) {
+      commitActiveCameraState();
+    } else {
+      updateActiveCameraStateFromControls();
+    }
     if (onCameraChange) onCameraChange();
+  }
+
+  function getTargetObject() {
+    const bboxScene = getBoundingBoxScene();
+    if (bboxScene && bboxScene.visible) return bboxScene;
+    return buildVisibleGroup();
+  }
+
+  function getFacePresetPosition(face) {
+    const target = getTargetObject();
+    if (!target) return null;
+
+    const box = new THREE.Box3().setFromObject(target);
+    if (!Number.isFinite(box.min.x) || !Number.isFinite(box.max.x)) return null;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const fov = (perspectiveCamera.fov * Math.PI) / 180;
+    const aspect = window.innerWidth / window.innerHeight;
+    const padding = 1.15;
+
+    let width = 1;
+    let height = 1;
+    let normal = new THREE.Vector3(0, 0, 1);
+
+    switch (face) {
+      case 'front':
+        normal = new THREE.Vector3(0, 0, 1);
+        width = size.x;
+        height = size.y;
+        break;
+      case 'back':
+        normal = new THREE.Vector3(0, 0, -1);
+        width = size.x;
+        height = size.y;
+        break;
+      case 'left':
+        normal = new THREE.Vector3(-1, 0, 0);
+        width = size.z;
+        height = size.y;
+        break;
+      case 'right':
+        normal = new THREE.Vector3(1, 0, 0);
+        width = size.z;
+        height = size.y;
+        break;
+      case 'top':
+        normal = new THREE.Vector3(0, 1, 0);
+        width = size.x;
+        height = size.z;
+        break;
+      case 'bottom':
+        normal = new THREE.Vector3(0, -1, 0);
+        width = size.x;
+        height = size.z;
+        break;
+      default:
+        return null;
+    }
+
+    width = Math.max(width, 1e-6);
+    height = Math.max(height, 1e-6);
+
+    const halfHeight = height / 2;
+    const halfWidth = width / 2;
+    const distanceHeight = halfHeight / Math.tan(fov / 2);
+    const distanceWidth = halfWidth / (Math.tan(fov / 2) * aspect);
+    const distance = Math.max(distanceHeight, distanceWidth) * padding;
+
+    const position = center.clone().add(normal.multiplyScalar(distance));
+    return { position, target: center };
+  }
+
+  function applyCameraPreset(face) {
+    const pose = getFacePresetPosition(face);
+    if (!pose) return;
+    const wasHome = isHomeMode;
+    if (!wasHome) {
+      ensureCameraState(activeCameraIndex);
+    }
+    setCameraPose(pose.position, pose.target, 0);
+    syncCameraInputs();
+    renderCameraList();
+    updateCameraModeButton();
+    if (!wasHome) {
+      commitActiveCameraState();
+    }
   }
 
   function ensureCameraState(index) {
@@ -281,24 +500,38 @@ export function createCameraSystem({
   function applyCameraState(index) {
     const state = camerasState[index];
     if (!state) return;
+    const desiredControlType = state.controlType || defaultControlType;
+    if (desiredControlType && desiredControlType !== currentControlType && onControlTypeChange) {
+      onControlTypeChange(desiredControlType);
+    }
+    currentControlType = desiredControlType;
     isHomeMode = false;
     isApplyingCameraState = true;
     setCameraMode(state.mode || 'perspective');
     const pos = new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z);
     const target = new THREE.Vector3(state.target.x, state.target.y, state.target.z);
-    setCameraPose(toSceneSpace(pos), toSceneSpace(target));
+    setCameraPose(toSceneSpace(pos), toSceneSpace(target), state.roll ?? 0);
+    if ((state.mode || 'perspective') === 'perspective') {
+      const nextFov = Number.isFinite(state.fov) ? state.fov : defaultFov;
+      perspectiveCamera.fov = clampFov(nextFov);
+      perspectiveCamera.updateProjectionMatrix();
+    }
     isApplyingCameraState = false;
     updateCameraModeButton();
     syncCameraInputs();
     renderCameraList();
+    currentDirty = false;
+    updateUpdateButton();
+    updateRemoveButton();
     saveCameraStates();
+    if (onActiveCameraChange) onActiveCameraChange();
   }
 
   function renderCameraList() {
     const renderTo = (container) => {
       if (!container) return;
       container.innerHTML = '';
-      for (let i = 0; i < MAX_CAMERAS; i += 1) {
+      for (let i = 0; i < cameraSlotCount; i += 1) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'camera-btn';
@@ -320,6 +553,28 @@ export function createCameraSystem({
     };
     renderTo(cameraListEl);
     renderTo(cameraStripEl);
+    updateRemoveButton();
+  }
+
+  function updateUpdateButton() {
+    if (!updateButton) return;
+    if (isHomeMode || !camerasState[activeCameraIndex]) {
+      updateButton.style.display = 'none';
+      return;
+    }
+    if (currentDirty) {
+      updateButton.textContent = `Update Camera ${activeCameraIndex + 1}`;
+      updateButton.style.display = '';
+    } else {
+      updateButton.style.display = 'none';
+    }
+  }
+
+  function updateRemoveButton() {
+    if (!removeButton) return;
+    const hasSelection = !isHomeMode && !!camerasState[activeCameraIndex];
+    const canRemove = hasSelection && cameraSlotCount > 1;
+    removeButton.disabled = !canRemove;
   }
 
   function updateCameraModeButton() {
@@ -327,16 +582,23 @@ export function createCameraSystem({
     const state = camerasState[activeCameraIndex];
     const mode = state?.mode || cameraMode;
     cameraModeBtn.textContent = mode === 'orthographic' ? 'Camera: Ortho' : 'Camera: Perspective';
+    if (inputs?.fov) {
+      inputs.fov.disabled = mode !== 'perspective';
+    }
   }
 
   function initCameraStates() {
     const hasSaved = loadCameraStates();
     isHomeMode = true;
     if (!hasSaved) {
+      cameraSlotCount = CAMERA_DEFAULT_COUNT;
       camerasState = [];
       activeCameraIndex = 0;
     }
+    currentControlType = defaultControlType;
     renderCameraList();
+    updateRemoveButton();
+    if (onActiveCameraChange) onActiveCameraChange();
     return hasSaved;
   }
 
@@ -351,17 +613,23 @@ export function createCameraSystem({
         updateOrthographicFromBox(box, perspectiveCamera.position, controls.target);
       }
       orthographicCamera.position.copy(perspectiveCamera.position);
+      orthographicCamera.up.copy(perspectiveCamera.up);
       orthographicCamera.lookAt(controls.target);
       orthographicCamera.updateProjectionMatrix();
     } else {
       camera = perspectiveCamera;
       controls.object = camera;
       perspectiveCamera.position.copy(orthographicCamera.position);
+      perspectiveCamera.up.copy(orthographicCamera.up);
+      const savedFov = camerasState[activeCameraIndex]?.fov;
+      const nextFov = Number.isFinite(savedFov) ? savedFov : defaultFov;
+      perspectiveCamera.fov = clampFov(nextFov);
       perspectiveCamera.lookAt(controls.target);
       perspectiveCamera.updateProjectionMatrix();
     }
     ensureCameraHelper();
     if (onCameraChange) onCameraChange();
+    updateUpdateButton();
   }
 
   function syncCameraInputs() {
@@ -374,6 +642,15 @@ export function createCameraSystem({
     inputs.targetX.value = target.x.toFixed(3);
     inputs.targetY.value = target.y.toFixed(3);
     inputs.targetZ.value = target.z.toFixed(3);
+    if (inputs.roll) {
+      const rollValue = allowRoll ? getCameraRollDeg() : 0;
+      inputs.roll.value = rollValue.toFixed(2);
+      inputs.roll.disabled = !allowRoll;
+    }
+    if (inputs.fov) {
+      inputs.fov.value = perspectiveCamera.fov.toFixed(1);
+      inputs.fov.disabled = cameraMode !== 'perspective';
+    }
   }
 
   function applyCameraInputs() {
@@ -388,17 +665,84 @@ export function createCameraSystem({
       parseFloat(inputs.targetY.value),
       parseFloat(inputs.targetZ.value)
     );
+    const rollDeg = allowRoll && inputs.roll ? parseFloat(inputs.roll.value) : 0;
+    const fovDeg = inputs.fov ? parseFloat(inputs.fov.value) : null;
+
     if (
       Number.isFinite(position.x) &&
       Number.isFinite(position.y) &&
       Number.isFinite(position.z) &&
       Number.isFinite(target.x) &&
       Number.isFinite(target.y) &&
-      Number.isFinite(target.z)
+      Number.isFinite(target.z) &&
+      (allowRoll && inputs.roll ? Number.isFinite(rollDeg) : true) &&
+      (inputs.fov ? Number.isFinite(fovDeg) : true)
     ) {
-      setCameraPose(toSceneSpace(position), toSceneSpace(target));
-      updateActiveCameraStateFromControls();
+      setCameraPose(toSceneSpace(position), toSceneSpace(target), rollDeg || 0);
+      if (cameraMode === 'perspective' && Number.isFinite(fovDeg)) {
+        perspectiveCamera.fov = Math.min(120, Math.max(5, fovDeg));
+        perspectiveCamera.updateProjectionMatrix();
+      }
+      if (!isHomeMode && camerasState[activeCameraIndex]) {
+        commitActiveCameraState();
+      } else {
+        updateActiveCameraStateFromControls();
+      }
     }
+  }
+
+  function setRollEnabled(enabled) {
+    allowRoll = !!enabled;
+    if (inputs?.roll) {
+      inputs.roll.disabled = !allowRoll;
+      if (!allowRoll) {
+        inputs.roll.value = '0';
+      }
+    }
+    if (!allowRoll) {
+      const pos = camera.position.clone();
+      const target = controls.target.clone();
+      setCameraPose(pos, target, 0);
+      updateActiveCameraStateFromControls();
+    } else {
+      syncCameraInputs();
+    }
+  }
+
+  function addCameraSlot() {
+    const nextIndex = cameraSlotCount;
+    const typeForNew = defaultControlType || currentControlType;
+    if (typeForNew && typeForNew !== currentControlType && onControlTypeChange) {
+      onControlTypeChange(typeForNew);
+    }
+    currentControlType = typeForNew;
+    camerasState[nextIndex] = getCurrentCameraState();
+    cameraSlotCount += 1;
+    activeCameraIndex = nextIndex;
+    isHomeMode = false;
+    currentDirty = false;
+    saveCameraStates();
+    renderCameraList();
+    updateCameraModeButton();
+    syncCameraInputs();
+    updateUpdateButton();
+    updateRemoveButton();
+    if (onActiveCameraChange) onActiveCameraChange();
+  }
+
+  function removeActiveCameraSlot() {
+    if (cameraSlotCount <= 1) return;
+    const removeIndex = activeCameraIndex;
+    camerasState.splice(removeIndex, 1);
+    cameraSlotCount = Math.max(1, cameraSlotCount - 1);
+    if (activeCameraIndex >= cameraSlotCount) {
+      activeCameraIndex = cameraSlotCount - 1;
+    }
+    isHomeMode = false;
+    ensureCameraState(activeCameraIndex);
+    applyCameraState(activeCameraIndex);
+    updateRemoveButton();
+    if (onActiveCameraChange) onActiveCameraChange();
   }
 
   function bindCameraUI({
@@ -408,28 +752,64 @@ export function createCameraSystem({
     resetButton,
     homeButton,
     centerTargetButton,
+    updateButton: updateBtn,
+    addButton: addBtn,
+    addButtons: addBtns,
+    removeButton: removeBtn,
+    presetButtons: presetBtns,
     inputFields,
   }) {
     cameraListEl = cameraList;
     cameraStripEl = cameraStrip;
     cameraModeBtn = cameraModeButton;
+    updateButton = updateBtn;
+    addButtons = [];
+    if (addBtn) addButtons.push(addBtn);
+    if (Array.isArray(addBtns)) {
+      addBtns.forEach((btn) => {
+        if (btn) addButtons.push(btn);
+      });
+    }
+    removeButton = removeBtn;
+    presetButtons = Array.isArray(presetBtns) ? presetBtns.filter(Boolean) : [];
     inputs = inputFields;
 
     if (resetButton) {
       resetButton.addEventListener('click', () => {
         resetCamera();
+        updateRemoveButton();
       });
     }
 
     if (homeButton) {
       homeButton.addEventListener('click', () => {
         resetCameraHome();
+        updateRemoveButton();
       });
     }
 
     if (centerTargetButton) {
       centerTargetButton.addEventListener('click', () => {
         setTargetToModelCenter();
+      });
+    }
+
+    if (updateButton) {
+      updateButton.addEventListener('click', () => {
+        commitActiveCameraState();
+      });
+      updateUpdateButton();
+    }
+
+    addButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        addCameraSlot();
+      });
+    });
+
+    if (removeButton) {
+      removeButton.addEventListener('click', () => {
+        removeActiveCameraSlot();
       });
     }
 
@@ -446,22 +826,53 @@ export function createCameraSystem({
       });
     }
 
-    if (inputs) {
-      [inputs.posX, inputs.posY, inputs.posZ, inputs.targetX, inputs.targetY, inputs.targetZ].forEach(
-        (input) => {
-          input.addEventListener('input', applyCameraInputs);
+    presetButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const face = btn.getAttribute('data-camera-preset');
+        if (face) {
+          applyCameraPreset(face);
         }
-      );
+      });
+    });
+
+    if (inputs) {
+      [
+        inputs.posX,
+        inputs.posY,
+        inputs.posZ,
+        inputs.targetX,
+        inputs.targetY,
+        inputs.targetZ,
+        inputs.roll,
+        inputs.fov,
+      ]
+        .filter(Boolean)
+        .forEach((input) => {
+          input.addEventListener('input', applyCameraInputs);
+        });
     }
+
+    updateRemoveButton();
+  }
+
+  function setActiveCameraControlType(type) {
+    if (isHomeMode || !camerasState[activeCameraIndex]) return;
+    const nextType = type || defaultControlType;
+    camerasState[activeCameraIndex].controlType = nextType;
+    currentControlType = nextType;
+    saveCameraStates();
+    if (onControlTypeChange) {
+      onControlTypeChange(nextType);
+    }
+    updateUpdateButton();
   }
 
   function updateCameraIcon() {
     const camWorldPos = camera.position.clone();
     const camWorldTarget = controls.target.clone();
     const camLocalPos = world.worldToLocal(camWorldPos);
-    const camLocalTarget = world.worldToLocal(camWorldTarget);
     cameraIcon.position.copy(camLocalPos);
-    cameraIcon.lookAt(camLocalTarget);
+    cameraIcon.lookAt(camWorldTarget);
   }
 
   function ensureCameraHelper() {
@@ -478,6 +889,7 @@ export function createCameraSystem({
 
   function setCameraHelperVisible(isVisible) {
     cameraHelperVisible = isVisible;
+    cameraIcon.visible = isVisible;
     ensureCameraHelper();
     if (cameraHelper) {
       cameraHelper.visible = isVisible;
@@ -500,12 +912,34 @@ export function createCameraSystem({
     }
   }
 
-  controls.addEventListener('change', () => {
+  const handleControlsChange = () => {
     if (isApplyingCameraState) return;
     updateActiveCameraStateFromControls();
-  });
+  };
+
+  if (controls && controls.addEventListener) {
+    controls.addEventListener('change', handleControlsChange);
+  }
 
   return {
+    setControls: (nextControls) => {
+      if (!nextControls || nextControls === controls) return;
+      const prevTarget = controls?.target ? controls.target.clone() : null;
+      if (controls && controls.removeEventListener) {
+        controls.removeEventListener('change', handleControlsChange);
+      }
+      controls = nextControls;
+      if (prevTarget && controls.target) {
+        controls.target.copy(prevTarget);
+      }
+      if (controls && controls.addEventListener) {
+        controls.addEventListener('change', handleControlsChange);
+      }
+      if (controls && controls.update) {
+        controls.update();
+      }
+      updateActiveCameraStateFromControls();
+    },
     getCamera: () => camera,
     getCameraMode: () => cameraMode,
     getCameraState: getCurrentCameraState,
@@ -524,5 +958,17 @@ export function createCameraSystem({
     updateCameraHelper,
     handleResize,
     setTargetToModelCenter,
+    commitActiveCameraState,
+    setRollEnabled,
+    setCurrentControlType: (type) => {
+      currentControlType = type || defaultControlType;
+    },
+    setDefaultControlType: (type) => {
+      defaultControlType = type || 'orbit';
+    },
+    getDefaultControlType: () => defaultControlType,
+    getActiveCameraState: () => camerasState[activeCameraIndex] || null,
+    isHomeMode: () => isHomeMode,
+    setActiveCameraControlType,
   };
 }

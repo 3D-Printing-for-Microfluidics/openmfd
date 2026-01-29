@@ -58,6 +58,7 @@ export function createModelManager({ scene, world }) {
     });
   }
 
+
   async function loadAllModels() {
     modelGroups.forEach((group) => disposeGroup(group));
     models = [];
@@ -100,6 +101,7 @@ export function createModelManager({ scene, world }) {
       if (group) group.visible = getVisibility(idx);
     });
   }
+
 
   function getBoundingBoxScene() {
     const bboxIdx = glbFiles.findIndex((f) => f.file.toLowerCase().includes('bounding_box.glb'));

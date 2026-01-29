@@ -1,6 +1,7 @@
 export function createSettingsSystem({
   settingsDialog,
   previewSystem,
+  previewViewers,
   cwdValueInput,
   modelSourceValueInput,
   previewDirInput,
@@ -8,9 +9,11 @@ export function createSettingsSystem({
   previewDirResetBtn,
   previewDirWarningEl,
   autoReloadIntervalInput,
+  resetAllSettingsBtn,
   getAutoReloadIntervalMs,
   setAutoReloadIntervalMs,
   initModels,
+  resetAllSettings,
 }) {
   let activeTab = 'general';
 
@@ -25,9 +28,13 @@ export function createSettingsSystem({
     tabPanels.forEach((panel) => {
       panel.classList.toggle('is-active', panel.dataset.tabPanel === tabName);
     });
-    if (tabName === 'camera' && previewSystem) {
-      previewSystem.updateSize();
-      previewSystem.syncFromMain();
+    if (previewSystem) {
+      const viewer = previewViewers?.[tabName];
+      if (viewer) {
+        previewSystem.bindViewer(viewer);
+        previewSystem.updateSize();
+        previewSystem.syncFromMain();
+      }
     }
   }
 
@@ -121,6 +128,12 @@ export function createSettingsSystem({
         const next = Number.parseInt(autoReloadIntervalInput.value, 10);
         if (!Number.isFinite(next) || next < 250) return;
         setAutoReloadIntervalMs(next);
+      });
+    }
+
+    if (resetAllSettingsBtn && resetAllSettings) {
+      resetAllSettingsBtn.addEventListener('click', async () => {
+        await resetAllSettings();
       });
     }
   }

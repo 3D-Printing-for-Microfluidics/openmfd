@@ -22,6 +22,7 @@ def start_server():
     env_dir = get_openmfd_env_dir()
     visualizer_dir = (env_dir / "visualizer").resolve()
     static_dir = visualizer_dir / "static"
+    docs_dir = (env_dir / "docs_site").resolve()
 
     app = Flask(__name__, static_folder=str(static_dir), static_url_path="/static")
 
@@ -101,6 +102,23 @@ def start_server():
     def favicon():
         print("Serving favicon.ico")
         return send_from_directory(str(visualizer_dir), "favicon.ico")
+
+    @app.route("/docs")
+    @app.route("/docs/")
+    def docs_index():
+        if not docs_dir.is_dir():
+            return abort(404)
+        return send_from_directory(str(docs_dir), "index.html")
+
+    @app.route("/docs/<path:subpath>")
+    def docs_assets(subpath):
+        if not docs_dir.is_dir():
+            return abort(404)
+        # if subpath is directory, serve index.html
+        target_path = docs_dir / subpath
+        if target_path.is_dir():
+            subpath = str(Path(subpath) / "index.html")
+        return send_from_directory(str(docs_dir), subpath)
 
     @app.route("/main.js")
     def main_js():

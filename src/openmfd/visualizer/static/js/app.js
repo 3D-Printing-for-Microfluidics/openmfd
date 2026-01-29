@@ -71,6 +71,7 @@ const camTargetZ = document.getElementById('camTargetZ');
 const settingsDialogBtn = document.getElementById('settingsDialogBtn');
 const settingsDialog = document.getElementById('settingsDialog');
 const settingsDialogClose = document.getElementById('settingsDialogClose');
+const docsBtn = document.getElementById('docsBtn');
 const lightDialogViewer = document.getElementById('lightDialogViewer');
 const cameraListEl = document.getElementById('cameraList');
 const cameraStripEl = document.getElementById('cameraStrip');
@@ -287,6 +288,11 @@ async function init() {
     saveCustomBtn: themeToCustomBtn,
   });
   initAxesToggle();
+  if (docsBtn) {
+    docsBtn.addEventListener('click', () => {
+      window.open('/docs/', '_blank', 'noopener');
+    });
+  }
   settingsSystem = createSettingsSystem({
     settingsDialog,
     previewSystem,

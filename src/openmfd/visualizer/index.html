@@ -9,13 +9,15 @@
 </head>
 
 <body>
-	<div id="modelSelector"
-		style="position:fixed;top:1.25rem;right:1.25rem;z-index:200;padding:0.75rem 1.25rem;border-radius:0.5rem;box-shadow:0 2px 8px #0003;font-size:0.95rem;max-width:300px;">
-		<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
-			<strong>Models</strong>
-			<button id="toggleModelSelectorBtn" class="control-btn" style="padding:0.2rem 0.4rem;font-size:0.75rem;">–</button>
+	<div id="topRightOverlay">
+		<div id="viewCube" aria-hidden="true"></div>
+		<div id="modelSelector">
+			<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+				<strong>Models</strong>
+				<button id="toggleModelSelectorBtn" class="control-btn" style="padding:0.2rem 0.4rem;font-size:0.75rem;">–</button>
+			</div>
+			<form id="glbForm"></form>
 		</div>
-		<form id="glbForm"></form>
 	</div>
 
 	<div id="controls">
@@ -265,6 +267,32 @@
 				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
 					<button id="previewSettingsLoadBtn" class="control-btn" type="button">Load Selected</button>
 					<input id="previewSettingsFileInput" type="file" accept="application/json" style="display:none;">
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div id="snapshotDialog" class="modal">
+		<div class="modal-content" style="max-width:560px;">
+			<div class="modal-header">
+				<h3>Save Snapshot</h3>
+				<button id="snapshotDialogClose" class="control-btn">Close</button>
+			</div>
+			<div class="modal-body" style="grid-template-columns: 1fr;">
+				<div class="modal-section">
+					<h4>Output</h4>
+					<div class="input-grid">
+						<label>Resolution Scale
+							<input id="snapshotScale" type="number" min="0.25" max="4" step="0.25" value="1">
+						</label>
+						<label>File Name
+							<input id="snapshotFileName" type="text" value="openmfd-viewport.png">
+						</label>
+					</div>
+				</div>
+				<div id="snapshotProgress" class="snapshot-progress"></div>
+				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
+					<button id="snapshotSaveBtn" class="control-btn" type="button">Save Snapshot</button>
 				</div>
 			</div>
 		</div>

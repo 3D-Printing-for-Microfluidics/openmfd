@@ -104,6 +104,7 @@ const docsBtn = document.getElementById('docsBtn');
 const saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
 const updateCameraBtn = document.getElementById('updateCameraBtn');
 const modelSelectorEl = document.getElementById('modelSelector');
+const viewCubeEl = document.getElementById('viewCube');
 const cameraStripWrapper = document.getElementById('cameraStripWrapper');
 const controlsEl = document.getElementById('controls');
 const settingsDialogEl = document.getElementById('settingsDialog');
@@ -156,6 +157,12 @@ const previewSettingsGeneral = document.getElementById('previewSettingsGeneral')
 const previewSettingsTheme = document.getElementById('previewSettingsTheme');
 const previewSettingsCamera = document.getElementById('previewSettingsCamera');
 const previewSettingsLighting = document.getElementById('previewSettingsLighting');
+const snapshotDialog = document.getElementById('snapshotDialog');
+const snapshotDialogClose = document.getElementById('snapshotDialogClose');
+const snapshotSaveBtn = document.getElementById('snapshotSaveBtn');
+const snapshotScaleInput = document.getElementById('snapshotScale');
+const snapshotFileNameInput = document.getElementById('snapshotFileName');
+const snapshotProgress = document.getElementById('snapshotProgress');
 
 let settingsSystem = null;
 let themeManager = null;
@@ -198,6 +205,138 @@ function syncThemeInputs(themeName) {
   Object.entries(themeInputs).forEach(([key, input]) => {
     if (input) input.value = theme[key] || '#000000';
   });
+}
+
+function setSnapshotStatus(message) {
+  if (!snapshotProgress) return;
+  snapshotProgress.textContent = message || '';
+}
+
+function normalizeSnapshotName(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return 'openmfd-viewport.png';
+  return trimmed.toLowerCase().endsWith('.png') ? trimmed : `${trimmed}.png`;
+}
+
+function getSnapshotSettings() {
+  const scale = Math.max(0.25, Math.min(16, Number.parseFloat(snapshotScaleInput?.value || '1') || 1));
+  const fileName = normalizeSnapshotName(snapshotFileNameInput?.value);
+  return { scale, fileName };
+}
+
+function openSnapshotDialog() {
+  if (!snapshotDialog) return;
+  setSnapshotStatus('');
+  snapshotDialog.classList.add('is-open');
+}
+
+function closeSnapshotDialog() {
+  if (!snapshotDialog) return;
+  snapshotDialog.classList.remove('is-open');
+  setSnapshotStatus('');
+}
+
+async function saveBlobAsFile(blob, fileName) {
+  if (!blob) return;
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [
+          {
+            description: 'PNG Image',
+            accept: { 'image/png': ['.png'] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        return;
+      }
+      // fall back to download link
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function renderRasterSnapshot({ width, height }) {
+  const offscreenCanvas = document.createElement('canvas');
+  const offscreenRenderer = new THREE.WebGLRenderer({ canvas: offscreenCanvas, antialias: true, preserveDrawingBuffer: true });
+  offscreenRenderer.setSize(width, height, false);
+  offscreenRenderer.setPixelRatio(1);
+  offscreenRenderer.outputColorSpace = renderer.outputColorSpace;
+  offscreenRenderer.toneMapping = renderer.toneMapping;
+  offscreenRenderer.toneMappingExposure = renderer.toneMappingExposure;
+
+  const activeCamera = cameraSystem.getCamera();
+  const snapshotCamera = activeCamera.clone();
+  snapshotCamera.matrixWorld.copy(activeCamera.matrixWorld);
+  snapshotCamera.matrixWorldInverse.copy(activeCamera.matrixWorldInverse);
+
+  if (snapshotCamera.isPerspectiveCamera) {
+    snapshotCamera.aspect = width / height;
+    snapshotCamera.updateProjectionMatrix();
+  } else if (snapshotCamera.isOrthographicCamera) {
+    const centerX = (snapshotCamera.left + snapshotCamera.right) / 2;
+    const centerY = (snapshotCamera.top + snapshotCamera.bottom) / 2;
+    const viewHeight = snapshotCamera.top - snapshotCamera.bottom;
+    const viewWidth = viewHeight * (width / height);
+    snapshotCamera.left = centerX - viewWidth / 2;
+    snapshotCamera.right = centerX + viewWidth / 2;
+    snapshotCamera.top = centerY + viewHeight / 2;
+    snapshotCamera.bottom = centerY - viewHeight / 2;
+    snapshotCamera.updateProjectionMatrix();
+  }
+
+  offscreenRenderer.render(scene, snapshotCamera);
+
+  const blob = await new Promise((resolve) => offscreenCanvas.toBlob(resolve, 'image/png'));
+  offscreenRenderer.dispose();
+  if (!blob) return null;
+  return blob;
+}
+
+async function handleSnapshotSave() {
+  const settings = getSnapshotSettings();
+  const width = Math.max(1, Math.round(window.innerWidth * settings.scale));
+  const height = Math.max(1, Math.round(window.innerHeight * settings.scale));
+  const uiElements = [modelSelectorEl, cameraStripWrapper, controlsEl, settingsDialogEl].filter(Boolean);
+  uiElements.forEach((el) => el.classList.add('ui-hidden'));
+  if (snapshotSaveBtn) snapshotSaveBtn.disabled = true;
+  if (snapshotDialogClose) snapshotDialogClose.disabled = true;
+  setSnapshotStatus('Rendering snapshot...');
+
+  try {
+    let blob = null;
+    blob = await renderRasterSnapshot({ width, height });
+
+    if (!blob) {
+      setSnapshotStatus('Snapshot failed to render.');
+      return;
+    }
+    setSnapshotStatus('Saving...');
+    await saveBlobAsFile(blob, settings.fileName);
+    closeSnapshotDialog();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Snapshot failed.';
+    setSnapshotStatus(message);
+  } finally {
+    uiElements.forEach((el) => el.classList.remove('ui-hidden'));
+    if (snapshotSaveBtn) snapshotSaveBtn.disabled = false;
+    if (snapshotDialogClose) snapshotDialogClose.disabled = false;
+  }
 }
 
 
@@ -529,6 +668,244 @@ if (!Number.isFinite(autoReloadIntervalMs) || autoReloadIntervalMs < 250) {
   autoReloadIntervalMs = 1000;
 }
 
+let viewCubeSystem = null;
+
+function createViewCubeSystem({ container, cameraSystem }) {
+  if (!container) return null;
+  const cubeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  cubeRenderer.setPixelRatio(window.devicePixelRatio || 1);
+  cubeRenderer.setClearColor(0x000000, 0);
+  container.appendChild(cubeRenderer.domElement);
+
+  const cubeScene = new THREE.Scene();
+  const cubeCamera = new THREE.PerspectiveCamera(35, 1, 0.1, 10);
+  cubeCamera.position.set(0, 0, 3);
+  cubeCamera.up.set(0, 1, 0);
+
+  const getCssVar = (name, fallback) => {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return value || fallback;
+  };
+
+  const getThemeColors = () => ({
+    face: getCssVar('--panel', '#ffffff'),
+    text: getCssVar('--text', '#111111'),
+    edge: getCssVar('--button-border', '#333333'),
+    hover: getCssVar('--button-bg-active', '#888888'),
+  });
+
+  let themeCache = null;
+  const makeLabelTexture = (label, colors) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = colors.face;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = colors.edge;
+    ctx.lineWidth = 6;
+    ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+    ctx.fillStyle = colors.text;
+    ctx.font = 'bold 44px Inter, system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, canvas.width / 2, canvas.height / 2);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    texture.anisotropy = cubeRenderer.capabilities.getMaxAnisotropy();
+    return texture;
+  };
+
+  const faceLabels = ['RIGHT', 'LEFT', 'TOP', 'BOTTOM', 'FRONT', 'BACK'];
+  const faceMaterials = faceLabels.map((label) =>
+    new THREE.MeshBasicMaterial({ map: makeLabelTexture(label, getThemeColors()) })
+  );
+
+  const cube = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), faceMaterials);
+  cubeScene.add(cube);
+
+  const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x111111 });
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(cube.geometry), edgeMaterial);
+  cube.add(edges);
+
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  const hotspots = [];
+
+  const hotspotMaterial = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    opacity: 0,
+    transparent: true,
+    depthWrite: false,
+  });
+
+  const hoverIndicator = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 20, 20),
+    new THREE.MeshBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.6 })
+  );
+  hoverIndicator.visible = false;
+  cube.add(hoverIndicator);
+
+  const addHotspot = (direction, radius) => {
+    const dir = direction.clone().normalize();
+    const maxComponent = Math.max(Math.abs(dir.x), Math.abs(dir.y), Math.abs(dir.z));
+    const t = maxComponent > 0 ? 0.5 / maxComponent : 0.5;
+    const position = dir.clone().multiplyScalar(t);
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(radius, 16, 16), hotspotMaterial);
+    mesh.position.copy(position);
+    mesh.userData.direction = dir;
+    cube.add(mesh);
+    hotspots.push(mesh);
+  };
+
+  const axis = [-1, 0, 1];
+  axis.forEach((x) => {
+    axis.forEach((y) => {
+      axis.forEach((z) => {
+        if (x === 0 && y === 0 && z === 0) return;
+        const sum = Math.abs(x) + Math.abs(y) + Math.abs(z);
+        if (sum === 1) {
+          addHotspot(new THREE.Vector3(x, y, z), 0.23);
+        } else if (sum === 2) {
+          addHotspot(new THREE.Vector3(x, y, z), 0.21);
+        } else {
+          addHotspot(new THREE.Vector3(x, y, z), 0.2);
+        }
+      });
+    });
+  });
+
+  const getTargetObject = () => {
+    const bboxScene = modelManager.getBoundingBoxScene();
+    if (bboxScene && bboxScene.visible) return bboxScene;
+    return modelManager.buildVisibleGroup();
+  };
+
+  const getCameraPoseForDirection = (direction) => {
+    const targetObj = getTargetObject();
+    if (!targetObj) return null;
+    const box = new THREE.Box3().setFromObject(targetObj);
+    if (!Number.isFinite(box.min.x) || !Number.isFinite(box.max.x)) return null;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const corners = [
+      new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+      new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+      new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+      new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+      new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+      new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+      new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+      new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+    ];
+
+    const dir = direction.clone().normalize();
+    const upRef = new THREE.Vector3(0, 1, 0);
+    if (Math.abs(dir.dot(upRef)) > 0.98) {
+      upRef.set(0, 0, 1);
+    }
+    const right = new THREE.Vector3().crossVectors(upRef, dir).normalize();
+    const up = new THREE.Vector3().crossVectors(dir, right).normalize();
+
+    const size = renderer.getSize(new THREE.Vector2());
+    const aspect = size.x / Math.max(1, size.y);
+    const vFov = THREE.MathUtils.degToRad(perspectiveCamera.fov);
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+    const tanH = Math.tan(hFov / 2);
+    const tanV = Math.tan(vFov / 2);
+
+    let maxDistance = 0.1;
+    corners.forEach((corner) => {
+      const local = corner.clone().sub(center);
+      const zOffset = local.dot(dir);
+      const x = local.dot(right);
+      const y = local.dot(up);
+      const needH = zOffset + Math.abs(x) / Math.max(1e-6, tanH);
+      const needV = zOffset + Math.abs(y) / Math.max(1e-6, tanV);
+      maxDistance = Math.max(maxDistance, needH, needV);
+    });
+
+    const padding = 1.15;
+    const distance = Math.max(0.1, maxDistance * padding);
+    const position = center.clone().add(dir.multiplyScalar(distance));
+    return { position, target: center };
+  };
+
+  const applyCameraDirection = (direction) => {
+    const pose = getCameraPoseForDirection(direction);
+    if (!pose) return;
+    cameraSystem.setCameraPose(pose.position, pose.target, 0);
+    cameraSystem.syncCameraInputs();
+    cameraSystem.updateCameraModeButton();
+  };
+
+  const handlePointer = (event) => {
+    const rect = container.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    pointer.x = x * 2 - 1;
+    pointer.y = -(y * 2 - 1);
+    raycaster.setFromCamera(pointer, cubeCamera);
+    const hits = raycaster.intersectObjects(hotspots, true);
+    if (hits.length === 0) {
+      hoverIndicator.visible = false;
+      container.style.cursor = 'default';
+      return;
+    }
+    const hit = hits[0].object;
+    hoverIndicator.visible = true;
+    hoverIndicator.position.copy(hit.position);
+    container.style.cursor = 'pointer';
+    if (event.type === 'pointerdown') {
+      const dir = hit.userData?.direction;
+      if (dir) {
+        applyCameraDirection(dir);
+      }
+    }
+  };
+
+  container.addEventListener('pointerdown', handlePointer);
+  container.addEventListener('pointermove', handlePointer);
+  container.addEventListener('pointerleave', () => {
+    hoverIndicator.visible = false;
+    container.style.cursor = 'default';
+  });
+
+  function handleResize() {
+    const rect = container.getBoundingClientRect();
+    const size = Math.max(1, Math.floor(Math.min(rect.width, rect.height)));
+    cubeRenderer.setSize(size, size, false);
+    cubeCamera.aspect = 1;
+    cubeCamera.updateProjectionMatrix();
+  }
+
+  function updateTheme() {
+    const colors = getThemeColors();
+    const key = `${colors.face}|${colors.text}|${colors.edge}|${colors.hover}`;
+    if (key === themeCache) return;
+    themeCache = key;
+    faceMaterials.forEach((mat, idx) => {
+      if (mat.map) mat.map.dispose();
+      mat.map = makeLabelTexture(faceLabels[idx], colors);
+      mat.needsUpdate = true;
+    });
+    edgeMaterial.color.set(colors.edge);
+    hoverIndicator.material.color.set(colors.hover);
+  }
+
+  function render() {
+    updateTheme();
+    const mainCamera = cameraSystem.getCamera();
+    const camQuat = new THREE.Quaternion();
+    mainCamera.getWorldQuaternion(camQuat);
+    cube.quaternion.copy(camQuat).invert();
+    cubeRenderer.render(cubeScene, cubeCamera);
+  }
+
+  handleResize();
+  return { render, handleResize };
+}
+
 function setAutoReloadStatus(state) {
   if (!reloadModelBtn) return;
   if (state === 'offline') {
@@ -656,6 +1033,7 @@ function initResizing() {
       controls.handleResize();
     }
     previewSystem.updateSize();
+    viewCubeSystem?.handleResize();
   });
 }
 
@@ -664,10 +1042,12 @@ function animate() {
   controls.update();
   cameraSystem.updateCameraIcon();
   renderer.render(scene, cameraSystem.getCamera());
+  viewCubeSystem?.render();
   previewSystem.render();
 }
 
 async function init() {
+  viewCubeSystem = createViewCubeSystem({ container: viewCubeEl, cameraSystem });
   themeManager = createThemeManager({ scene, axes });
   themeManager.initTheme();
   themeManager.bindThemeUI({
@@ -683,47 +1063,20 @@ async function init() {
     });
   }
   if (saveSnapshotBtn) {
-    saveSnapshotBtn.addEventListener('click', async () => {
-      const canvas = renderer.domElement;
-      if (!canvas) return;
-      const uiElements = [modelSelectorEl, cameraStripWrapper, controlsEl, settingsDialogEl].filter(Boolean);
-      uiElements.forEach((el) => el.classList.add('ui-hidden'));
+    saveSnapshotBtn.addEventListener('click', () => {
+      openSnapshotDialog();
+    });
+  }
 
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      renderer.render(scene, cameraSystem.getCamera());
+  if (snapshotDialogClose) {
+    snapshotDialogClose.addEventListener('click', () => {
+      closeSnapshotDialog();
+    });
+  }
 
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      uiElements.forEach((el) => el.classList.remove('ui-hidden'));
-      if (!blob) return;
-
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: 'openmfd-viewport.png',
-            types: [
-              {
-                description: 'PNG Image',
-                accept: { 'image/png': ['.png'] },
-              },
-            ],
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-          return;
-        } catch (err) {
-          // fall back to download link
-        }
-      }
-
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'openmfd-viewport.png';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
+  if (snapshotSaveBtn) {
+    snapshotSaveBtn.addEventListener('click', async () => {
+      await handleSnapshotSave();
     });
   }
 

@@ -168,6 +168,29 @@ canvas {
   white-space: nowrap;
 }
 
+#modelSelector .model-global-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--button-border);
+}
+
+#modelSelector .model-global-label {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+#modelSelector .model-global-select {
+  margin-left: auto;
+  padding: 0.2rem 0.3rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+}
+
 #animationPanel {
   padding: 0.75rem 1.25rem;
   border-radius: 0.5rem;

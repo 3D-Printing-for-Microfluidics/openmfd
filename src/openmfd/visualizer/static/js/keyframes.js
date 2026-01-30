@@ -944,6 +944,18 @@ export function createKeyframeSystem({
       const endVersion = getModelVersionFromSnapshot(endSnapshot, i);
       const hasVersionChange = startVersion && endVersion && startVersion !== endVersion;
 
+      if (modelManagerRef?.setModelVersionVisibilitySet) {
+        let visibleVersions = [];
+        if (startVisible && endVisible) {
+          visibleVersions = hasVersionChange ? [startVersion, endVersion] : [startVersion || endVersion];
+        } else if (startVisible && !endVisible) {
+          visibleVersions = startVersion ? [startVersion] : [];
+        } else if (!startVisible && endVisible) {
+          visibleVersions = endVersion ? [endVersion] : [];
+        }
+        modelManagerRef.setModelVersionVisibilitySet(i, visibleVersions);
+      }
+
       if (startVisible && endVisible) {
         if (hasVersionChange) {
           modelManagerRef.setModelVersionVisible(i, startVersion, true);
@@ -974,6 +986,7 @@ export function createKeyframeSystem({
       }
     }
     modelManagerRef.setVisibilityOverrides(overrides);
+    modelManagerRef.updateVisibility?.();
     if (t >= 1 && playbackSegment && !playbackSegment.modelsEndApplied) {
       suppressModelSelectionSave = true;
       modelSelector.applySelectionSnapshot(endSnapshot, { persist: false });
@@ -981,6 +994,7 @@ export function createKeyframeSystem({
         modelManagerRef.setModelVersionSelections(endSnapshot?.versions, { force: true });
       }
       modelManagerRef.clearVisibilityOverrides();
+      modelManagerRef.updateVisibility?.();
       for (let i = 0; i < count; i += 1) {
         modelManagerRef.resetModelVersionOpacity(i);
       }

@@ -134,6 +134,16 @@ export function createModelSelector({ formEl, toggleBtn }) {
     const groups = { bulk: [], void: [], regional: [], ports: [], device: [], 'bounding box': [] };
     const regionalSubgroups = {};
 
+    const versionEntries = glbFiles.filter((entry) => Array.isArray(entry?.versions) && entry.versions.length > 0);
+    const commonVersionIds = (() => {
+      if (!versionEntries.length) return [];
+      const union = new Set();
+      versionEntries.forEach((entry) => {
+        entry.versions.forEach((ver) => union.add(ver.id));
+      });
+      return Array.from(union);
+    })();
+
     glbFiles.forEach((glb, idx) => {
       let type = (glb.type || '').toLowerCase();
       if (type.startsWith('regional')) {
@@ -225,6 +235,58 @@ export function createModelSelector({ formEl, toggleBtn }) {
     }
 
     updateVisibilityFn = updateVisibility;
+
+    if (commonVersionIds.length > 1) {
+      const globalRow = document.createElement('div');
+      globalRow.className = 'model-global-row';
+
+      const label = document.createElement('span');
+      label.className = 'model-global-label';
+      label.textContent = 'Set all versions';
+
+      const select = document.createElement('select');
+      select.className = 'model-global-select';
+      commonVersionIds
+        .sort((a, b) => {
+          if (a === 'v0') return -1;
+          if (b === 'v0') return 1;
+          const aMatch = /^v(\d+)$/i.exec(a);
+          const bMatch = /^v(\d+)$/i.exec(b);
+          const aNum = aMatch ? Number.parseInt(aMatch[1], 10) : Number.POSITIVE_INFINITY;
+          const bNum = bMatch ? Number.parseInt(bMatch[1], 10) : Number.POSITIVE_INFINITY;
+          if (aNum !== bNum) return aNum - bNum;
+          return a.localeCompare(b);
+        })
+        .forEach((id) => {
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = id.toUpperCase();
+          select.appendChild(option);
+        });
+
+      select.addEventListener('change', () => {
+        const targetVersion = select.value;
+        glbFiles.forEach((entry, idx) => {
+          const versionSelect = document.getElementById(`glb_ver_${idx}`);
+          if (!versionSelect) return;
+          const hasOption = Array.from(versionSelect.options).some((opt) => opt.value === targetVersion);
+          if (!hasOption) return;
+          const prev = versionSelect.value;
+          versionSelect.value = targetVersion;
+          if (versionSelect.value !== prev && onVersionChange) {
+            onVersionChange(idx, versionSelect.value, versionSelect);
+          }
+        });
+        persistSelection();
+        if (onSelectionChange) {
+          onSelectionChange(getSelectionSnapshot());
+        }
+      });
+
+      globalRow.appendChild(label);
+      globalRow.appendChild(select);
+      formEl.appendChild(globalRow);
+    }
 
     const topTypes = ['device', 'bounding box', 'ports'];
     function buildVersionSelect(entry, idx) {

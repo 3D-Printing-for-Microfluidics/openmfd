@@ -332,6 +332,21 @@ export function createModelManager({ scene, world }) {
     if (scene) scene.visible = !!visible;
   }
 
+  function setModelVersionVisibilitySet(idx, visibleIds = []) {
+    const versionMap = modelVersionScenes[idx];
+    if (!versionMap) return;
+    const visibleSet = new Set((visibleIds || []).filter(Boolean));
+    versionMap.forEach((scene, id) => {
+      scene.visible = visibleSet.has(id);
+    });
+  }
+
+  function getModelVersionIds(idx) {
+    const versionMap = modelVersionScenes[idx];
+    if (!versionMap) return [];
+    return Array.from(versionMap.keys());
+  }
+
   function resetModelVersionOpacity(idx) {
     const versionMap = modelVersionScenes[idx];
     if (!versionMap) return;
@@ -456,10 +471,12 @@ export function createModelManager({ scene, world }) {
     setModelOpacity,
     setModelVersionOpacity,
     setModelVersionVisible,
+    setModelVersionVisibilitySet,
     resetModelVersionOpacity,
     setModelVersion,
     setModelVersionSelections,
     getModelVersionId,
+    getModelVersionIds,
     getModelCount,
   };
 }

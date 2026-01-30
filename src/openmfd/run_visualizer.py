@@ -47,7 +47,7 @@ def start_server():
 
     def list_glb_files(preview_dir):
         glb_list = []
-        for path in preview_dir.iterdir():
+        for path in sorted(preview_dir.iterdir(), key=lambda p: p.name.lower()):
             if path.is_file() and path.suffix.lower() == ".glb":
                 stem = path.stem
                 version = "v0"

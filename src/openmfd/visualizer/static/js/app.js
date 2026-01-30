@@ -904,6 +904,7 @@ function buildSettingsPayload() {
       openmfd_theme_defs_v1: localStorage.getItem('openmfd_theme_defs_v1'),
     },
     lights: lightSystem.getLightState(),
+    models: modelSelector ? modelSelector.getSelectionSnapshot() : null,
     theme: themeManager.getThemeState(),
     animation: {
       keyframes: keyframeSystem ? keyframeSystem.getKeyframes() : [],
@@ -1027,6 +1028,14 @@ function applySettingsPayload(payload, sections = {}) {
         lightSystem.updateDirectionalLightTargets();
       });
     }
+  }
+
+  if (apply.general && payload.models && modelSelector) {
+    modelSelector.applySelectionSnapshot(payload.models, { persist: true });
+    if (modelManager?.setModelVersionSelections) {
+      modelManager.setModelVersionSelections(payload.models.versions, { force: true });
+    }
+    modelManager.updateVisibility();
   }
 
   if (apply.theme) {

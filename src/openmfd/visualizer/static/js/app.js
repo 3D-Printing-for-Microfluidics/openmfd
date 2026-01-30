@@ -12,6 +12,7 @@ const AUTO_RELOAD_STORAGE_KEY = 'openmfd_auto_reload';
 const AUTO_RELOAD_INTERVAL_KEY = 'openmfd_auto_reload_interval_ms';
 const AXES_STORAGE_KEY = 'openmfd_axes_visible';
 const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'openmfd_default_controls_type';
+const MODEL_SETTINGS_BEHAVIOR_KEY = 'openmfd_model_settings_behavior';
 
 const sceneState = createScene();
 const {
@@ -167,11 +168,9 @@ const previewDirSetBtn = document.getElementById('previewDirSetBtn');
 const previewDirResetBtn = document.getElementById('previewDirResetBtn');
 const previewDirWarningEl = document.getElementById('previewDirWarning');
 const autoReloadIntervalInput = document.getElementById('autoReloadIntervalInput');
-const resetAllSettingsBtn = document.getElementById('resetAllSettingsBtn');
-const resetGeneralSettingsBtn = document.getElementById('resetGeneralSettingsBtn');
-const resetThemeSettingsBtn = document.getElementById('resetThemeSettingsBtn');
-const resetCameraSettingsBtn = document.getElementById('resetCameraSettingsBtn');
-const resetLightSettingsBtn = document.getElementById('resetLightSettingsBtn');
+const modelSettingsBehaviorSelect = document.getElementById('modelSettingsBehaviorSelect');
+const resetSettingsSelect = document.getElementById('resetSettingsSelect');
+const resetSettingsApplyBtn = document.getElementById('resetSettingsApplyBtn');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 const loadSettingsBtn = document.getElementById('loadSettingsBtn');
 const settingsFileInput = document.getElementById('settingsFileInput');
@@ -184,10 +183,11 @@ const previewSettingsGeneral = document.getElementById('previewSettingsGeneral')
 const previewSettingsTheme = document.getElementById('previewSettingsTheme');
 const previewSettingsCamera = document.getElementById('previewSettingsCamera');
 const previewSettingsLighting = document.getElementById('previewSettingsLighting');
+const previewSettingsAnimation = document.getElementById('previewSettingsAnimation');
 const snapshotDialog = document.getElementById('snapshotDialog');
 const snapshotDialogClose = document.getElementById('snapshotDialogClose');
 const snapshotSaveBtn = document.getElementById('snapshotSaveBtn');
-const snapshotScaleInput = document.getElementById('snapshotScale');
+const snapshotResolutionSelect = document.getElementById('snapshotResolution');
 const snapshotFileNameInput = document.getElementById('snapshotFileName');
 const snapshotProgress = document.getElementById('snapshotProgress');
 const animationExportDialog = document.getElementById('animationExportDialog');
@@ -248,9 +248,34 @@ function setSnapshotStatus(message) {
   snapshotProgress.textContent = message || '';
 }
 
+function getModelSettingsBehavior() {
+  return localStorage.getItem(MODEL_SETTINGS_BEHAVIOR_KEY) || 'dialog';
+}
+
+function setModelSettingsBehavior(value) {
+  const next = value || 'dialog';
+  localStorage.setItem(MODEL_SETTINGS_BEHAVIOR_KEY, next);
+}
+
 function setAnimationExportStatus(message) {
   if (!animationExportProgress) return;
   animationExportProgress.textContent = message || '';
+}
+
+function applyAnimationSettingsPayload(payload) {
+  if (!payload || typeof payload !== 'object') return;
+  const exportDefaults = payload.exportDefaults || payload.export || null;
+  if (exportDefaults) {
+    const { resolution, fps, quality, type } = exportDefaults;
+    if (resolution && animationExportResolutionSelect) animationExportResolutionSelect.value = resolution;
+    if (Number.isFinite(fps) && animationExportFpsInput) animationExportFpsInput.value = String(fps);
+    if (quality && animationExportQualitySelect) animationExportQualitySelect.value = quality;
+    if (type && animationExportTypeSelect) animationExportTypeSelect.value = type;
+    syncAnimationExportTypeForQuality();
+  }
+  if (Array.isArray(payload.keyframes) && keyframeSystem) {
+    keyframeSystem.setKeyframes(payload.keyframes);
+  }
 }
 
 function normalizeSnapshotName(name) {
@@ -260,9 +285,20 @@ function normalizeSnapshotName(name) {
 }
 
 function getSnapshotSettings() {
-  const scale = Math.max(0.25, Math.min(16, Number.parseFloat(snapshotScaleInput?.value || '1') || 1));
   const fileName = normalizeSnapshotName(snapshotFileNameInput?.value);
-  return { scale, fileName };
+  const resolutionValue = snapshotResolutionSelect?.value || 'current';
+  let baseWidth = window.innerWidth;
+  let baseHeight = window.innerHeight;
+  if (resolutionValue && resolutionValue !== 'current') {
+    const [w, h] = resolutionValue.split('x').map((value) => Number.parseInt(value, 10));
+    if (Number.isFinite(w) && w > 0) baseWidth = w;
+    if (Number.isFinite(h) && h > 0) baseHeight = h;
+  }
+  return {
+    fileName,
+    baseWidth,
+    baseHeight,
+  };
 }
 
 function normalizeAnimationName(name, type) {
@@ -311,6 +347,13 @@ function syncAnimationExportTypeForQuality() {
 
 function openSnapshotDialog() {
   if (!snapshotDialog) return;
+  if (snapshotResolutionSelect) {
+    const currentOption = Array.from(snapshotResolutionSelect.options)
+      .find((option) => option.value === 'current');
+    if (currentOption) {
+      currentOption.textContent = `Current (${window.innerWidth}×${window.innerHeight})`;
+    }
+  }
   setSnapshotStatus('');
   snapshotDialog.classList.add('is-open');
 }
@@ -407,17 +450,17 @@ async function renderRasterSnapshot({ width, height }) {
 
 async function handleSnapshotSave() {
   const settings = getSnapshotSettings();
-  const baseWidth = window.innerWidth;
-  const baseHeight = window.innerHeight;
-  const width = Math.max(1, Math.round(baseWidth * settings.scale));
-  const height = Math.max(1, Math.round(baseHeight * settings.scale));
+  const baseWidth = settings.baseWidth;
+  const baseHeight = settings.baseHeight;
   const maxPixels = 3840 * 2160;
-  const maxScale = Math.sqrt(maxPixels / (baseWidth * baseHeight));
-  const clampedScale = Math.min(settings.scale, Math.max(0.25, Math.min(4, maxScale)));
-  const exportWidth = Math.max(1, Math.round(baseWidth * clampedScale));
-  const exportHeight = Math.max(1, Math.round(baseHeight * clampedScale));
-  if (clampedScale < settings.scale) {
-    setSnapshotStatus(`Resolution scale reduced to ${clampedScale.toFixed(2)} to avoid memory issues.`);
+  const pixelCount = baseWidth * baseHeight;
+  let exportWidth = baseWidth;
+  let exportHeight = baseHeight;
+  if (pixelCount > maxPixels) {
+    const scale = Math.sqrt(maxPixels / pixelCount);
+    exportWidth = Math.max(1, Math.round(baseWidth * scale));
+    exportHeight = Math.max(1, Math.round(baseHeight * scale));
+    setSnapshotStatus(`Resolution reduced to ${exportWidth}×${exportHeight} to avoid memory issues.`);
   }
   const uiElements = [modelSelectorEl, cameraStripWrapper, controlsEl, settingsDialogEl].filter(Boolean);
   const prevCameraHelperVisible = typeof cameraSystem.getCameraHelperVisible === 'function'
@@ -431,8 +474,8 @@ async function handleSnapshotSave() {
 
   try {
     let blob = null;
-    const renderWidth = exportWidth || width;
-    const renderHeight = exportHeight || height;
+    const renderWidth = exportWidth;
+    const renderHeight = exportHeight;
     blob = await renderRasterSnapshot({ width: renderWidth, height: renderHeight });
 
     if (!blob) {
@@ -683,6 +726,7 @@ async function resetGeneralSettings() {
   localStorage.removeItem(AUTO_RELOAD_STORAGE_KEY);
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
+  localStorage.removeItem(MODEL_SETTINGS_BEHAVIOR_KEY);
   const defaultType = 'orbit';
   if (defaultControlTypeSelect) {
     defaultControlTypeSelect.value = defaultType;
@@ -693,6 +737,9 @@ async function resetGeneralSettings() {
   setAutoReloadIntervalMs(1000);
   if (autoReloadIntervalInput) {
     autoReloadIntervalInput.value = '1000';
+  }
+  if (modelSettingsBehaviorSelect) {
+    modelSettingsBehaviorSelect.value = 'dialog';
   }
   autoReloadEnabled = true;
   setAutoReload(true);
@@ -742,6 +789,7 @@ function openPreviewSettingsDialog(listData) {
   if (previewSettingsTheme) previewSettingsTheme.checked = true;
   if (previewSettingsCamera) previewSettingsCamera.checked = true;
   if (previewSettingsLighting) previewSettingsLighting.checked = true;
+  if (previewSettingsAnimation) previewSettingsAnimation.checked = true;
   previewSettingsDialog.classList.add('is-open');
 }
 
@@ -767,7 +815,39 @@ async function fetchPreviewSettingsList() {
 async function checkPreviewSettingsPrompt() {
   const listData = await fetchPreviewSettingsList();
   if (!listData) return;
-  openPreviewSettingsDialog(listData);
+  const behavior = getModelSettingsBehavior();
+  if (behavior === 'dialog') {
+    openPreviewSettingsDialog(listData);
+    return;
+  }
+  if (behavior === 'ignore') return;
+
+  const file = listData.files?.[0];
+  if (!file?.path) return;
+  const resp = await fetch(`/preview_settings_file?path=${encodeURIComponent(file.path)}`).catch(() => null);
+  if (!resp || !resp.ok) return;
+  const payload = await resp.json().catch(() => null);
+  if (!payload) return;
+
+  if (behavior === 'camera-lights-animation') {
+    applySettingsPayload(payload, {
+      general: false,
+      theme: false,
+      camera: true,
+      lighting: true,
+      animation: true,
+    });
+    return;
+  }
+  if (behavior === 'all') {
+    applySettingsPayload(payload, {
+      general: true,
+      theme: true,
+      camera: true,
+      lighting: true,
+      animation: true,
+    });
+  }
 }
 
 function resetCameraSettings() {
@@ -797,12 +877,22 @@ function buildSettingsPayload() {
       [AUTO_RELOAD_INTERVAL_KEY]: localStorage.getItem(AUTO_RELOAD_INTERVAL_KEY),
       [AXES_STORAGE_KEY]: localStorage.getItem(AXES_STORAGE_KEY),
       [DEFAULT_CONTROLS_TYPE_STORAGE_KEY]: localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY),
+      [MODEL_SETTINGS_BEHAVIOR_KEY]: localStorage.getItem(MODEL_SETTINGS_BEHAVIOR_KEY),
       openmfd_cameras_v1: localStorage.getItem('openmfd_cameras_v1'),
       openmfd_theme: localStorage.getItem('openmfd_theme'),
       openmfd_theme_defs_v1: localStorage.getItem('openmfd_theme_defs_v1'),
     },
     lights: lightSystem.getLightState(),
     theme: themeManager.getThemeState(),
+    animation: {
+      keyframes: keyframeSystem ? keyframeSystem.getKeyframes() : [],
+      exportDefaults: {
+        resolution: animationExportResolutionSelect?.value || '1920x1080',
+        fps: Number.parseInt(animationExportFpsInput?.value || '30', 10) || 30,
+        quality: animationExportQualitySelect?.value || 'medium',
+        type: animationExportTypeSelect?.value || 'webm',
+      },
+    },
   };
   return payload;
 }
@@ -844,6 +934,7 @@ function applySettingsPayload(payload, sections = {}) {
     theme: sections.theme !== false,
     camera: sections.camera !== false,
     lighting: sections.lighting !== false,
+    animation: sections.animation !== false,
   };
 
   if (apply.general) {
@@ -852,6 +943,7 @@ function applySettingsPayload(payload, sections = {}) {
       AUTO_RELOAD_INTERVAL_KEY,
       AXES_STORAGE_KEY,
       DEFAULT_CONTROLS_TYPE_STORAGE_KEY,
+      MODEL_SETTINGS_BEHAVIOR_KEY,
     ];
     keys.forEach((key) => {
       if (key in stored) {
@@ -885,6 +977,14 @@ function applySettingsPayload(payload, sections = {}) {
     if (stored[AUTO_RELOAD_STORAGE_KEY] !== null && stored[AUTO_RELOAD_STORAGE_KEY] !== undefined) {
       autoReloadEnabled = stored[AUTO_RELOAD_STORAGE_KEY] !== 'false';
       setAutoReload(autoReloadEnabled);
+    }
+
+    if (stored[MODEL_SETTINGS_BEHAVIOR_KEY]) {
+      const behavior = stored[MODEL_SETTINGS_BEHAVIOR_KEY];
+      if (modelSettingsBehaviorSelect) {
+        modelSettingsBehaviorSelect.value = behavior;
+      }
+      setModelSettingsBehavior(behavior);
     }
   }
 
@@ -920,6 +1020,10 @@ function applySettingsPayload(payload, sections = {}) {
   if (apply.lighting && payload.lights) {
     lightSystem.applyLightState(payload.lights);
   }
+
+  if (apply.animation && payload.animation) {
+    applyAnimationSettingsPayload(payload.animation);
+  }
 }
 
 async function loadSettingsFromFile(file) {
@@ -934,7 +1038,10 @@ function syncCameraControlSelect() {
   const activeState = cameraSystem.getActiveCameraState();
   if (isHome || !activeState) {
     cameraControlTypeSelect.disabled = false;
-    cameraControlTypeSelect.value = cameraSystem.getDefaultControlType();
+    const currentType = typeof cameraSystem.getCurrentControlType === 'function'
+      ? cameraSystem.getCurrentControlType()
+      : cameraSystem.getDefaultControlType();
+    cameraControlTypeSelect.value = currentType || cameraSystem.getDefaultControlType();
     return;
   }
   cameraControlTypeSelect.disabled = false;
@@ -1332,9 +1439,11 @@ async function resetAllSettings() {
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(AXES_STORAGE_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
+  localStorage.removeItem(MODEL_SETTINGS_BEHAVIOR_KEY);
   localStorage.removeItem('openmfd_theme');
   localStorage.removeItem('openmfd_theme_defs_v1');
   localStorage.removeItem('openmfd_cameras_v1');
+  localStorage.removeItem('openmfd_keyframes_v1');
   localStorage.removeItem('openmfd_model_selector_collapsed');
   localStorage.removeItem('openmfd_model_selection_v2');
   localStorage.removeItem('openmfd_controls_type');
@@ -1411,6 +1520,7 @@ function animate() {
 }
 
 async function init() {
+  document.body.classList.add('is-loading');
   viewCubeSystem = createViewCubeSystem({ container: viewCubeEl, cameraSystem });
   themeManager = createThemeManager({ scene, axes });
   themeManager.initTheme();
@@ -1437,6 +1547,7 @@ async function init() {
       openAnimationExportDialog();
     });
   }
+
 
   if (animationExportQualitySelect) {
     animationExportQualitySelect.addEventListener('change', () => {
@@ -1468,51 +1579,41 @@ async function init() {
     });
   }
 
-
-  if (resetGeneralSettingsBtn) {
-    resetGeneralSettingsBtn.addEventListener('click', async () => {
-      await resetGeneralSettings();
+  if (resetSettingsApplyBtn && resetSettingsSelect) {
+    resetSettingsApplyBtn.addEventListener('click', async () => {
+      const value = resetSettingsSelect.value;
+      if (value === 'general') {
+        await resetGeneralSettings();
+      } else if (value === 'theme') {
+        resetThemeSettings();
+      } else if (value === 'camera') {
+        resetCameraSettings();
+      } else if (value === 'lighting') {
+        resetLightingSettings();
+      } else if (value === 'animation') {
+        if (keyframeSystem) keyframeSystem.resetKeyframes();
+      } else if (value === 'all') {
+        await resetAllSettings();
+      }
     });
   }
 
-  if (resetCameraSettingsBtn) {
-    resetCameraSettingsBtn.addEventListener('click', () => {
-      resetCameraSettings();
+  if (loadSettingsBtn) {
+    loadSettingsBtn.addEventListener('click', async () => {
+      try {
+        const listData = await fetchPreviewSettingsList();
+        if (listData) {
+          openPreviewSettingsDialog(listData);
+          return;
+        }
+        openPreviewSettingsDialog({ files: [] });
+      } catch (error) {
+        openPreviewSettingsDialog({ files: [] });
+      }
     });
   }
 
-  if (resetLightSettingsBtn) {
-    resetLightSettingsBtn.addEventListener('click', () => {
-      resetLightingSettings();
-    });
-  }
-
-  if (resetThemeSettingsBtn) {
-    resetThemeSettingsBtn.addEventListener('click', () => {
-      resetThemeSettings();
-    });
-  }
-
-  if (saveSettingsBtn) {
-    saveSettingsBtn.addEventListener('click', () => {
-      saveSettingsToFile();
-    });
-  }
-
-  if (loadSettingsBtn && settingsFileInput) {
-    loadSettingsBtn.addEventListener('click', () => {
-      fetchPreviewSettingsList()
-        .then((listData) => {
-          if (listData) {
-            openPreviewSettingsDialog(listData);
-            return;
-          }
-          openPreviewSettingsDialog({ files: [] });
-        })
-        .catch(() => {
-          openPreviewSettingsDialog({ files: [] });
-        });
-    });
+  if (settingsFileInput) {
     settingsFileInput.addEventListener('change', async () => {
       const file = settingsFileInput.files?.[0];
       if (!file) return;
@@ -1544,6 +1645,7 @@ async function init() {
             theme: previewSettingsTheme?.checked !== false,
             camera: previewSettingsCamera?.checked !== false,
             lighting: previewSettingsLighting?.checked !== false,
+            animation: previewSettingsAnimation?.checked !== false,
           });
         }
         return;
@@ -1560,6 +1662,7 @@ async function init() {
           theme: previewSettingsTheme?.checked !== false,
           camera: previewSettingsCamera?.checked !== false,
           lighting: previewSettingsLighting?.checked !== false,
+          animation: previewSettingsAnimation?.checked !== false,
         });
       }
     });
@@ -1660,11 +1763,9 @@ async function init() {
     previewDirResetBtn,
     previewDirWarningEl,
     autoReloadIntervalInput,
-    resetAllSettingsBtn,
     getAutoReloadIntervalMs: () => autoReloadIntervalMs,
     setAutoReloadIntervalMs,
     initModels,
-    resetAllSettings,
   });
   keyframeSystem.setEditorDependencies({
     settingsDialog,
@@ -1679,6 +1780,12 @@ async function init() {
   });
   settingsSystem.initTabs('general');
   settingsSystem.initGeneralSettings();
+  if (modelSettingsBehaviorSelect) {
+    modelSettingsBehaviorSelect.value = getModelSettingsBehavior();
+    modelSettingsBehaviorSelect.addEventListener('change', () => {
+      setModelSettingsBehavior(modelSettingsBehaviorSelect.value);
+    });
+  }
   await initModels();
 
   cameraSystem.initCameraStates();
@@ -1687,6 +1794,7 @@ async function init() {
 
   initAutoReload();
   initResizing();
+  document.body.classList.remove('is-loading');
   animate();
 }
 

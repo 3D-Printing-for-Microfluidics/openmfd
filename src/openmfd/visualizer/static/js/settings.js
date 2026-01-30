@@ -9,11 +9,9 @@ export function createSettingsSystem({
   previewDirResetBtn,
   previewDirWarningEl,
   autoReloadIntervalInput,
-  resetAllSettingsBtn,
   getAutoReloadIntervalMs,
   setAutoReloadIntervalMs,
   initModels,
-  resetAllSettings,
 }) {
   let activeTab = 'general';
 
@@ -131,11 +129,6 @@ export function createSettingsSystem({
       });
     }
 
-    if (resetAllSettingsBtn && resetAllSettings) {
-      resetAllSettingsBtn.addEventListener('click', async () => {
-        await resetAllSettings();
-      });
-    }
   }
 
   return {

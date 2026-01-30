@@ -696,6 +696,9 @@ export function createCameraSystem({
       const rollValue = allowRoll ? getCameraRollDeg() : 0;
       inputs.roll.value = rollValue.toFixed(2);
       inputs.roll.disabled = !allowRoll;
+      inputs.roll.title = allowRoll
+        ? 'Roll (deg)'
+        : 'Roll is only available in trackball controls.';
     }
     if (inputs.fov) {
       inputs.fov.value = perspectiveCamera.fov.toFixed(1);
@@ -745,6 +748,9 @@ export function createCameraSystem({
     allowRoll = !!enabled;
     if (inputs?.roll) {
       inputs.roll.disabled = !allowRoll;
+      inputs.roll.title = allowRoll
+        ? 'Roll (deg)'
+        : 'Roll is only available in trackball controls.';
       if (!allowRoll) {
         inputs.roll.value = '0';
       }
@@ -761,7 +767,7 @@ export function createCameraSystem({
 
   function addCameraSlot() {
     const nextIndex = cameraSlotCount;
-    const typeForNew = defaultControlType || currentControlType;
+    const typeForNew = currentControlType || defaultControlType;
     if (typeForNew && typeForNew !== currentControlType && onControlTypeChange) {
       onControlTypeChange(typeForNew);
     }
@@ -1023,6 +1029,7 @@ export function createCameraSystem({
     setCurrentControlType: (type) => {
       currentControlType = type || defaultControlType;
     },
+    getCurrentControlType: () => currentControlType,
     setDefaultControlType: (type) => {
       defaultControlType = type || 'orbit';
     },

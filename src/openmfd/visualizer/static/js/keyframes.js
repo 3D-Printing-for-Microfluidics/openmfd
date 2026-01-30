@@ -48,6 +48,8 @@ export function createKeyframeSystem({
   let cameraListEl = null;
   let addCameraBtnSettingsEl = null;
   let removeCameraBtnSettingsEl = null;
+  let cameraModeBtnEl = null;
+  let prevCameraModeDisabled = null;
 
   let prevTitleText = null;
   let prevTitleDisplay = null;
@@ -87,6 +89,9 @@ export function createKeyframeSystem({
     }
     if (removeCameraBtnSettingsEl) {
       removeCameraBtnSettingsEl.style.display = prevRemoveCameraDisplay || '';
+    }
+    if (cameraModeBtnEl) {
+      cameraModeBtnEl.disabled = prevCameraModeDisabled ?? false;
     }
   }
 
@@ -303,7 +308,9 @@ export function createKeyframeSystem({
       transitionInput.className = 'keyframe-time-input keyframe-transition-input';
       transitionInput.min = '0';
       transitionInput.step = '0.1';
-      transitionInput.value = Number.isFinite(state.transitionDuration) ? state.transitionDuration : 0;
+      transitionInput.value = Number.isFinite(state.transitionDuration)
+        ? state.transitionDuration
+        : DEFAULT_TRANSITION_DURATION;
       transitionInput.title = 'Transition duration (s)';
       if (index >= keyframes.length - 1) {
         transitionInput.value = '0';
@@ -606,13 +613,41 @@ export function createKeyframeSystem({
     });
   }
 
+  function syncLightStructureFromSystem() {
+    if (!lightSystemRef) return;
+    const templateState = lightSystemRef.getLightState();
+    if (!templateState || !Array.isArray(templateState.directional)) return;
+
+    keyframes = keyframes.map((frame) => {
+      const normalized = normalizeKeyframe(frame);
+      const ambient = normalized.lights?.ambient || templateState.ambient;
+      const currentDirectional = Array.isArray(normalized.lights?.directional)
+        ? normalized.lights.directional
+        : [];
+      const nextDirectional = templateState.directional.map((tpl, idx) => {
+        const current = currentDirectional[idx];
+        const tplType = tpl?.type || 'directional';
+        const currentType = current?.type || 'directional';
+        if (current && currentType === tplType) {
+          return { ...tpl, ...current, type: tplType };
+        }
+        return { ...tpl, type: tplType };
+      });
+      normalized.lights = { ambient, directional: nextDirectional };
+      return normalized;
+    });
+    saveKeyframes();
+    renderList();
+    renderTransitionMenu();
+  }
+
   function enforceKeyframeDurations() {
     keyframes.forEach((frame, index) => {
       const normalized = normalizeKeyframe(frame);
       normalized.holdDuration = Number.isFinite(normalized.holdDuration) ? Math.max(0, normalized.holdDuration) : 0;
       normalized.transitionDuration = Number.isFinite(normalized.transitionDuration)
         ? Math.max(0, normalized.transitionDuration)
-        : 0;
+        : DEFAULT_TRANSITION_DURATION;
       if (index >= keyframes.length - 1) {
         normalized.transitionDuration = 0;
       }
@@ -1212,6 +1247,25 @@ export function createKeyframeSystem({
     saveKeyframes();
   }
 
+  function setKeyframes(nextFrames = []) {
+    keyframes = Array.isArray(nextFrames)
+      ? nextFrames.map((frame) => normalizeKeyframe(frame))
+      : [];
+    activeKeyframeIndex = null;
+    enforceKeyframeDurations();
+    renderList();
+    clearSelection();
+    saveKeyframes();
+  }
+
+  function resetKeyframes() {
+    keyframes = [];
+    activeKeyframeIndex = null;
+    renderList();
+    clearSelection();
+    saveKeyframes();
+  }
+
   function addKeyframe() {
     const state = cameraSystem.getCameraState();
     const lights = lightSystemRef ? lightSystemRef.getLightState() : null;
@@ -1370,6 +1424,23 @@ export function createKeyframeSystem({
       removeCameraBtnSettingsEl.style.display = 'none';
     }
 
+    if (!cameraModeBtnEl && settingsDialogEl) {
+      cameraModeBtnEl = settingsDialogEl.querySelector('#cameraModeBtn');
+    }
+    if (cameraModeBtnEl) {
+      prevCameraModeDisabled = cameraModeBtnEl.disabled;
+      cameraModeBtnEl.disabled = index !== 0;
+      if (index !== 0) {
+        cameraModeBtnEl.title = 'Camera mode can only be changed in keyframe 1.';
+      } else {
+        cameraModeBtnEl.title = 'Camera: Perspective/Ortho';
+      }
+    }
+
+    if (lightSystemRef?.setStructureEditable) {
+      lightSystemRef.setStructureEditable(index === 0);
+    }
+
     if (settingsSystemRef) {
       settingsSystemRef.activateTab('keyframes');
     }
@@ -1379,6 +1450,9 @@ export function createKeyframeSystem({
   }
 
   function closeEditor() {
+    if (lightSystemRef?.setStructureEditable) {
+      lightSystemRef.setStructureEditable(true);
+    }
     exitKeyframeEditing({ restoreCamera: false, restoreLights: false, restoreModels: false, clearSelection: false, activateGlobalTab: false });
   }
 
@@ -1443,6 +1517,12 @@ export function createKeyframeSystem({
           saveKeyframes();
         });
         selectionListenerAttached = true;
+      }
+
+      if (lightSystemRef?.setStructureChangeCallback) {
+        lightSystemRef.setStructureChangeCallback(() => {
+          syncLightStructureFromSystem();
+        });
       }
 
       if (toggleBtn) {
@@ -1568,6 +1648,8 @@ export function createKeyframeSystem({
     startPlaybackFromBeginning,
     stopPlayback,
     applyAtTime,
+    setKeyframes,
+    resetKeyframes,
     getKeyframes: () => keyframes.slice(),
   };
 }

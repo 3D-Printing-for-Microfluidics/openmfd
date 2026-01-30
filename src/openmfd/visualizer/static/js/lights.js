@@ -22,6 +22,8 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
   let directionalLightsList = null;
   let addDirLightBtn = null;
   let removeDirLightBtn = null;
+  let allowStructureEdit = true;
+  let onStructureChange = null;
 
 
   function createDirectionalHelper(light) {
@@ -53,11 +55,13 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
       : new THREE.DirectionalLight(options.color ?? 0xffffff, options.intensity ?? 1.0);
     const modelCenter = getModelCenterModel();
     const offset = options.offset ?? new THREE.Vector3(10, 10, 10);
+    const targetOffset = options.targetOffset ?? new THREE.Vector3(0, 0, 0);
     const pos = options.position ?? modelCenter.clone().add(offset);
     light.position.copy(pos);
     world.add(light);
     world.add(light.target);
-    light.target.position.copy(getModelCenterModel());
+    light.userData.targetOffset = targetOffset.clone ? targetOffset.clone() : new THREE.Vector3(targetOffset.x || 0, targetOffset.y || 0, targetOffset.z || 0);
+    light.target.position.copy(modelCenter.clone().add(light.userData.targetOffset));
     if (light.isSpotLight) {
       if (Number.isFinite(options.distance)) light.distance = options.distance;
       if (Number.isFinite(options.angle)) light.angle = options.angle;
@@ -106,13 +110,33 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     if (!removeDirLightBtn) return;
     const hasSelection = directionalLights.length > 0;
     const canRemove = hasSelection && directionalLights.length > 1;
-    removeDirLightBtn.disabled = !canRemove;
+    removeDirLightBtn.disabled = !allowStructureEdit || !canRemove;
+    removeDirLightBtn.title = allowStructureEdit
+      ? 'Remove Directional Light'
+      : 'Light structure can only be edited in keyframe 1.';
+  }
+
+  function setStructureEditable(isEditable) {
+    allowStructureEdit = !!isEditable;
+    if (addDirLightBtn) {
+      addDirLightBtn.disabled = !allowStructureEdit;
+      addDirLightBtn.title = allowStructureEdit
+        ? 'Add Directional Light'
+        : 'Light structure can only be edited in keyframe 1.';
+    }
+    updateRemoveDirLightButton();
+    renderDirectionalLightsList();
+  }
+
+  function setStructureChangeCallback(callback) {
+    onStructureChange = typeof callback === 'function' ? callback : null;
   }
 
   function updateDirectionalLightTargets() {
     const modelCenter = getModelCenterModel();
     directionalLights.forEach((light, index) => {
-      light.target.position.copy(modelCenter);
+      const targetOffset = light.userData?.targetOffset || new THREE.Vector3(0, 0, 0);
+      light.target.position.copy(modelCenter.clone().add(targetOffset));
       const helper = directionalHelpers[index];
       if (helper) {
         updateDirectionalHelper(helper, light);
@@ -205,6 +229,10 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     const typeSelect = document.createElement('select');
     typeSelect.innerHTML = '<option value="directional">Directional</option><option value="spot">Spot</option>';
     typeSelect.value = light.isSpotLight ? 'spot' : 'directional';
+    typeSelect.disabled = !allowStructureEdit;
+    if (!allowStructureEdit) {
+      typeSelect.title = 'Light type can only be changed in keyframe 1.';
+    }
     typeLabel.appendChild(typeSelect);
     gridPrimary.appendChild(typeLabel);
 
@@ -288,6 +316,34 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     decayLabel.appendChild(decayInput);
     gridSpot.appendChild(decayLabel);
 
+    const targetOffset = light.userData?.targetOffset || new THREE.Vector3(0, 0, 0);
+    const targetXLabel = document.createElement('label');
+    targetXLabel.textContent = 'Target X';
+    const targetXInput = document.createElement('input');
+    targetXInput.type = 'number';
+    targetXInput.step = '0.1';
+    targetXInput.value = targetOffset.x.toFixed(3);
+    targetXLabel.appendChild(targetXInput);
+    gridSpot.appendChild(targetXLabel);
+
+    const targetYLabel = document.createElement('label');
+    targetYLabel.textContent = 'Target Y';
+    const targetYInput = document.createElement('input');
+    targetYInput.type = 'number';
+    targetYInput.step = '0.1';
+    targetYInput.value = targetOffset.y.toFixed(3);
+    targetYLabel.appendChild(targetYInput);
+    gridSpot.appendChild(targetYLabel);
+
+    const targetZLabel = document.createElement('label');
+    targetZLabel.textContent = 'Target Z';
+    const targetZInput = document.createElement('input');
+    targetZInput.type = 'number';
+    targetZInput.step = '0.1';
+    targetZInput.value = targetOffset.z.toFixed(3);
+    targetZLabel.appendChild(targetZInput);
+    gridSpot.appendChild(targetZLabel);
+
     editor.appendChild(gridSpot);
 
     const syncSpotVisibility = () => {
@@ -308,7 +364,21 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
         light.position.set(modelCenter.x + posX, modelCenter.y + posY, modelCenter.z + posZ);
       }
       light.color.set(colorInput.value);
-      light.target.position.copy(modelCenter);
+      if (light.isSpotLight) {
+        const tX = parseFloat(targetXInput.value);
+        const tY = parseFloat(targetYInput.value);
+        const tZ = parseFloat(targetZInput.value);
+        const nextTargetOffset = new THREE.Vector3(
+          Number.isFinite(tX) ? tX : 0,
+          Number.isFinite(tY) ? tY : 0,
+          Number.isFinite(tZ) ? tZ : 0
+        );
+        light.userData.targetOffset = nextTargetOffset;
+        light.target.position.copy(modelCenter.clone().add(nextTargetOffset));
+      } else {
+        light.userData.targetOffset = new THREE.Vector3(0, 0, 0);
+        light.target.position.copy(modelCenter);
+      }
       if (light.isSpotLight) {
         const dist = parseFloat(distanceInput.value);
         const angleDeg = parseFloat(angleInput.value);
@@ -337,6 +407,9 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     angleInput.addEventListener('input', updateLight);
     penumbraInput.addEventListener('input', updateLight);
     decayInput.addEventListener('input', updateLight);
+    targetXInput.addEventListener('input', updateLight);
+    targetYInput.addEventListener('input', updateLight);
+    targetZInput.addEventListener('input', updateLight);
 
     typeSelect.addEventListener('change', () => {
       const nextType = typeSelect.value;
@@ -350,6 +423,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
         angle: current.isSpotLight ? current.angle : THREE.MathUtils.degToRad(parseFloat(angleInput.value)),
         penumbra: current.isSpotLight ? current.penumbra : parseFloat(penumbraInput.value),
         decay: current.isSpotLight ? current.decay : parseFloat(decayInput.value),
+        targetOffset: current.userData?.targetOffset || new THREE.Vector3(0, 0, 0),
         offset,
       };
       removeDirectionalLight(activeDirLightIndex);
@@ -361,9 +435,11 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
         angle: snapshot.angle,
         penumbra: snapshot.penumbra,
         decay: snapshot.decay,
+        targetOffset: snapshot.targetOffset,
         offset,
       });
       renderDirectionalLightsList();
+      if (onStructureChange) onStructureChange();
     });
     directionalLightsList.appendChild(editor);
   }
@@ -377,11 +453,13 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
       },
       directional: directionalLights.map((light) => {
         const offset = light.position.clone().sub(modelCenter);
+        const targetOffset = light.userData?.targetOffset || new THREE.Vector3(0, 0, 0);
         return {
           type: light.isSpotLight ? 'spot' : 'directional',
           color: toHexColor(light.color),
           intensity: light.intensity,
           offset: { x: offset.x, y: offset.y, z: offset.z },
+          targetOffset: { x: targetOffset.x, y: targetOffset.y, z: targetOffset.z },
           distance: light.isSpotLight ? light.distance : undefined,
           angle: light.isSpotLight ? light.angle : undefined,
           penumbra: light.isSpotLight ? light.penumbra : undefined,
@@ -409,6 +487,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
         color: light?.color || '#ffffff',
         intensity: Number.isFinite(light?.intensity) ? light.intensity : 1.0,
         offset: light?.offset || { x: 10, y: 10, z: 10 },
+        targetOffset: light?.targetOffset || { x: 0, y: 0, z: 0 },
         distance: Number.isFinite(light?.distance) ? light.distance : undefined,
         angle: Number.isFinite(light?.angle) ? light.angle : undefined,
         penumbra: Number.isFinite(light?.penumbra) ? light.penumbra : undefined,
@@ -506,6 +585,9 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     if (diff(a.angle || 0, b.angle || 0)) return false;
     if (diff(a.penumbra || 0, b.penumbra || 0)) return false;
     if (diff(a.decay || 0, b.decay || 0)) return false;
+    const at = a.targetOffset || { x: 0, y: 0, z: 0 };
+    const bt = b.targetOffset || { x: 0, y: 0, z: 0 };
+    if (diff(at.x || 0, bt.x || 0) || diff(at.y || 0, bt.y || 0) || diff(at.z || 0, bt.z || 0)) return false;
     return true;
   }
 
@@ -517,7 +599,9 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     light.intensity = Math.max(0, baseIntensity * intensityScale);
     const offset = entry.offset || { x: 10, y: 10, z: 10 };
     light.position.copy(modelCenter.clone().add(new THREE.Vector3(offset.x, offset.y, offset.z)));
-    light.target.position.copy(modelCenter);
+    const targetOffset = entry.targetOffset || { x: 0, y: 0, z: 0 };
+    light.userData.targetOffset = new THREE.Vector3(targetOffset.x || 0, targetOffset.y || 0, targetOffset.z || 0);
+    light.target.position.copy(modelCenter.clone().add(light.userData.targetOffset));
     if (light.isSpotLight) {
       if (Number.isFinite(entry.distance)) light.distance = entry.distance;
       if (Number.isFinite(entry.angle)) light.angle = entry.angle;
@@ -604,12 +688,14 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     } else {
       dirList.forEach((item) => {
         const offset = item?.offset || { x: 10, y: 10, z: 10 };
+        const targetOffset = item?.targetOffset || { x: 0, y: 0, z: 0 };
         addDirectionalLight({
           type: item?.type || 'directional',
           color: item?.color ? new THREE.Color(item.color) : 0xffffff,
           intensity: Number.isFinite(item?.intensity) ? item.intensity : 1.0,
           offset: new THREE.Vector3(offset.x, offset.y, offset.z),
           position: modelCenter.clone().add(new THREE.Vector3(offset.x, offset.y, offset.z)),
+          targetOffset: new THREE.Vector3(targetOffset.x, targetOffset.y, targetOffset.z),
           distance: Number.isFinite(item?.distance) ? item.distance : undefined,
           angle: Number.isFinite(item?.angle) ? item.angle : undefined,
           penumbra: Number.isFinite(item?.penumbra) ? item.penumbra : undefined,
@@ -633,7 +719,8 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     if (ambientIntensityInput) ambientIntensityInput.value = ambientLight.intensity.toFixed(3);
     const modelCenter = getModelCenterModel();
     directionalLights.forEach((light, index) => {
-      light.target.position.copy(modelCenter);
+      const targetOffset = light.userData?.targetOffset || new THREE.Vector3(0, 0, 0);
+      light.target.position.copy(modelCenter.clone().add(targetOffset));
       const helper = directionalHelpers[index];
       if (helper) {
         updateDirectionalHelper(helper, light);
@@ -684,16 +771,20 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
 
     if (addDirLightBtn) {
       addDirLightBtn.addEventListener('click', () => {
+        if (!allowStructureEdit) return;
         addDirectionalLight({ offset: new THREE.Vector3(10, 10, 10) });
         renderDirectionalLightsList();
+        if (onStructureChange) onStructureChange();
       });
     }
 
     if (removeDirLightBtn) {
       removeDirLightBtn.addEventListener('click', () => {
+        if (!allowStructureEdit) return;
         if (directionalLights.length <= 1) return;
         removeDirectionalLight(activeDirLightIndex);
         renderDirectionalLightsList();
+        if (onStructureChange) onStructureChange();
       });
     }
 
@@ -737,5 +828,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     applyLightStateInterpolated,
     applyLightState,
     resetLights,
+    setStructureEditable,
+    setStructureChangeCallback,
   };
 }

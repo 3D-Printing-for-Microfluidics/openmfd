@@ -6,6 +6,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
 
   const directionalLights = [];
   const directionalHelpers = [];
+  const transitionExtras = new Map();
   let defaultLightInitialized = false;
   let lightHelpersVisible = false;
   let activeDirLightIndex = 0;
@@ -390,6 +391,200 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     };
   }
 
+  function normalizeLightState(state) {
+    const fallback = {
+      ambient: { color: '#ffffff', intensity: 1.0 },
+      directional: [],
+    };
+    if (!state || typeof state !== 'object') return fallback;
+    const ambient = state.ambient || fallback.ambient;
+    const directional = Array.isArray(state.directional) ? state.directional : [];
+    return {
+      ambient: {
+        color: ambient.color || '#ffffff',
+        intensity: Number.isFinite(ambient.intensity) ? ambient.intensity : 1.0,
+      },
+      directional: directional.map((light) => ({
+        type: light?.type || 'directional',
+        color: light?.color || '#ffffff',
+        intensity: Number.isFinite(light?.intensity) ? light.intensity : 1.0,
+        offset: light?.offset || { x: 10, y: 10, z: 10 },
+        distance: Number.isFinite(light?.distance) ? light.distance : undefined,
+        angle: Number.isFinite(light?.angle) ? light.angle : undefined,
+        penumbra: Number.isFinite(light?.penumbra) ? light.penumbra : undefined,
+        decay: Number.isFinite(light?.decay) ? light.decay : undefined,
+      })),
+    };
+  }
+
+  function lerpHue(a, b, t) {
+    let delta = b - a;
+    if (delta > 0.5) delta -= 1;
+    if (delta < -0.5) delta += 1;
+    let next = a + delta * t;
+    if (next < 0) next += 1;
+    if (next > 1) next -= 1;
+    return next;
+  }
+
+  function lerpColorHSL(startColor, endColor, t) {
+    const startHsl = { h: 0, s: 0, l: 0 };
+    const endHsl = { h: 0, s: 0, l: 0 };
+    startColor.getHSL(startHsl);
+    endColor.getHSL(endHsl);
+    const h = lerpHue(startHsl.h, endHsl.h, t);
+    const s = startHsl.s + (endHsl.s - startHsl.s) * t;
+    const l = startHsl.l + (endHsl.l - startHsl.l) * t;
+    return new THREE.Color().setHSL(h, s, l);
+  }
+
+  function ensureDirectionalLightAt(index, type) {
+    const current = directionalLights[index];
+    const needsType = type || 'directional';
+    if (current) {
+      const currentType = current.isSpotLight ? 'spot' : 'directional';
+      if (currentType === needsType) return current;
+      removeDirectionalLight(index);
+    }
+    const light = needsType === 'spot'
+      ? new THREE.SpotLight(0xffffff, 1.0)
+      : new THREE.DirectionalLight(0xffffff, 1.0);
+    const helper = createDirectionalHelper(light);
+    directionalLights.splice(index, 0, light);
+    directionalHelpers.splice(index, 0, helper);
+    world.add(light);
+    world.add(light.target);
+    return light;
+  }
+
+  function removeTransitionExtra(index) {
+    const entry = transitionExtras.get(index);
+    if (!entry) return;
+    if (entry.helper) {
+      scene.remove(entry.helper);
+      if (entry.helper.dispose) entry.helper.dispose();
+    }
+    if (entry.light) {
+      if (entry.light.target) world.remove(entry.light.target);
+      world.remove(entry.light);
+    }
+    transitionExtras.delete(index);
+  }
+
+  function ensureTransitionExtra(index, type) {
+    const existing = transitionExtras.get(index);
+    const needsType = type || 'directional';
+    if (existing) {
+      const existingType = existing.light?.isSpotLight ? 'spot' : 'directional';
+      if (existingType === needsType) return existing;
+      removeTransitionExtra(index);
+    }
+    const light = needsType === 'spot'
+      ? new THREE.SpotLight(0xffffff, 1.0)
+      : new THREE.DirectionalLight(0xffffff, 1.0);
+    const helper = createDirectionalHelper(light);
+    world.add(light);
+    world.add(light.target);
+    scene.add(helper);
+    const entry = { light, helper };
+    transitionExtras.set(index, entry);
+    return entry;
+  }
+
+  function isLightEntryEqual(a, b) {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    const eps = 1e-4;
+    const diff = (x, y) => Math.abs(x - y) > eps;
+    if ((a.type || 'directional') !== (b.type || 'directional')) return false;
+    if ((a.color || '#ffffff') !== (b.color || '#ffffff')) return false;
+    if (diff(a.intensity || 0, b.intensity || 0)) return false;
+    const ao = a.offset || { x: 0, y: 0, z: 0 };
+    const bo = b.offset || { x: 0, y: 0, z: 0 };
+    if (diff(ao.x || 0, bo.x || 0) || diff(ao.y || 0, bo.y || 0) || diff(ao.z || 0, bo.z || 0)) return false;
+    if (diff(a.distance || 0, b.distance || 0)) return false;
+    if (diff(a.angle || 0, b.angle || 0)) return false;
+    if (diff(a.penumbra || 0, b.penumbra || 0)) return false;
+    if (diff(a.decay || 0, b.decay || 0)) return false;
+    return true;
+  }
+
+  function applyLightEntry(light, entry, intensityScale, modelCenter) {
+    if (!light || !entry) return;
+    const baseColor = new THREE.Color(entry.color || '#ffffff');
+    light.color.copy(baseColor);
+    const baseIntensity = Number.isFinite(entry.intensity) ? entry.intensity : 0;
+    light.intensity = Math.max(0, baseIntensity * intensityScale);
+    const offset = entry.offset || { x: 10, y: 10, z: 10 };
+    light.position.copy(modelCenter.clone().add(new THREE.Vector3(offset.x, offset.y, offset.z)));
+    light.target.position.copy(modelCenter);
+    if (light.isSpotLight) {
+      if (Number.isFinite(entry.distance)) light.distance = entry.distance;
+      if (Number.isFinite(entry.angle)) light.angle = entry.angle;
+      if (Number.isFinite(entry.penumbra)) light.penumbra = entry.penumbra;
+      if (Number.isFinite(entry.decay)) light.decay = entry.decay;
+    }
+  }
+
+  function applyLightStateInterpolated(startState, endState, t) {
+    const start = normalizeLightState(startState);
+    const end = normalizeLightState(endState);
+    const modelCenter = getModelCenterModel();
+
+    const startAmbient = new THREE.Color(start.ambient.color || '#ffffff');
+    const endAmbient = new THREE.Color(end.ambient.color || '#ffffff');
+    const ambientColor = lerpColorHSL(startAmbient, endAmbient, t);
+    const ambientIntensity = (start.ambient.intensity || 0) +
+      (end.ambient.intensity - start.ambient.intensity) * t;
+    ambientLight.color.copy(ambientColor);
+    ambientLight.intensity = Math.max(0, ambientIntensity);
+
+    const maxCount = Math.max(start.directional.length, end.directional.length);
+    while (directionalLights.length > maxCount) {
+      removeDirectionalLight(directionalLights.length - 1);
+    }
+
+    for (let i = 0; i < maxCount; i += 1) {
+      const s = start.directional[i] || null;
+      const e = end.directional[i] || null;
+
+      if (!s && e) {
+        const light = ensureDirectionalLightAt(i, e.type || 'directional');
+        applyLightEntry(light, e, t, modelCenter);
+        removeTransitionExtra(i);
+      } else if (s && !e) {
+        const light = ensureDirectionalLightAt(i, s.type || 'directional');
+        applyLightEntry(light, s, 1 - t, modelCenter);
+        removeTransitionExtra(i);
+        if (t >= 1) {
+          removeDirectionalLight(i);
+        }
+      } else if (s && e) {
+        if (isLightEntryEqual(s, e)) {
+          const light = ensureDirectionalLightAt(i, e.type || 'directional');
+          applyLightEntry(light, e, 1, modelCenter);
+          removeTransitionExtra(i);
+        } else {
+          const light = ensureDirectionalLightAt(i, s.type || 'directional');
+          applyLightEntry(light, s, 1 - t, modelCenter);
+          const extra = ensureTransitionExtra(i, e.type || 'directional');
+          applyLightEntry(extra.light, e, t, modelCenter);
+          if (extra.helper) updateDirectionalHelper(extra.helper, extra.light);
+          if (t >= 1) {
+            removeTransitionExtra(i);
+            const finalLight = ensureDirectionalLightAt(i, e.type || 'directional');
+            applyLightEntry(finalLight, e, 1, modelCenter);
+          }
+        }
+      }
+
+      const helper = directionalHelpers[i];
+      if (helper && directionalLights[i]) {
+        updateDirectionalHelper(helper, directionalLights[i]);
+      }
+    }
+  }
+
   function applyLightState(state) {
     if (!state || typeof state !== 'object') return;
     if (state.ambient) {
@@ -539,6 +734,7 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     renderDirectionalLightsList,
     setDialogOpen,
     getLightState,
+    applyLightStateInterpolated,
     applyLightState,
     resetLights,
   };

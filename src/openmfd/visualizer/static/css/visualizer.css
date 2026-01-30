@@ -77,6 +77,22 @@ canvas {
   color: var(--text);
 }
 
+#modelSelector.is-in-dialog {
+  max-width: none;
+  width: 100%;
+  padding: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+#modelSelector.is-in-dialog > div:first-child {
+  display: none;
+}
+
+#modelSelector.is-in-dialog form {
+  margin-top: 0;
+}
+
 #animationPanel {
   padding: 0.75rem 1.25rem;
   border-radius: 0.5rem;
@@ -121,6 +137,56 @@ canvas {
   opacity: 0.7;
   margin-top: 0.35rem;
   margin-bottom: 0.3rem;
+}
+
+.transition-menu {
+  margin-top: 0.4rem;
+  padding: 0.5rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--button-border);
+  background: var(--section-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.transition-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.transition-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.transition-item label {
+  font-size: 0.85rem;
+}
+
+.transition-item select {
+  min-width: 120px;
+  padding: 0.3rem 0.35rem;
+  border-radius: 0.35rem;
+  border: 1px solid var(--button-border);
+  background: var(--button-bg);
+  color: var(--button-text);
+  font-size: 0.8rem;
+}
+
+.transition-curve {
+  margin-left: auto;
+}
+
+.transition-curve svg {
+  display: block;
+  border: 1px solid var(--button-border);
+  border-radius: 0.35rem;
+  background: var(--section-bg);
+  color: var(--button-text);
 }
 
 .keyframe-playback {
@@ -396,6 +462,10 @@ canvas {
 .controls-pane {
   overflow: auto;
   padding-right: 0.25rem;
+}
+
+.keyframe-model-selector-host {
+  width: 100%;
 }
 
 .modal-section {

@@ -10,8 +10,8 @@
 
 <body>
 	<div id="topRightOverlay">
-		<div id="viewCube" aria-hidden="true"></div>
 		<div id="rightOverlayStack">
+			<div id="viewCube" aria-hidden="true"></div>
 			<div id="modelSelector">
 				<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
 					<strong>Models</strong>
@@ -19,43 +19,42 @@
 				</div>
 				<form id="glbForm"></form>
 			</div>
-			<div id="animationPanel" style="display:none;">
+			<div id="animationPanel">
 				<div class="panel-header">
 					<strong>Animation</strong>
 				</div>
-				<div class="keyframe-header">
-					<span class="keyframe-header-label">Keyframe</span>
-					<span class="keyframe-header-label">Time (s)</span>
-				</div>
-				<div id="keyframeEmpty">No keyframes yet.</div>
-				<div id="keyframeList" class="keyframe-list"></div>
-				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;justify-content:flex-start;">
-					<button id="addKeyframeBtn" class="control-btn icon-btn" type="button" title="Add Keyframe">
-						<i class="fa-solid fa-plus"></i>
-					</button>
-					<button id="duplicateKeyframeBtn" class="control-btn icon-btn" type="button" title="Duplicate Keyframe">
-						<i class="fa-solid fa-copy"></i>
-					</button>
-					<button id="moveKeyframeUpBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Up">
-						<i class="fa-solid fa-arrow-up"></i>
-					</button>
-					<button id="moveKeyframeDownBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Down">
-						<i class="fa-solid fa-arrow-down"></i>
-					</button>
-					<button id="removeKeyframeBtn" class="control-btn icon-btn" type="button" title="Remove Keyframe">
-						<i class="fa-solid fa-minus"></i>
-					</button>
-				</div>
-				<div class="keyframe-section-title">Playback Control</div>
-				<div class="keyframe-playback">
-					<button id="keyframePlayBtn" class="control-btn" type="button" title="Play Keyframes">
-						<i class="fa-solid fa-play"></i>
-						<span>Play</span>
-					</button>
-					<button id="keyframePlayFromStartBtn" class="control-btn" type="button" title="Play From Beginning">
-						<i class="fa-solid fa-backward-step"></i>
-						<span>From Start</span>
-					</button>
+				<div id="animationPanelBody" style="display:none;">
+					<div class="keyframe-header">
+						<span class="keyframe-header-label">Keyframe</span>
+						<span class="keyframe-header-label">Time (s)</span>
+					</div>
+					<div id="keyframeEmpty">No keyframes yet.</div>
+					<div id="keyframeList" class="keyframe-list"></div>
+					<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;justify-content:flex-start;">
+						<button id="addKeyframeBtn" class="control-btn icon-btn" type="button" title="Add Keyframe">
+							<i class="fa-solid fa-plus"></i>
+						</button>
+						<button id="moveKeyframeUpBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Up">
+							<i class="fa-solid fa-arrow-up"></i>
+						</button>
+						<button id="moveKeyframeDownBtn" class="control-btn icon-btn" type="button" title="Move Keyframe Down">
+							<i class="fa-solid fa-arrow-down"></i>
+						</button>
+						<button id="removeKeyframeBtn" class="control-btn icon-btn" type="button" title="Remove Keyframe">
+							<i class="fa-solid fa-minus"></i>
+						</button>
+					</div>
+					<div class="keyframe-section-title">Playback Control</div>
+					<div class="keyframe-playback">
+						<button id="keyframePlayBtn" class="control-btn" type="button" title="Play Keyframes">
+							<i class="fa-solid fa-play"></i>
+							<span>Play</span>
+						</button>
+						<button id="keyframePlayFromStartBtn" class="control-btn" type="button" title="Play From Beginning">
+							<i class="fa-solid fa-backward-step"></i>
+							<span>From Start</span>
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -86,7 +85,7 @@
 			<button id="saveSnapshotBtn" class="control-btn" title="Save Snapshot">
 				<i class="fa-solid fa-camera"></i>
 			</button>
-			<button id="animationToggleBtn" class="control-btn" title="Animation">
+			<button id="animationToggleBtn" class="control-btn" title="Toggle Animation Panel">
 				<i class="fa-solid fa-film"></i>
 			</button>
 			<button id="settingsDialogBtn" class="control-btn" title="Settings">
@@ -104,6 +103,8 @@
 			<div class="settings-tabs">
 				<button class="tab-btn is-active" data-tab="general">General</button>
 				<button class="tab-btn" data-tab="appearance">Appearance</button>
+				<button class="tab-btn" data-tab="keyframes" style="display:none;">Transitions</button>
+				<button class="tab-btn" data-tab="keyframe-models" style="display:none;">Models</button>
 				<button class="tab-btn" data-tab="camera">Camera</button>
 				<button class="tab-btn" data-tab="lights">Lights</button>
 			</div>
@@ -276,6 +277,29 @@
 									</div>
 								</div>
 								<div id="directionalLightsList"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="tab-panel" data-tab-panel="keyframes" style="display:none;">
+					<div class="modal-body">
+						<div class="controls-pane">
+							<div class="modal-section">
+								<h4>Keyframe Transitions</h4>
+								<div id="transitionMenu" class="transition-menu">
+									<div id="transitionMenuList" class="transition-menu-list"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="tab-panel" data-tab-panel="keyframe-models" style="display:none;">
+					<div class="modal-body">
+						<div class="viewer-pane" id="keyframeModelsViewer"></div>
+						<div class="controls-pane">
+							<div class="modal-section">
+								<h4>Model Visibility</h4>
+								<div id="keyframeModelSelectorHost" class="keyframe-model-selector-host"></div>
 							</div>
 						</div>
 					</div>

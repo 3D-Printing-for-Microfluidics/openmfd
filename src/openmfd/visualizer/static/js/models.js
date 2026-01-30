@@ -9,14 +9,44 @@ export function createModelManager({ scene, world }) {
   let lastModifieds = [];
   let listSignature = '';
   let visibilityResolver = null;
+  const visibilityOverrides = new Map();
 
   function setVisibilityResolver(resolver) {
     visibilityResolver = resolver;
   }
 
   function getVisibility(idx) {
+    if (visibilityOverrides.has(idx)) return visibilityOverrides.get(idx);
     if (!visibilityResolver) return true;
     return visibilityResolver(idx);
+  }
+
+  function setVisibilityOverride(idx, visible) {
+    if (!Number.isInteger(idx)) return;
+    visibilityOverrides.set(idx, !!visible);
+    updateVisibility();
+  }
+
+  function setVisibilityOverrides(map) {
+    visibilityOverrides.clear();
+    if (map) {
+      if (map instanceof Map) {
+        map.forEach((value, key) => {
+          if (Number.isInteger(key)) visibilityOverrides.set(key, !!value);
+        });
+      } else {
+        Object.entries(map).forEach(([key, value]) => {
+          const idx = Number.parseInt(key, 10);
+          if (Number.isInteger(idx)) visibilityOverrides.set(idx, !!value);
+        });
+      }
+    }
+    updateVisibility();
+  }
+
+  function clearVisibilityOverrides() {
+    visibilityOverrides.clear();
+    updateVisibility();
   }
 
   async function fetchModelList() {
@@ -87,6 +117,15 @@ export function createModelManager({ scene, world }) {
           mat.metalness = 0.5;
           mat.transparent = true;
           mat.side = THREE.FrontSide;
+          if (Array.isArray(mat)) {
+            mat.forEach((m) => {
+              if (m && m.userData && m.userData.baseOpacity === undefined) {
+                m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
+              }
+            });
+          } else if (mat && mat.userData && mat.userData.baseOpacity === undefined) {
+            mat.userData.baseOpacity = Number.isFinite(mat.opacity) ? mat.opacity : 1;
+          }
         }
       });
       models[idx] = sceneObj;
@@ -100,6 +139,39 @@ export function createModelManager({ scene, world }) {
     modelGroups.forEach((group, idx) => {
       if (group) group.visible = getVisibility(idx);
     });
+  }
+
+  function setModelOpacity(idx, opacity = 1) {
+    const group = modelGroups[idx];
+    if (!group) return;
+    const value = Math.max(0, Math.min(1, opacity));
+    group.renderOrder = value < 0.999 ? 100 + idx : 0;
+    group.traverse((child) => {
+      if (!child.isMesh) return;
+      const mat = child.material;
+      const applyMat = (m) => {
+        if (!m) return;
+        if (!m.userData) m.userData = {};
+        if (m.userData.baseOpacity === undefined) {
+          m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
+        }
+        m.transparent = true;
+        m.depthWrite = value >= 0.999;
+        m.depthTest = true;
+        m.opacity = m.userData.baseOpacity * value;
+        m.needsUpdate = true;
+      };
+      if (Array.isArray(mat)) {
+        mat.forEach(applyMat);
+      } else {
+        applyMat(mat);
+      }
+      child.renderOrder = value < 0.999 ? 100 + idx : 0;
+    });
+  }
+
+  function getModelCount() {
+    return modelGroups.length;
   }
 
 
@@ -193,5 +265,10 @@ export function createModelManager({ scene, world }) {
     getModelCenterWorld,
     getModelCenterModel,
     setVisibilityResolver,
+    setVisibilityOverride,
+    setVisibilityOverrides,
+    clearVisibilityOverrides,
+    setModelOpacity,
+    getModelCount,
   };
 }

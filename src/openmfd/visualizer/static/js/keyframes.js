@@ -1,9 +1,12 @@
+import * as THREE from '../lib/three/three.module.js';
+
 const KEYFRAME_STORAGE_KEY = 'openmfd_keyframes_v1';
 
 export function createKeyframeSystem({
   cameraSystem,
   lightSystem = null,
   modelSelector = null,
+  modelManager = null,
   settingsSystem = null,
   settingsDialog = null,
   settingsDialogClose = null,
@@ -18,20 +21,27 @@ export function createKeyframeSystem({
 
   let panelEl = null;
   let toggleBtn = null;
+  let panelBodyEl = null;
   let listEl = null;
   let emptyEl = null;
   let addBtn = null;
-  let duplicateBtn = null;
   let moveUpBtn = null;
   let moveDownBtn = null;
   let removeBtn = null;
   let playBtn = null;
   let playFromStartBtn = null;
+  let transitionMenuEl = null;
+  let transitionMenuListEl = null;
+  let modelSelectorContainerEl = null;
+  let modelSelectorHostEl = null;
+  let modelSelectorHomeParent = null;
+  let modelSelectorHomeNextSibling = null;
 
   let settingsDialogEl = settingsDialog;
   let settingsDialogCloseBtn = settingsDialogClose;
   let settingsSystemRef = settingsSystem;
   let lightSystemRef = lightSystem;
+  let modelManagerRef = modelManager;
   let settingsTitleEl = null;
   let cameraListEl = null;
   let addCameraBtnSettingsEl = null;
@@ -48,8 +58,10 @@ export function createKeyframeSystem({
   let globalModelSelectionBeforeKeyframe = null;
   let selectionListenerAttached = false;
   let isPlaying = false;
-  let playbackTimer = null;
+  let playbackRaf = null;
   let playbackIndex = 0;
+  let playbackSegment = null;
+  let suppressModelSelectionSave = false;
 
   function restoreDialogChrome() {
     if (settingsTitleEl) {
@@ -79,29 +91,28 @@ export function createKeyframeSystem({
   function exitKeyframeEditing({
     restoreCamera = true,
     restoreLights = true,
+    restoreModels = true,
     clearSelection = false,
     activateGlobalTab = false,
   } = {}) {
     if (!isEditing) return;
 
-    if (restoreCamera || restoreLights) {
-      const frame = normalizeKeyframe(keyframes[editingIndex]);
-      frame.camera = cameraSystem.getCameraState();
-      frame.lights = lightSystemRef ? lightSystemRef.getLightState() : frame.lights;
-      frame.models = modelSelector ? modelSelector.getSelectionSnapshot() : frame.models;
-      keyframes[editingIndex] = frame;
-      saveKeyframes();
-      renderList();
+    const frame = normalizeKeyframe(keyframes[editingIndex]);
+    frame.camera = cameraSystem.getCameraState();
+    frame.lights = lightSystemRef ? lightSystemRef.getLightState() : frame.lights;
+    frame.models = modelSelector ? modelSelector.getSelectionSnapshot() : frame.models;
+    keyframes[editingIndex] = frame;
+    saveKeyframes();
+    renderList();
 
-      if (restoreCamera && prevCameraState) {
-        cameraSystem.applyExternalCameraState(prevCameraState);
-      }
-      if (restoreLights && prevLightState && lightSystemRef) {
-        lightSystemRef.applyLightState(prevLightState);
-      }
-      if (modelSelector && globalModelSelectionBeforeKeyframe) {
-        modelSelector.applySelectionSnapshot(globalModelSelectionBeforeKeyframe);
-      }
+    if (restoreCamera && prevCameraState) {
+      cameraSystem.applyExternalCameraState(prevCameraState);
+    }
+    if (restoreLights && prevLightState && lightSystemRef) {
+      lightSystemRef.applyLightState(prevLightState);
+    }
+    if (restoreModels && modelSelector && globalModelSelectionBeforeKeyframe) {
+      modelSelector.applySelectionSnapshot(globalModelSelectionBeforeKeyframe);
     }
 
     isEditing = false;
@@ -130,7 +141,7 @@ export function createKeyframeSystem({
 
   function normalizeKeyframe(raw) {
     if (!raw) {
-      return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0 };
+      return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0, transitions: {} };
     }
     if (raw.camera || raw.lights) {
       return {
@@ -138,12 +149,13 @@ export function createKeyframeSystem({
         lights: raw.lights || null,
         models: raw.models || null,
         time: Number.isFinite(raw.time) ? raw.time : 0,
+        transitions: raw.transitions || {},
       };
     }
     if (raw.pos && raw.target) {
-      return { camera: raw, lights: null, models: null, time: 0 };
+      return { camera: raw, lights: null, models: null, time: 0, transitions: {} };
     }
-    return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0 };
+    return { camera: cameraSystem.getCameraState(), lights: null, models: null, time: 0, transitions: {} };
   }
 
   function saveKeyframes() {
@@ -178,6 +190,7 @@ export function createKeyframeSystem({
     keyframes.forEach((state, index) => {
       const row = document.createElement('div');
       row.className = 'keyframe-row';
+      row.dataset.keyframeIndex = String(index);
 
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
@@ -228,9 +241,6 @@ export function createKeyframeSystem({
     if (removeBtn) {
       removeBtn.disabled = !hasSelection;
     }
-    if (duplicateBtn) {
-      duplicateBtn.disabled = !hasSelection;
-    }
     if (moveUpBtn) {
       moveUpBtn.disabled = !hasSelection || activeKeyframeIndex <= 0;
     }
@@ -240,6 +250,269 @@ export function createKeyframeSystem({
     if (playBtn) {
       playBtn.disabled = keyframes.length === 0;
     }
+    if (!hasSelection && transitionMenuEl) {
+      transitionMenuEl.style.display = 'none';
+    }
+    if (hasSelection && transitionMenuEl) {
+      transitionMenuEl.style.display = '';
+    }
+  }
+
+  function scrollToActiveKeyframe() {
+    if (!listEl || activeKeyframeIndex === null) return;
+    const row = listEl.querySelector(`[data-keyframe-index="${activeKeyframeIndex}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function stableStringify(value) {
+    if (value === null || value === undefined) return String(value);
+    if (typeof value !== 'object') return JSON.stringify(value);
+    if (Array.isArray(value)) {
+      return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+    }
+    const keys = Object.keys(value).sort();
+    const pairs = keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`);
+    return `{${pairs.join(',')}}`;
+  }
+
+  function isEqual(a, b) {
+    return stableStringify(a) === stableStringify(b);
+  }
+
+  function getChangedItems(index) {
+    if (!Number.isInteger(index) || index < 0 || index >= keyframes.length) return [];
+    const current = normalizeKeyframe(keyframes[index]);
+    const prev = index > 0 ? normalizeKeyframe(keyframes[index - 1]) : null;
+
+    const changed = [];
+    const pushIfChanged = (key, label, currentValue, prevValue) => {
+      if (!prev) {
+        if (currentValue !== null && currentValue !== undefined) {
+          changed.push({ key, label });
+        }
+        return;
+      }
+      if (!isEqual(currentValue, prevValue)) {
+        changed.push({ key, label });
+      }
+    };
+
+    pushIfChanged('camera', 'Camera', current.camera, prev?.camera);
+    pushIfChanged('lights', 'Lighting', current.lights, prev?.lights);
+    pushIfChanged('models', 'Models', current.models, prev?.models);
+    return changed;
+  }
+
+  function renderTransitionMenu() {
+    if (!transitionMenuListEl || activeKeyframeIndex === null) return;
+    if (activeKeyframeIndex === 0) {
+      transitionMenuListEl.innerHTML = '';
+      const note = document.createElement('div');
+      note.className = 'transition-item';
+      note.textContent = 'Transitions start at keyframe 2.';
+      transitionMenuListEl.appendChild(note);
+      return;
+    }
+    transitionMenuListEl.innerHTML = '';
+    const items = getChangedItems(activeKeyframeIndex);
+    if (items.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'transition-item';
+      empty.textContent = 'No changes detected.';
+      transitionMenuListEl.appendChild(empty);
+      return;
+    }
+
+    const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
+    frame.transitions = frame.transitions || {};
+    keyframes[activeKeyframeIndex] = frame;
+
+    const options = [
+      { value: 'start', label: 'On start' },
+      { value: 'middle', label: 'In middle' },
+      { value: 'end', label: 'On end' },
+      { value: 'linear', label: 'Linear' },
+      { value: 's-curve', label: 'S-curve' },
+    ];
+
+    items.forEach(({ key, label }) => {
+      const row = document.createElement('div');
+      row.className = 'transition-item';
+
+      const name = document.createElement('label');
+      name.textContent = label;
+
+      const select = document.createElement('select');
+      const entry = getTransitionEntry(frame, key);
+      const current = entry.type || 'linear';
+      options.forEach((opt) => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        if (opt.value === current) option.selected = true;
+        select.appendChild(option);
+      });
+      select.addEventListener('change', () => {
+        const updated = normalizeKeyframe(keyframes[activeKeyframeIndex]);
+        updated.transitions = updated.transitions || {};
+        updated.transitions[key] = {
+          type: select.value,
+          curve: getPresetCurve(select.value),
+        };
+        keyframes[activeKeyframeIndex] = updated;
+        saveKeyframes();
+        renderTransitionMenu();
+      });
+
+      const curveWrap = document.createElement('div');
+      curveWrap.className = 'transition-curve';
+      const width = 160;
+      const height = 80;
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.setAttribute('width', String(width));
+      svg.setAttribute('height', String(height));
+
+      const axis = document.createElementNS(svgNS, 'path');
+      axis.setAttribute('d', `M5 ${height - 5} L${width - 5} ${height - 5} M5 ${height - 5} L5 5`);
+      axis.setAttribute('stroke', 'currentColor');
+      axis.setAttribute('stroke-width', '1');
+      axis.setAttribute('opacity', '0.3');
+      axis.setAttribute('fill', 'none');
+      svg.appendChild(axis);
+
+      const curvePath = document.createElementNS(svgNS, 'path');
+      curvePath.setAttribute('stroke', 'currentColor');
+      curvePath.setAttribute('stroke-width', '2');
+      curvePath.setAttribute('fill', 'none');
+      svg.appendChild(curvePath);
+
+      const handles = [];
+      for (let i = 1; i <= 3; i += 1) {
+        const handle = document.createElementNS(svgNS, 'circle');
+        handle.setAttribute('r', '4');
+        handle.setAttribute('fill', 'currentColor');
+        svg.appendChild(handle);
+        handles.push(handle);
+      }
+
+      const updateCurveSvg = (curve) => {
+        const points = normalizeCurvePoints(curve, current);
+        const plot = points.map((p) => {
+          const x = 5 + p.x * (width - 10);
+          const y = (height - 5) - clamp01(p.y) * (height - 10);
+          return { x, y };
+        });
+        const isStep = current === 'start' || current === 'middle' || current === 'end';
+        let segments = [];
+        if (isStep) {
+          const samples = 32;
+          for (let i = 0; i <= samples; i += 1) {
+            const t = i / samples;
+            const y = evaluateTransition({ transitions: { temp: { type: current } } }, 'temp', t);
+            const x = 5 + t * (width - 10);
+            const py = (height - 5) - y * (height - 10);
+            segments.push(`${i === 0 ? 'M' : 'L'}${x} ${py}`);
+          }
+        } else {
+          const smooth = smoothCurvePoints(points, 3);
+          segments = smooth.map((p, idx) => {
+            const x = 5 + p.x * (width - 10);
+            const y = (height - 5) - clamp01(p.y) * (height - 10);
+            return `${idx === 0 ? 'M' : 'L'}${x} ${y}`;
+          });
+        }
+        curvePath.setAttribute('d', segments.join(' '));
+        handles.forEach((handle, idx) => {
+          const pt = plot[idx + 1];
+          handle.setAttribute('cx', String(pt.x));
+          handle.setAttribute('cy', String(pt.y));
+        });
+      };
+
+      const applyCurveChange = (midIndex, cx, cy) => {
+        const updated = normalizeKeyframe(keyframes[activeKeyframeIndex]);
+        updated.transitions = updated.transitions || {};
+        const currentEntry = getTransitionEntry(updated, key);
+        const base = normalizeCurvePoints(currentEntry.curve || getPresetCurve(currentEntry.type || 'linear'), currentEntry.type || 'linear');
+        const nextPoints = base.map((p) => ({ x: p.x, y: p.y }));
+        const idx = midIndex + 1;
+        nextPoints[2].x = 0.5;
+        if (idx === 1) {
+          nextPoints[idx].x = clamp01(Math.min(cx, 0.5));
+        } else if (idx === 3) {
+          nextPoints[idx].x = clamp01(Math.max(cx, 0.5));
+        }
+        nextPoints[idx].y = clamp01(cy);
+        updated.transitions[key] = {
+          type: currentEntry.type || 'linear',
+          curve: { points: nextPoints },
+        };
+        keyframes[activeKeyframeIndex] = updated;
+        saveKeyframes();
+        updateCurveSvg({ points: nextPoints });
+      };
+
+      const pickMidIndex = (px, points) => {
+        const xs = [points[1].x, points[2].x, points[3].x];
+        let best = 0;
+        let bestDist = Infinity;
+        xs.forEach((x, idx) => {
+          const dist = Math.abs(px - x);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = idx;
+          }
+        });
+        return best;
+      };
+
+      const onPointer = (event) => {
+        const rect = svg.getBoundingClientRect();
+        const px = clamp01((event.clientX - rect.left - 5) / (rect.width - 10));
+        const py = clamp01(1 - (event.clientY - rect.top - 5) / (rect.height - 10));
+        const currentFrame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
+        const currentEntry = getTransitionEntry(currentFrame, key);
+        const points = normalizeCurvePoints(currentEntry.curve || getPresetCurve(currentEntry.type || 'linear'), currentEntry.type || 'linear');
+        const midIndex = pickMidIndex(px, points);
+        applyCurveChange(midIndex, px, py);
+      };
+
+      let dragging = false;
+      const isStepType = current === 'start' || current === 'middle' || current === 'end';
+      svg.style.opacity = isStepType ? '0.6' : '1';
+      svg.style.pointerEvents = isStepType ? 'none' : 'auto';
+
+      svg.addEventListener('pointerdown', (event) => {
+        if (isStepType) return;
+        dragging = true;
+        svg.setPointerCapture(event.pointerId);
+        onPointer(event);
+      });
+      svg.addEventListener('pointermove', (event) => {
+        if (!dragging || isStepType) return;
+        onPointer(event);
+      });
+      svg.addEventListener('pointerup', (event) => {
+        dragging = false;
+        svg.releasePointerCapture(event.pointerId);
+      });
+      svg.addEventListener('pointerleave', () => {
+        dragging = false;
+      });
+
+      const initialCurve = entry.curve || getPresetCurve(current);
+      updateCurveSvg(initialCurve);
+
+      curveWrap.appendChild(svg);
+
+      row.appendChild(name);
+      row.appendChild(select);
+      row.appendChild(curveWrap);
+      transitionMenuListEl.appendChild(row);
+    });
   }
 
   function enforceKeyframeTimes() {
@@ -278,75 +551,391 @@ export function createKeyframeSystem({
     }
   }
 
-  function clearPlaybackTimer() {
-    if (playbackTimer) {
-      clearTimeout(playbackTimer);
-      playbackTimer = null;
+  function clearPlaybackRaf() {
+    if (playbackRaf) {
+      cancelAnimationFrame(playbackRaf);
+      playbackRaf = null;
     }
   }
 
   function stopPlayback() {
     if (!isPlaying) return;
     isPlaying = false;
-    clearPlaybackTimer();
+    playbackSegment = null;
+    clearPlaybackRaf();
+    suppressModelSelectionSave = false;
     updatePlayButton();
   }
 
-  function getTimelineDuration() {
-    if (keyframes.length < 2) return 1;
-    const times = keyframes.map((frame) => Number.isFinite(frame?.time) ? frame.time : 0);
-    const minTime = Math.min(...times);
-    const maxTime = Math.max(...times);
-    const duration = maxTime - minTime;
-    return duration > 0 ? duration : 1;
-  }
-
-  function scheduleNextPlaybackStep() {
-    if (!isPlaying || keyframes.length === 0) return;
-    const currentIndex = playbackIndex;
-    const nextIndex = currentIndex + 1;
-    if (nextIndex >= keyframes.length) {
-      stopPlayback();
-      return;
+  function easeFor(type, t) {
+    if (type === 's-curve') {
+      return t * t * (3 - 2 * t);
     }
-    const currentTime = Number.isFinite(keyframes[currentIndex]?.time)
-      ? keyframes[currentIndex].time
-      : 0;
-    const nextTime = Number.isFinite(keyframes[nextIndex]?.time)
-      ? keyframes[nextIndex].time
-      : 0;
-    let delay = nextTime - currentTime;
-    if (!Number.isFinite(delay)) delay = 1;
-    delay = Math.max(0.05, delay);
-    playbackTimer = setTimeout(() => {
-      playbackIndex = nextIndex;
-      selectKeyframe(playbackIndex);
-      scheduleNextPlaybackStep();
-    }, delay * 1000);
+    return t;
   }
 
-  function startPlayback() {
+  function getTransitionType(frame, key) {
+    const entry = frame?.transitions?.[key];
+    if (!entry) return 'linear';
+    if (typeof entry === 'string') return entry;
+    return entry.type || 'linear';
+  }
+
+  function getTransitionEntry(frame, key) {
+    const entry = frame?.transitions?.[key];
+    if (!entry) return { type: 'linear', curve: null };
+    if (typeof entry === 'string') return { type: entry, curve: null };
+    return {
+      type: entry.type || 'linear',
+      curve: entry.curve || null,
+    };
+  }
+
+  function getPresetCurve(type) {
+    switch (type) {
+      case 'start':
+        return {
+          points: [
+            { x: 0, y: 0 },
+            { x: 0.25, y: 0.9 },
+            { x: 0.5, y: 1 },
+            { x: 0.75, y: 1 },
+            { x: 1, y: 1 },
+          ],
+        };
+      case 'end':
+        return {
+          points: [
+            { x: 0, y: 0 },
+            { x: 0.25, y: 0 },
+            { x: 0.5, y: 0 },
+            { x: 0.75, y: 0.1 },
+            { x: 1, y: 1 },
+          ],
+        };
+      case 's-curve':
+        return {
+          points: [
+            { x: 0, y: 0 },
+            { x: 0.25, y: 0.1 },
+            { x: 0.5, y: 0.5 },
+            { x: 0.75, y: 0.9 },
+            { x: 1, y: 1 },
+          ],
+        };
+      case 'middle':
+        return {
+          points: [
+            { x: 0, y: 0 },
+            { x: 0.25, y: 0.1 },
+            { x: 0.5, y: 0.6 },
+            { x: 0.75, y: 0.9 },
+            { x: 1, y: 1 },
+          ],
+        };
+      case 'linear':
+      default:
+        return {
+          points: [
+            { x: 0, y: 0 },
+            { x: 0.25, y: 0.25 },
+            { x: 0.5, y: 0.5 },
+            { x: 0.75, y: 0.75 },
+            { x: 1, y: 1 },
+          ],
+        };
+    }
+  }
+
+  function clamp01(value) {
+    return Math.max(0, Math.min(1, value));
+  }
+
+  function catmullRom(p0, p1, p2, p3, t) {
+    const t2 = t * t;
+    const t3 = t2 * t;
+    return 0.5 * (
+      (2 * p1) +
+      (-p0 + p2) * t +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
+      (-p0 + 3 * p1 - 3 * p2 + p3) * t3
+    );
+  }
+
+  function smoothCurvePoints(points, iterations = 2) {
+    if (!Array.isArray(points) || points.length < 2) return points || [];
+    let current = points.map((p) => ({ x: p.x, y: p.y }));
+    for (let i = 0; i < iterations; i += 1) {
+      const next = [current[0]];
+      for (let j = 0; j < current.length - 1; j += 1) {
+        const p0 = current[j];
+        const p1 = current[j + 1];
+        const q = { x: 0.75 * p0.x + 0.25 * p1.x, y: 0.75 * p0.y + 0.25 * p1.y };
+        const r = { x: 0.25 * p0.x + 0.75 * p1.x, y: 0.25 * p0.y + 0.75 * p1.y };
+        next.push(q, r);
+      }
+      next.push(current[current.length - 1]);
+      current = next;
+    }
+    return current;
+  }
+
+  function normalizeCurvePoints(curve, type) {
+    const fallback = getPresetCurve(type).points;
+    if (!curve || !Array.isArray(curve.points) || curve.points.length !== 5) {
+      return fallback.map((p) => ({ x: p.x, y: p.y }));
+    }
+    const normalized = curve.points.map((p, idx) => {
+      if (typeof p === 'number') {
+        return { x: fallback[idx].x, y: clamp01(p) };
+      }
+      return {
+        x: Number.isFinite(p?.x) ? clamp01(p.x) : fallback[idx].x,
+        y: Number.isFinite(p?.y) ? clamp01(p.y) : fallback[idx].y,
+      };
+    });
+    normalized[0].x = 0;
+    normalized[4].x = 1;
+    normalized[2].x = 0.5;
+    normalized[1].x = Math.min(normalized[1].x, normalized[2].x);
+    normalized[3].x = Math.max(normalized[3].x, normalized[2].x);
+    return normalized;
+  }
+
+  function evaluateTransition(frame, key, t) {
+    const entry = getTransitionEntry(frame, key);
+    if (entry.type === 'start') return t <= 0 ? 0 : 1;
+    if (entry.type === 'middle') return t < 0.5 ? 0 : 1;
+    if (entry.type === 'end') return t < 1 ? 0 : 1;
+
+    const points = normalizeCurvePoints(entry.curve || getPresetCurve(entry.type), entry.type);
+    const smoothPoints = smoothCurvePoints(points, 3);
+    const xs = smoothPoints.map((p) => p.x);
+    const values = smoothPoints.map((p) => p.y);
+    const clampedT = clamp01(t);
+    let idx = 0;
+    for (let i = 0; i < xs.length - 1; i += 1) {
+      if (clampedT >= xs[i] && clampedT <= xs[i + 1]) {
+        idx = i;
+        break;
+      }
+    }
+    const x0 = xs[idx];
+    const x1 = xs[idx + 1];
+    const localT = x1 === x0 ? 0 : (clampedT - x0) / (x1 - x0);
+    const p0 = values[Math.max(0, idx - 1)];
+    const p1 = values[idx];
+    const p2 = values[idx + 1];
+    const p3 = values[Math.min(values.length - 1, idx + 2)];
+    return clamp01(catmullRom(p0, p1, p2, p3, localT));
+  }
+
+  function interpolateCameraState(start, end, t) {
+    const startPos = new THREE.Vector3(start.pos.x, start.pos.y, start.pos.z);
+    const startTarget = new THREE.Vector3(start.target.x, start.target.y, start.target.z);
+    const endPos = new THREE.Vector3(end.pos.x, end.pos.y, end.pos.z);
+    const endTarget = new THREE.Vector3(end.target.x, end.target.y, end.target.z);
+
+    const startDir = startPos.clone().sub(startTarget);
+    const endDir = endPos.clone().sub(endTarget);
+    const startDirLen = startDir.length();
+    const endDirLen = endDir.length();
+    if (startDirLen > 0) startDir.divideScalar(startDirLen);
+    if (endDirLen > 0) endDir.divideScalar(endDirLen);
+    const dir = startDir.clone().lerp(endDir, t);
+    if (dir.length() > 0) dir.normalize();
+
+    const target = startTarget.clone().lerp(endTarget, t);
+    const startDist = startPos.distanceTo(startTarget);
+    const endDist = endPos.distanceTo(endTarget);
+    const dist = startDist + (endDist - startDist) * t;
+    const pos = target.clone().add(dir.multiplyScalar(dist));
+
+    return {
+      pos: { x: pos.x, y: pos.y, z: pos.z },
+      target: { x: target.x, y: target.y, z: target.z },
+      roll: (start.roll || 0) + ((end.roll || 0) - (start.roll || 0)) * t,
+      fov: (start.fov || 0) + ((end.fov || 0) - (start.fov || 0)) * t,
+      mode: end.mode || start.mode || 'perspective',
+      controlType: end.controlType || start.controlType || 'orbit',
+    };
+  }
+
+  function getModelVisibilityFromSnapshot(snapshot, idx) {
+    if (!snapshot || !snapshot.models) return false;
+    const cb = document.getElementById(`glb_cb_${idx}`);
+    if (!cb) return false;
+    const checked = Object.prototype.hasOwnProperty.call(snapshot.models, cb.id)
+      ? snapshot.models[cb.id]
+      : cb.checked;
+    const groups = (cb.dataset.groups || '').split('|').filter(Boolean);
+    const groupsOn = groups.every((groupId) => {
+      if (!snapshot.groups) return true;
+      if (Object.prototype.hasOwnProperty.call(snapshot.groups, groupId)) {
+        return snapshot.groups[groupId];
+      }
+      return true;
+    });
+    return !!checked && groupsOn;
+  }
+
+  function buildVisibilityMap(snapshot) {
+    const map = new Map();
+    const count = modelManagerRef ? modelManagerRef.getModelCount() : 0;
+    for (let i = 0; i < count; i += 1) {
+      map.set(i, getModelVisibilityFromSnapshot(snapshot, i));
+    }
+    return map;
+  }
+
+  function applyModelTransition(startSnapshot, endSnapshot, t, transitionFrame) {
+    if (!modelManagerRef || !modelSelector) return;
+    const easedT = evaluateTransition(transitionFrame, 'models', t);
+
+    const startMap = buildVisibilityMap(startSnapshot);
+    const endMap = buildVisibilityMap(endSnapshot);
+    const overrides = new Map();
+    const count = modelManagerRef.getModelCount();
+
+    if (playbackSegment && !playbackSegment.modelsStartApplied) {
+      suppressModelSelectionSave = true;
+      modelSelector.applySelectionSnapshot(startSnapshot, { persist: false });
+      suppressModelSelectionSave = false;
+      playbackSegment.modelsStartApplied = true;
+    }
+
+    for (let i = 0; i < count; i += 1) {
+      const startVisible = startMap.get(i);
+      const endVisible = endMap.get(i);
+      if (startVisible && !endVisible) {
+        overrides.set(i, true);
+        modelManagerRef.setModelOpacity(i, 1 - easedT);
+      } else if (!startVisible && endVisible) {
+        overrides.set(i, true);
+        modelManagerRef.setModelOpacity(i, easedT);
+      } else if (startVisible && endVisible) {
+        modelManagerRef.setModelOpacity(i, 1);
+      } else {
+        modelManagerRef.setModelOpacity(i, 0);
+      }
+    }
+    modelManagerRef.setVisibilityOverrides(overrides);
+    if (t >= 1 && playbackSegment && !playbackSegment.modelsEndApplied) {
+      suppressModelSelectionSave = true;
+      modelSelector.applySelectionSnapshot(endSnapshot, { persist: false });
+      modelManagerRef.clearVisibilityOverrides();
+      for (let i = 0; i < count; i += 1) {
+        modelManagerRef.setModelOpacity(i, 1);
+      }
+      suppressModelSelectionSave = false;
+      playbackSegment.modelsEndApplied = true;
+    }
+  }
+
+  function applyCameraTransition(startFrame, endFrame, t, transitionFrame) {
+    const easedT = evaluateTransition(transitionFrame, 'camera', t);
+    const interpolated = interpolateCameraState(startFrame.camera, endFrame.camera, easedT);
+    cameraSystem.applyExternalCameraState(interpolated);
+  }
+
+  function applyLightingTransition(startFrame, endFrame, t, transitionFrame) {
+    if (!lightSystemRef) return;
+    const easedT = evaluateTransition(transitionFrame, 'lights', t);
+    lightSystemRef.applyLightStateInterpolated(startFrame.lights, endFrame.lights, easedT);
+  }
+
+  function startSegment(fromIndex, toIndex, nowMs) {
+    const startFrame = normalizeKeyframe(keyframes[fromIndex]);
+    const endFrame = normalizeKeyframe(keyframes[toIndex]);
+    if (!startFrame.lights && lightSystemRef) {
+      startFrame.lights = lightSystemRef.getLightState();
+    }
+    if (!endFrame.lights && lightSystemRef) {
+      endFrame.lights = startFrame.lights;
+    }
+    if (!startFrame.models && modelSelector) {
+      startFrame.models = modelSelector.getSelectionSnapshot();
+    }
+    if (!endFrame.models && modelSelector) {
+      endFrame.models = startFrame.models;
+    }
+    const startTime = Number.isFinite(startFrame.time) ? startFrame.time : 0;
+    const endTime = Number.isFinite(endFrame.time) ? endFrame.time : startTime + 1;
+    const duration = Math.max(0.05, endTime - startTime);
+
+    playbackSegment = {
+      fromIndex,
+      toIndex,
+      startTimeMs: nowMs,
+      durationMs: duration * 1000,
+      modelsStartApplied: false,
+      modelsEndApplied: false,
+    };
+
+    selectKeyframe(fromIndex, { applyState: false });
+  }
+
+  function tickPlayback(nowMs) {
+    if (!isPlaying || !playbackSegment) return;
+    const { fromIndex, toIndex, startTimeMs, durationMs } = playbackSegment;
+    const startFrame = normalizeKeyframe(keyframes[fromIndex]);
+    const endFrame = normalizeKeyframe(keyframes[toIndex]);
+    if (!startFrame.lights && lightSystemRef) {
+      startFrame.lights = lightSystemRef.getLightState();
+    }
+    if (!endFrame.lights && lightSystemRef) {
+      endFrame.lights = startFrame.lights;
+    }
+    if (!startFrame.models && modelSelector) {
+      startFrame.models = modelSelector.getSelectionSnapshot();
+    }
+    if (!endFrame.models && modelSelector) {
+      endFrame.models = startFrame.models;
+    }
+    const rawT = Math.min(1, Math.max(0, (nowMs - startTimeMs) / durationMs));
+
+    applyCameraTransition(startFrame, endFrame, rawT, endFrame);
+    applyLightingTransition(startFrame, endFrame, rawT, endFrame);
+    applyModelTransition(startFrame.models, endFrame.models, rawT, endFrame);
+
+    if (rawT >= 1) {
+      playbackIndex = toIndex;
+      selectKeyframe(playbackIndex, { applyState: false });
+      scrollToActiveKeyframe();
+      if (playbackIndex >= keyframes.length - 1) {
+        stopPlayback();
+        return;
+      }
+      startSegment(playbackIndex, playbackIndex + 1, nowMs);
+    }
+
+    playbackRaf = requestAnimationFrame(tickPlayback);
+  }
+
+  function startPlayback(fromStart = false) {
     if (keyframes.length === 0) return;
     if (isPlaying) return;
     isPlaying = true;
-    playbackIndex = activeKeyframeIndex !== null ? activeKeyframeIndex : 0;
-    selectKeyframe(playbackIndex);
+    suppressModelSelectionSave = true;
+    playbackIndex = fromStart || activeKeyframeIndex === null ? 0 : activeKeyframeIndex;
+    if (playbackIndex >= keyframes.length - 1) {
+      selectKeyframe(playbackIndex);
+      stopPlayback();
+      return;
+    }
+    const nextIndex = Math.min(playbackIndex + 1, keyframes.length - 1);
+    const nowMs = performance.now();
+    startSegment(playbackIndex, nextIndex, nowMs);
     updatePlayButton();
-    clearPlaybackTimer();
-    scheduleNextPlaybackStep();
+    clearPlaybackRaf();
+    playbackRaf = requestAnimationFrame(tickPlayback);
   }
 
   function startPlaybackFromBeginning() {
-    if (keyframes.length === 0) return;
     if (isPlaying) {
       stopPlayback();
     }
-    isPlaying = true;
-    playbackIndex = 0;
-    selectKeyframe(playbackIndex);
-    updatePlayButton();
-    clearPlaybackTimer();
-    scheduleNextPlaybackStep();
+    startPlayback(true);
   }
 
   function setPanelOpen(open) {
@@ -354,13 +943,43 @@ export function createKeyframeSystem({
     if (panelEl) {
       panelEl.style.display = isPanelOpen ? '' : 'none';
     }
+    if (panelBodyEl) {
+      panelBodyEl.style.display = '';
+    }
     if (toggleBtn) {
       toggleBtn.classList.toggle('is-active', isPanelOpen);
     }
+    setModelSelectorLocation(isPanelOpen);
   }
 
-  function selectKeyframe(index) {
+  function setModelSelectorLocation(enabled) {
+    if (!modelSelectorContainerEl) return;
+    if (!modelSelectorHomeParent) {
+      modelSelectorHomeParent = modelSelectorContainerEl.parentElement;
+      modelSelectorHomeNextSibling = modelSelectorContainerEl.nextElementSibling;
+    }
+    if (enabled && modelSelectorHostEl) {
+      if (modelSelectorContainerEl.parentElement !== modelSelectorHostEl) {
+        modelSelectorHostEl.appendChild(modelSelectorContainerEl);
+      }
+      modelSelectorContainerEl.classList.add('is-in-dialog');
+      const form = modelSelectorContainerEl.querySelector('form');
+      if (form) form.style.display = '';
+    } else if (!enabled && modelSelectorHomeParent) {
+      if (modelSelectorContainerEl.parentElement !== modelSelectorHomeParent) {
+        if (modelSelectorHomeNextSibling && modelSelectorHomeNextSibling.parentElement === modelSelectorHomeParent) {
+          modelSelectorHomeParent.insertBefore(modelSelectorContainerEl, modelSelectorHomeNextSibling);
+        } else {
+          modelSelectorHomeParent.appendChild(modelSelectorContainerEl);
+        }
+      }
+      modelSelectorContainerEl.classList.remove('is-in-dialog');
+    }
+  }
+
+  function selectKeyframe(index, options = {}) {
     if (!Number.isInteger(index) || index < 0 || index >= keyframes.length) return;
+    const applyState = options.applyState !== false;
     if (activeKeyframeIndex === null && lightSystemRef) {
       globalLightStateBeforeKeyframe = lightSystemRef.getLightState();
     }
@@ -372,17 +991,21 @@ export function createKeyframeSystem({
     keyframes[index] = frame;
     cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
     cameraSystem.setSuppressActiveCameraHighlight(true);
-    if (frame.camera) {
-      cameraSystem.applyExternalCameraState(frame.camera);
-    }
-    if (frame.lights && lightSystemRef) {
-      lightSystemRef.applyLightState(frame.lights);
-    }
-    if (frame.models && modelSelector) {
-      modelSelector.applySelectionSnapshot(frame.models);
+    if (applyState) {
+      if (frame.camera) {
+        cameraSystem.applyExternalCameraState(frame.camera);
+      }
+      if (frame.lights && lightSystemRef) {
+        lightSystemRef.applyLightState(frame.lights);
+      }
+      if (frame.models && modelSelector) {
+        modelSelector.applySelectionSnapshot(frame.models);
+      }
     }
     renderList();
+    scrollToActiveKeyframe();
     cameraSystem.refreshUpdateButton();
+    renderTransitionMenu();
     saveKeyframes();
   }
 
@@ -400,6 +1023,9 @@ export function createKeyframeSystem({
       modelSelector.applySelectionSnapshot(globalModelSelectionBeforeKeyframe);
     }
     globalModelSelectionBeforeKeyframe = null;
+    if (transitionMenuEl) {
+      transitionMenuEl.style.display = 'none';
+    }
     saveKeyframes();
   }
 
@@ -412,26 +1038,10 @@ export function createKeyframeSystem({
         ? keyframes[keyframes.length - 1].time
         : 0
       : 0;
-    keyframes.push({ camera: state, lights, models, time: lastTime + 1 });
+    keyframes.push({ camera: state, lights, models, time: lastTime + 1, transitions: {} });
     enforceKeyframeTimes();
     selectKeyframe(keyframes.length - 1);
-    saveKeyframes();
-  }
-
-  function duplicateActiveKeyframe() {
-    if (activeKeyframeIndex === null) return;
-    if (activeKeyframeIndex < 0 || activeKeyframeIndex >= keyframes.length) return;
-    const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
-    const copy = {
-      camera: frame.camera ? JSON.parse(JSON.stringify(frame.camera)) : frame.camera,
-      lights: frame.lights ? JSON.parse(JSON.stringify(frame.lights)) : frame.lights,
-      models: frame.models ? JSON.parse(JSON.stringify(frame.models)) : frame.models,
-      time: Number.isFinite(frame.time) ? frame.time : 0,
-    };
-    const insertIndex = activeKeyframeIndex + 1;
-    keyframes.splice(insertIndex, 0, copy);
-    enforceKeyframeTimes();
-    selectKeyframe(insertIndex);
+    scrollToActiveKeyframe();
     saveKeyframes();
   }
 
@@ -545,11 +1155,19 @@ export function createKeyframeSystem({
           hiddenTabButtons.push({ el: btn, display: btn.style.display });
           btn.style.display = 'none';
         }
+        if (btn.dataset.tab === 'keyframes' || btn.dataset.tab === 'keyframe-models') {
+          hiddenTabButtons.push({ el: btn, display: btn.style.display });
+          btn.style.display = '';
+        }
       });
       tabPanels.forEach((panel) => {
         if (panel.dataset.tabPanel === 'general' || panel.dataset.tabPanel === 'appearance') {
           hiddenTabPanels.push({ el: panel, display: panel.style.display });
           panel.style.display = 'none';
+        }
+        if (panel.dataset.tabPanel === 'keyframes' || panel.dataset.tabPanel === 'keyframe-models') {
+          hiddenTabPanels.push({ el: panel, display: panel.style.display });
+          panel.style.display = '';
         }
       });
     }
@@ -568,61 +1186,72 @@ export function createKeyframeSystem({
     }
 
     if (settingsSystemRef) {
-      settingsSystemRef.activateTab('camera');
+      settingsSystemRef.activateTab('keyframes');
     }
     lightSystemRef.setDialogOpen(true);
     renderList();
+    renderTransitionMenu();
   }
 
   function closeEditor() {
-    exitKeyframeEditing({ restoreCamera: true, restoreLights: true, clearSelection: false, activateGlobalTab: false });
+    exitKeyframeEditing({ restoreCamera: false, restoreLights: false, restoreModels: false, clearSelection: false, activateGlobalTab: false });
   }
 
   return {
     bindUI: ({
       panel,
       toggleButton,
+      panelBody,
       list,
       empty,
       addButton,
-      duplicateButton,
       moveUpButton,
       moveDownButton,
       removeButton,
       playButton,
       playFromStartButton,
+      transitionMenu,
+      transitionMenuList,
+      modelSelectorContainer,
+      modelSelectorHost,
       settingsDialog: dialog,
       settingsDialogClose: dialogClose,
       settingsSystem: settingsSys,
       lightSystem: lightsSys,
       modelSelector: modelSelectorRef,
+      modelManager: modelManagerRefInput,
       cameraList,
       addCameraBtnSettings,
       removeCameraBtnSettings,
     }) => {
       panelEl = panel || panelEl;
       toggleBtn = toggleButton || toggleBtn;
+      panelBodyEl = panelBody || panelBodyEl;
       listEl = list || listEl;
       emptyEl = empty || emptyEl;
       addBtn = addButton || addBtn;
-      duplicateBtn = duplicateButton || duplicateBtn;
       moveUpBtn = moveUpButton || moveUpBtn;
       moveDownBtn = moveDownButton || moveDownBtn;
       removeBtn = removeButton || removeBtn;
       playBtn = playButton || playBtn;
       playFromStartBtn = playFromStartButton || playFromStartBtn;
+      transitionMenuEl = transitionMenu || transitionMenuEl;
+      transitionMenuListEl = transitionMenuList || transitionMenuListEl;
+      modelSelectorContainerEl = modelSelectorContainer || modelSelectorContainerEl;
+      modelSelectorHostEl = modelSelectorHost || modelSelectorHostEl;
       settingsDialogEl = dialog || settingsDialogEl;
       settingsDialogCloseBtn = dialogClose || settingsDialogCloseBtn;
       settingsSystemRef = settingsSys || settingsSystemRef;
       lightSystemRef = lightsSys || lightSystemRef;
       modelSelector = modelSelectorRef || modelSelector;
+      modelManagerRef = modelManagerRefInput || modelManagerRef;
       cameraListEl = cameraList || cameraListEl;
       addCameraBtnSettingsEl = addCameraBtnSettings || addCameraBtnSettingsEl;
       removeCameraBtnSettingsEl = removeCameraBtnSettings || removeCameraBtnSettingsEl;
 
       if (modelSelector && !selectionListenerAttached) {
         modelSelector.setSelectionChangeCallback((snapshot) => {
-          if (activeKeyframeIndex === null) return;
+          if (activeKeyframeIndex === null || suppressModelSelectionSave) return;
           const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
           frame.models = snapshot;
           keyframes[activeKeyframeIndex] = frame;
@@ -646,12 +1275,6 @@ export function createKeyframeSystem({
       if (removeBtn) {
         removeBtn.addEventListener('click', () => {
           removeActiveKeyframe();
-        });
-      }
-
-      if (duplicateBtn) {
-        duplicateBtn.addEventListener('click', () => {
-          duplicateActiveKeyframe();
         });
       }
 
@@ -684,6 +1307,11 @@ export function createKeyframeSystem({
         });
       }
 
+      if (transitionMenuEl) {
+        transitionMenuEl.style.display = activeKeyframeIndex === null ? 'none' : '';
+        renderTransitionMenu();
+      }
+
       if (settingsDialogCloseBtn) {
         settingsDialogCloseBtn.addEventListener('click', () => {
           closeEditor();
@@ -708,6 +1336,7 @@ export function createKeyframeSystem({
       settingsSystem: settingsSys,
       lightSystem: lightsSys,
       modelSelector: modelSelectorRef,
+      modelManager: modelManagerRefInput,
       cameraList,
       addCameraBtnSettings,
       removeCameraBtnSettings,
@@ -717,13 +1346,14 @@ export function createKeyframeSystem({
       settingsSystemRef = settingsSys || settingsSystemRef;
       lightSystemRef = lightsSys || lightSystemRef;
       modelSelector = modelSelectorRef || modelSelector;
+      modelManagerRef = modelManagerRefInput || modelManagerRef;
       cameraListEl = cameraList || cameraListEl;
       addCameraBtnSettingsEl = addCameraBtnSettings || addCameraBtnSettingsEl;
       removeCameraBtnSettingsEl = removeCameraBtnSettings || removeCameraBtnSettingsEl;
 
       if (modelSelector && !selectionListenerAttached) {
         modelSelector.setSelectionChangeCallback((snapshot) => {
-          if (activeKeyframeIndex === null) return;
+          if (activeKeyframeIndex === null || suppressModelSelectionSave) return;
           const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
           frame.models = snapshot;
           keyframes[activeKeyframeIndex] = frame;
@@ -737,7 +1367,7 @@ export function createKeyframeSystem({
       const hasSaved = !!cameraSystem.getActiveCameraState();
       if (isHome || hasSaved) {
         if (isEditing) {
-          exitKeyframeEditing({ restoreCamera: false, restoreLights: true, clearSelection: true, activateGlobalTab: true });
+          exitKeyframeEditing({ restoreCamera: false, restoreLights: true, restoreModels: true, clearSelection: true, activateGlobalTab: true });
         } else if (activeKeyframeIndex !== null) {
           clearSelection();
           if (settingsSystemRef) {

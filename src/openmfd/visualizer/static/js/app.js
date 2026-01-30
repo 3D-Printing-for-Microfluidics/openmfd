@@ -57,7 +57,7 @@ const cameraSystem = createCameraSystem({
   },
 });
 
-keyframeSystem = createKeyframeSystem({ cameraSystem });
+keyframeSystem = createKeyframeSystem({ cameraSystem, modelManager });
 
 const previewSystem = createPreviewSystem({ scene, controls, cameraSystem });
 
@@ -115,15 +115,17 @@ const docsBtn = document.getElementById('docsBtn');
 const saveSnapshotBtn = document.getElementById('saveSnapshotBtn');
 const animationToggleBtn = document.getElementById('animationToggleBtn');
 const animationPanel = document.getElementById('animationPanel');
+const animationPanelBody = document.getElementById('animationPanelBody');
 const keyframeListEl = document.getElementById('keyframeList');
 const keyframeEmptyEl = document.getElementById('keyframeEmpty');
 const addKeyframeBtn = document.getElementById('addKeyframeBtn');
-const duplicateKeyframeBtn = document.getElementById('duplicateKeyframeBtn');
 const moveKeyframeUpBtn = document.getElementById('moveKeyframeUpBtn');
 const moveKeyframeDownBtn = document.getElementById('moveKeyframeDownBtn');
 const removeKeyframeBtn = document.getElementById('removeKeyframeBtn');
 const keyframePlayBtn = document.getElementById('keyframePlayBtn');
 const keyframePlayFromStartBtn = document.getElementById('keyframePlayFromStartBtn');
+const transitionMenu = document.getElementById('transitionMenu');
+const transitionMenuList = document.getElementById('transitionMenuList');
 const updateCameraBtn = document.getElementById('updateCameraBtn');
 const modelSelectorEl = document.getElementById('modelSelector');
 const viewCubeEl = document.getElementById('viewCube');
@@ -132,6 +134,8 @@ const controlsEl = document.getElementById('controls');
 const settingsDialogEl = document.getElementById('settingsDialog');
 const lightDialogViewer = document.getElementById('lightDialogViewer');
 const lightsDialogViewer = document.getElementById('lightsDialogViewer');
+const keyframeModelsViewer = document.getElementById('keyframeModelsViewer');
+const keyframeModelSelectorHost = document.getElementById('keyframeModelSelectorHost');
 const cameraListEl = document.getElementById('cameraList');
 const cameraStripEl = document.getElementById('cameraStrip');
 const ambientColorInput = document.getElementById('ambientColor');
@@ -650,18 +654,23 @@ cameraSystem.bindCameraUI({
 keyframeSystem.bindUI({
   panel: animationPanel,
   toggleButton: animationToggleBtn,
+  panelBody: animationPanelBody,
   list: keyframeListEl,
   empty: keyframeEmptyEl,
   addButton: addKeyframeBtn,
-  duplicateButton: duplicateKeyframeBtn,
   moveUpButton: moveKeyframeUpBtn,
   moveDownButton: moveKeyframeDownBtn,
   removeButton: removeKeyframeBtn,
   playButton: keyframePlayBtn,
   playFromStartButton: keyframePlayFromStartBtn,
+  transitionMenu,
+  transitionMenuList,
+  modelSelectorContainer: modelSelectorEl,
+  modelSelectorHost: keyframeModelSelectorHost,
   settingsDialog,
   settingsDialogClose,
   lightSystem,
+  modelManager,
   cameraList: cameraListEl,
   addCameraBtnSettings: addCameraBtnSettings,
   removeCameraBtnSettings: removeCameraBtnSettings,
@@ -1295,6 +1304,7 @@ async function init() {
     previewViewers: {
       camera: lightDialogViewer,
       lights: lightsDialogViewer,
+      'keyframe-models': keyframeModelsViewer,
     },
     cwdValueInput,
     modelSourceValueInput,
@@ -1315,6 +1325,7 @@ async function init() {
     settingsSystem,
     lightSystem,
     modelSelector,
+    modelManager,
     cameraList: cameraListEl,
     addCameraBtnSettings: addCameraBtnSettings,
     removeCameraBtnSettings: removeCameraBtnSettings,

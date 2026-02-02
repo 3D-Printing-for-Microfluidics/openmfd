@@ -106,8 +106,8 @@ export function createKeyframeSystem({
 
     const frame = normalizeKeyframe(keyframes[editingIndex]);
     frame.camera = cameraSystem.getCameraState();
-    frame.lights = lightSystemRef ? lightSystemRef.getLightState() : frame.lights;
-    frame.models = modelSelector ? modelSelector.getSelectionSnapshot() : frame.models;
+    frame.lights = lightSystemRef ? cloneLightState(lightSystemRef.getLightState()) : frame.lights;
+    frame.models = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : frame.models;
     keyframes[editingIndex] = frame;
     saveKeyframes();
     renderList();
@@ -641,6 +641,68 @@ export function createKeyframeSystem({
     renderTransitionMenu();
   }
 
+  function cloneLightState(state) {
+    if (!state) return state;
+    try {
+      return JSON.parse(JSON.stringify(state));
+    } catch (e) {
+      return state;
+    }
+  }
+
+  function ensureKeyframeLightSnapshots() {
+    if (!lightSystemRef) return;
+    const templateState = lightSystemRef.getLightState();
+    const templateAmbient = templateState?.ambient || { color: '#ffffff', intensity: 1.0 };
+    let updated = false;
+    keyframes = keyframes.map((frame) => {
+      const normalized = normalizeKeyframe(frame);
+      if (normalized.lights) {
+        const nextLights = cloneLightState(normalized.lights) || {};
+        const nextAmbient = nextLights.ambient || {};
+        nextLights.ambient = {
+          color: nextAmbient.color || templateAmbient.color,
+          intensity: Number.isFinite(nextAmbient.intensity)
+            ? nextAmbient.intensity
+            : (Number.isFinite(templateAmbient.intensity) ? templateAmbient.intensity : 1.0),
+        };
+        normalized.lights = nextLights;
+        updated = true;
+      } else if (templateState) {
+        normalized.lights = cloneLightState(templateState);
+        updated = true;
+      }
+      return normalized;
+    });
+    if (updated) {
+      saveKeyframes();
+      renderList();
+      renderTransitionMenu();
+    }
+  }
+
+  function ensureKeyframeModelSnapshots() {
+    if (!modelManagerRef) return;
+    const fallbackSnapshot = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : null;
+    let updated = false;
+    keyframes = keyframes.map((frame) => {
+      const normalized = normalizeKeyframe(frame);
+      if (normalized.models) {
+        normalized.models = ensureModelSnapshotByKey(normalized.models);
+        updated = true;
+      } else if (fallbackSnapshot) {
+        normalized.models = fallbackSnapshot;
+        updated = true;
+      }
+      return normalized;
+    });
+    if (updated) {
+      saveKeyframes();
+      renderList();
+      renderTransitionMenu();
+    }
+  }
+
   function enforceKeyframeDurations() {
     keyframes.forEach((frame, index) => {
       const normalized = normalizeKeyframe(frame);
@@ -902,6 +964,75 @@ export function createKeyframeSystem({
     return !!checked && groupsOn;
   }
 
+  function buildModelKey(entry) {
+    const type = (entry?.type || 'unknown').toLowerCase();
+    const id = entry?.id || entry?.name || 'unknown';
+    return `${type}|${id}`;
+  }
+
+  function ensureModelSnapshotByKey(snapshot, { keepIndices = false } = {}) {
+    if (!snapshot || !modelManagerRef?.getModelList) return snapshot;
+    const entries = modelManagerRef.getModelList() || [];
+    const byKey = { ...(snapshot.byKey || {}) };
+    const hasByKey = Object.keys(byKey).length > 0;
+    const groupEntries = snapshot.groups ? Object.keys(snapshot.groups) : [];
+    entries.forEach((entry, idx) => {
+      const key = buildModelKey(entry);
+      const existing = byKey[key] || {};
+      const versionFromSnapshot = snapshot.versions?.[`glb_ver_${idx}`];
+      const hasModelOverride = snapshot.models && Object.prototype.hasOwnProperty.call(snapshot.models, `glb_cb_${idx}`);
+      const hasIndexVisibility = hasModelOverride || (!hasByKey && groupEntries.length > 0);
+      const visibleFromSnapshot = hasIndexVisibility ? getModelVisibilityFromSnapshot(snapshot, idx) : undefined;
+      const nextVisible = visibleFromSnapshot !== undefined
+        ? !!visibleFromSnapshot
+        : (existing.visible !== undefined ? !!existing.visible : undefined);
+      const nextVersion = versionFromSnapshot
+        || existing.version
+        || entry?.versionId;
+      if (nextVisible === undefined && nextVersion === undefined) return;
+      byKey[key] = {
+        visible: nextVisible !== undefined ? !!nextVisible : true,
+        version: nextVersion,
+        name: entry?.name,
+        type: entry?.type,
+      };
+    });
+    const base = { byKey, groups: snapshot.groups || {} };
+    if (keepIndices) {
+      return {
+        ...base,
+        models: snapshot.models || {},
+        versions: snapshot.versions || {},
+      };
+    }
+    return base;
+  }
+
+  function normalizeModelSnapshot(snapshot) {
+    if (!snapshot || !modelManagerRef?.getModelList) return snapshot;
+    if (!snapshot.byKey) return snapshot;
+    const entries = modelManagerRef.getModelList() || [];
+    const models = {};
+    const versions = {};
+    entries.forEach((entry, idx) => {
+      const key = buildModelKey(entry);
+      const item = snapshot.byKey[key];
+      if (!item) return;
+      if (item.visible !== undefined) {
+        models[`glb_cb_${idx}`] = !!item.visible;
+      }
+      if (item.version) {
+        versions[`glb_ver_${idx}`] = item.version;
+      }
+    });
+    return {
+      models,
+      groups: snapshot.groups || {},
+      versions,
+      byKey: snapshot.byKey,
+    };
+  }
+
   function getModelVersionFromSnapshot(snapshot, idx) {
     const selectId = `glb_ver_${idx}`;
     if (snapshot?.versions && Object.prototype.hasOwnProperty.call(snapshot.versions, selectId)) {
@@ -923,16 +1054,18 @@ export function createKeyframeSystem({
 
   function applyModelTransition(startSnapshot, endSnapshot, t, transitionFrame) {
     if (!modelManagerRef || !modelSelector) return;
+    const startNormalized = normalizeModelSnapshot(startSnapshot);
+    const endNormalized = normalizeModelSnapshot(endSnapshot);
     const easedT = evaluateTransition(transitionFrame, 'models', t);
 
-    const startMap = buildVisibilityMap(startSnapshot);
-    const endMap = buildVisibilityMap(endSnapshot);
+    const startMap = buildVisibilityMap(startNormalized);
+    const endMap = buildVisibilityMap(endNormalized);
     const overrides = new Map();
     const count = modelManagerRef.getModelCount();
 
     if (playbackSegment && !playbackSegment.modelsStartApplied) {
       suppressModelSelectionSave = true;
-      modelSelector.applySelectionSnapshot(startSnapshot, { persist: false });
+      modelSelector.applySelectionSnapshot(startNormalized, { persist: false });
       suppressModelSelectionSave = false;
       playbackSegment.modelsStartApplied = true;
     }
@@ -940,8 +1073,8 @@ export function createKeyframeSystem({
     for (let i = 0; i < count; i += 1) {
       const startVisible = startMap.get(i);
       const endVisible = endMap.get(i);
-      const startVersion = getModelVersionFromSnapshot(startSnapshot, i);
-      const endVersion = getModelVersionFromSnapshot(endSnapshot, i);
+      const startVersion = getModelVersionFromSnapshot(startNormalized, i);
+      const endVersion = getModelVersionFromSnapshot(endNormalized, i);
       const hasVersionChange = startVersion && endVersion && startVersion !== endVersion;
 
       if (modelManagerRef?.setModelVersionVisibilitySet) {
@@ -989,9 +1122,9 @@ export function createKeyframeSystem({
     modelManagerRef.updateVisibility?.();
     if (t >= 1 && playbackSegment && !playbackSegment.modelsEndApplied) {
       suppressModelSelectionSave = true;
-      modelSelector.applySelectionSnapshot(endSnapshot, { persist: false });
+      modelSelector.applySelectionSnapshot(endNormalized, { persist: false });
       if (modelManagerRef?.setModelVersionSelections) {
-        modelManagerRef.setModelVersionSelections(endSnapshot?.versions, { force: true });
+        modelManagerRef.setModelVersionSelections(endNormalized?.versions, { force: true });
       }
       modelManagerRef.clearVisibilityOverrides();
       modelManagerRef.updateVisibility?.();
@@ -1023,9 +1156,10 @@ export function createKeyframeSystem({
       lightSystemRef.applyLightState(frame.lights);
     }
     if (frame.models && modelSelector) {
-      modelSelector.applySelectionSnapshot(frame.models, { persist });
+      const normalizedModels = normalizeModelSnapshot(frame.models);
+      modelSelector.applySelectionSnapshot(normalizedModels, { persist });
       if (modelManagerRef?.setModelVersionSelections) {
-        modelManagerRef.setModelVersionSelections(frame.models.versions, { force: true });
+        modelManagerRef.setModelVersionSelections(normalizedModels?.versions, { force: true });
       }
     }
     if (modelManagerRef) {
@@ -1046,10 +1180,12 @@ export function createKeyframeSystem({
 
     const ensureFrameData = (frame) => {
       if (!frame.lights && lightSystemRef) {
-        frame.lights = lightSystemRef.getLightState();
+        frame.lights = cloneLightState(lightSystemRef.getLightState());
       }
       if (!frame.models && modelSelector) {
-        frame.models = modelSelector.getSelectionSnapshot();
+        frame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
+      } else if (frame.models) {
+        frame.models = ensureModelSnapshotByKey(frame.models);
       }
       return frame;
     };
@@ -1088,13 +1224,13 @@ export function createKeyframeSystem({
     const startFrame = normalizeKeyframe(keyframes[fromIndex]);
     const endFrame = normalizeKeyframe(keyframes[toIndex]);
     if (!startFrame.lights && lightSystemRef) {
-      startFrame.lights = lightSystemRef.getLightState();
+      startFrame.lights = cloneLightState(lightSystemRef.getLightState());
     }
     if (!endFrame.lights && lightSystemRef) {
-      endFrame.lights = startFrame.lights;
+      endFrame.lights = cloneLightState(startFrame.lights);
     }
     if (!startFrame.models && modelSelector) {
-      startFrame.models = modelSelector.getSelectionSnapshot();
+      startFrame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
     }
     if (!endFrame.models && modelSelector) {
       endFrame.models = startFrame.models;
@@ -1125,13 +1261,13 @@ export function createKeyframeSystem({
     const startFrame = normalizeKeyframe(keyframes[fromIndex]);
     const endFrame = normalizeKeyframe(keyframes[toIndex]);
     if (!startFrame.lights && lightSystemRef) {
-      startFrame.lights = lightSystemRef.getLightState();
+      startFrame.lights = cloneLightState(lightSystemRef.getLightState());
     }
     if (!endFrame.lights && lightSystemRef) {
-      endFrame.lights = startFrame.lights;
+      endFrame.lights = cloneLightState(startFrame.lights);
     }
     if (!startFrame.models && modelSelector) {
-      startFrame.models = modelSelector.getSelectionSnapshot();
+      startFrame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
     }
     if (!endFrame.models && modelSelector) {
       endFrame.models = startFrame.models;
@@ -1250,10 +1386,10 @@ export function createKeyframeSystem({
     if (!Number.isInteger(index) || index < 0 || index >= keyframes.length) return;
     const applyState = options.applyState !== false;
     if (activeKeyframeIndex === null && lightSystemRef) {
-      globalLightStateBeforeKeyframe = lightSystemRef.getLightState();
+      globalLightStateBeforeKeyframe = cloneLightState(lightSystemRef.getLightState());
     }
     if (activeKeyframeIndex === null && modelSelector) {
-      globalModelSelectionBeforeKeyframe = modelSelector.getSelectionSnapshot();
+      globalModelSelectionBeforeKeyframe = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot(), { keepIndices: true });
     }
     activeKeyframeIndex = index;
     const frame = normalizeKeyframe(keyframes[index]);
@@ -1268,9 +1404,10 @@ export function createKeyframeSystem({
         lightSystemRef.applyLightState(frame.lights);
       }
       if (frame.models && modelSelector) {
-        modelSelector.applySelectionSnapshot(frame.models);
+        const normalizedModels = normalizeModelSnapshot(frame.models);
+        modelSelector.applySelectionSnapshot(normalizedModels);
         if (modelManagerRef?.setModelVersionSelections) {
-          modelManagerRef.setModelVersionSelections(frame.models.versions, { force: true });
+          modelManagerRef.setModelVersionSelections(normalizedModels?.versions, { force: true });
         }
       }
     }
@@ -1303,10 +1440,18 @@ export function createKeyframeSystem({
 
   function setKeyframes(nextFrames = []) {
     keyframes = Array.isArray(nextFrames)
-      ? nextFrames.map((frame) => normalizeKeyframe(frame))
+      ? nextFrames.map((frame) => {
+        const normalized = normalizeKeyframe(frame);
+        if (normalized.models) {
+          normalized.models = ensureModelSnapshotByKey(normalized.models);
+        }
+        return normalized;
+      })
       : [];
     activeKeyframeIndex = null;
     enforceKeyframeDurations();
+    ensureKeyframeLightSnapshots();
+    ensureKeyframeModelSnapshots();
     renderList();
     clearSelection();
     saveKeyframes();
@@ -1322,8 +1467,8 @@ export function createKeyframeSystem({
 
   function addKeyframe() {
     const state = cameraSystem.getCameraState();
-    const lights = lightSystemRef ? lightSystemRef.getLightState() : null;
-    const models = modelSelector ? modelSelector.getSelectionSnapshot() : null;
+    const lights = lightSystemRef ? cloneLightState(lightSystemRef.getLightState()) : null;
+    const models = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : null;
     keyframes.push({
       camera: state,
       lights,
@@ -1354,6 +1499,26 @@ export function createKeyframeSystem({
     saveKeyframes();
   }
 
+  function applyCameraModeToKeyframes(mode) {
+    if (!mode) return;
+    let updated = false;
+    keyframes = keyframes.map((frame) => {
+      const normalized = normalizeKeyframe(frame);
+      const cameraState = normalized.camera || cameraSystem.getCameraState();
+      if (!cameraState) return normalized;
+      if (cameraState.mode !== mode) {
+        normalized.camera = { ...cameraState, mode };
+        updated = true;
+      }
+      return normalized;
+    });
+    if (updated) {
+      saveKeyframes();
+      renderList();
+      cameraSystem.refreshUpdateButton();
+    }
+  }
+
   function removeActiveKeyframe() {
     if (activeKeyframeIndex === null) return;
     if (activeKeyframeIndex < 0 || activeKeyframeIndex >= keyframes.length) return;
@@ -1382,7 +1547,10 @@ export function createKeyframeSystem({
     if (activeKeyframeIndex === null) return false;
     const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
     frame.camera = cameraSystem.getCameraState();
-    frame.models = modelSelector ? modelSelector.getSelectionSnapshot() : frame.models;
+    frame.models = modelSelector ? ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot()) : frame.models;
+    if (lightSystemRef) {
+      frame.lights = cloneLightState(lightSystemRef.getLightState());
+    }
     keyframes[activeKeyframeIndex] = frame;
     renderList();
     saveKeyframes();
@@ -1391,6 +1559,7 @@ export function createKeyframeSystem({
   });
 
   loadKeyframes();
+  ensureKeyframeModelSnapshots();
   if (activeKeyframeIndex !== null) {
     cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
   }
@@ -1404,23 +1573,23 @@ export function createKeyframeSystem({
     const frame = normalizeKeyframe(keyframes[index]);
     keyframes[index] = frame;
     if (!frame.lights) {
-      frame.lights = lightSystemRef.getLightState();
+      frame.lights = cloneLightState(lightSystemRef.getLightState());
     }
     if (!frame.models && modelSelector) {
-      frame.models = modelSelector.getSelectionSnapshot();
+      frame.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
     }
 
     isEditing = true;
     editingIndex = index;
     prevCameraState = cameraSystem.getCameraState();
-    prevLightState = lightSystemRef.getLightState();
+    prevLightState = cloneLightState(lightSystemRef.getLightState());
 
     activeKeyframeIndex = index;
     cameraSystem.setDirtyStateProvider(() => keyframes[activeKeyframeIndex]?.camera || null);
     cameraSystem.applyExternalCameraState(frame.camera);
     lightSystemRef.applyLightState(frame.lights);
     if (frame.models && modelSelector) {
-      modelSelector.applySelectionSnapshot(frame.models);
+      modelSelector.applySelectionSnapshot(normalizeModelSnapshot(frame.models));
     }
 
     cameraSystem.syncCameraInputs();
@@ -1566,7 +1735,7 @@ export function createKeyframeSystem({
         modelSelector.setSelectionChangeCallback((snapshot) => {
           if (activeKeyframeIndex === null || suppressModelSelectionSave) return;
           const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
-          frame.models = snapshot;
+          frame.models = ensureModelSnapshotByKey(snapshot);
           keyframes[activeKeyframeIndex] = frame;
           saveKeyframes();
         });
@@ -1578,6 +1747,9 @@ export function createKeyframeSystem({
           syncLightStructureFromSystem();
         });
       }
+
+      ensureKeyframeLightSnapshots();
+      ensureKeyframeModelSnapshots();
 
       if (toggleBtn) {
         toggleBtn.addEventListener('click', () => {
@@ -1674,12 +1846,15 @@ export function createKeyframeSystem({
         modelSelector.setSelectionChangeCallback((snapshot) => {
           if (activeKeyframeIndex === null || suppressModelSelectionSave) return;
           const frame = normalizeKeyframe(keyframes[activeKeyframeIndex]);
-          frame.models = snapshot;
+          frame.models = ensureModelSnapshotByKey(snapshot);
           keyframes[activeKeyframeIndex] = frame;
           saveKeyframes();
         });
         selectionListenerAttached = true;
       }
+
+      ensureKeyframeLightSnapshots();
+      ensureKeyframeModelSnapshots();
     },
     handleCameraSelectionChange: () => {
       const isHome = cameraSystem.isHomeMode();
@@ -1702,8 +1877,18 @@ export function createKeyframeSystem({
     startPlaybackFromBeginning,
     stopPlayback,
     applyAtTime,
+    applyCameraModeToKeyframes,
     setKeyframes,
     resetKeyframes,
-    getKeyframes: () => keyframes.slice(),
+    getKeyframes: () => keyframes.map((frame) => {
+      if (!frame) return frame;
+      const next = { ...frame };
+      if (next.models) {
+        next.models = ensureModelSnapshotByKey(next.models);
+      } else if (modelSelector) {
+        next.models = ensureModelSnapshotByKey(modelSelector.getSelectionSnapshot());
+      }
+      return next;
+    }),
   };
 }

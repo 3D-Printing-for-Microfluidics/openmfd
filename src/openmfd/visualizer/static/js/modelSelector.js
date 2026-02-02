@@ -35,6 +35,33 @@ export function createModelSelector({ formEl, toggleBtn }) {
     onVersionChange = callback;
   }
 
+  function applyVersionConstraint(versionId, { persist = true } = {}) {
+    if (!formEl || !versionId) return;
+    const modelCbs = formEl.querySelectorAll('input[data-model-idx]');
+    modelCbs.forEach((cb) => {
+      const idx = Number.parseInt(cb.dataset.modelIdx || '-1', 10);
+      if (!Number.isInteger(idx) || idx < 0) return;
+      const select = document.getElementById(`glb_ver_${idx}`);
+      if (!select) return;
+      const hasOption = Array.from(select.options).some((opt) => opt.value === versionId);
+      if (hasOption) {
+        const prev = select.value;
+        select.value = versionId;
+        if (select.value === versionId && prev !== versionId && onVersionChange) {
+          onVersionChange(idx, versionId, select);
+        }
+      } else {
+        cb.checked = false;
+      }
+    });
+    if (updateVisibilityFn) {
+      updateVisibilityFn();
+    }
+    if (persist) {
+      persistSelection();
+    }
+  }
+
   function getSelectionSnapshot() {
     if (!formEl) return { models: {}, groups: {}, versions: {} };
     const modelMap = {};
@@ -266,21 +293,7 @@ export function createModelSelector({ formEl, toggleBtn }) {
 
       select.addEventListener('change', () => {
         const targetVersion = select.value;
-        glbFiles.forEach((entry, idx) => {
-          const versionSelect = document.getElementById(`glb_ver_${idx}`);
-          if (!versionSelect) return;
-          const hasOption = Array.from(versionSelect.options).some((opt) => opt.value === targetVersion);
-          if (!hasOption) return;
-          const prev = versionSelect.value;
-          versionSelect.value = targetVersion;
-          if (versionSelect.value !== prev && onVersionChange) {
-            onVersionChange(idx, versionSelect.value, versionSelect);
-          }
-        });
-        persistSelection();
-        if (onSelectionChange) {
-          onSelectionChange(getSelectionSnapshot());
-        }
+        applyVersionConstraint(targetVersion, { persist: true });
       });
 
       globalRow.appendChild(label);
@@ -597,5 +610,6 @@ export function createModelSelector({ formEl, toggleBtn }) {
     resetSelectionState,
     getSelectionSnapshot,
     applySelectionSnapshot,
+    applyVersionConstraint,
   };
 }

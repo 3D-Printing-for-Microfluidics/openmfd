@@ -615,13 +615,24 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     const end = normalizeLightState(endState);
     const modelCenter = getModelCenterModel();
 
+    const hasStartAmbient = !!(startState && typeof startState === 'object' && startState.ambient);
+    const hasEndAmbient = !!(endState && typeof endState === 'object' && endState.ambient);
+
     const startAmbient = new THREE.Color(start.ambient.color || '#ffffff');
     const endAmbient = new THREE.Color(end.ambient.color || '#ffffff');
-    const ambientColor = lerpColorHSL(startAmbient, endAmbient, t);
-    const ambientIntensity = (start.ambient.intensity || 0) +
-      (end.ambient.intensity - start.ambient.intensity) * t;
-    ambientLight.color.copy(ambientColor);
-    ambientLight.intensity = Math.max(0, ambientIntensity);
+    if (!hasStartAmbient && hasEndAmbient) {
+      ambientLight.color.copy(endAmbient);
+      ambientLight.intensity = Math.max(0, (end.ambient.intensity || 0) * t);
+    } else if (hasStartAmbient && !hasEndAmbient) {
+      ambientLight.color.copy(startAmbient);
+      ambientLight.intensity = Math.max(0, (start.ambient.intensity || 0) * (1 - t));
+    } else {
+      const ambientColor = lerpColorHSL(startAmbient, endAmbient, t);
+      const ambientIntensity = (start.ambient.intensity || 0) +
+        (end.ambient.intensity - start.ambient.intensity) * t;
+      ambientLight.color.copy(ambientColor);
+      ambientLight.intensity = Math.max(0, ambientIntensity);
+    }
 
     const maxCount = Math.max(start.directional.length, end.directional.length);
     while (directionalLights.length > maxCount) {
@@ -631,40 +642,66 @@ export function createLightSystem({ scene, world, cameraSystem, previewSystem, g
     for (let i = 0; i < maxCount; i += 1) {
       const s = start.directional[i] || null;
       const e = end.directional[i] || null;
+      if (!s && !e) continue;
 
-      if (!s && e) {
-        const light = ensureDirectionalLightAt(i, e.type || 'directional');
-        applyLightEntry(light, e, t, modelCenter);
-        removeTransitionExtra(i);
-      } else if (s && !e) {
-        const light = ensureDirectionalLightAt(i, s.type || 'directional');
-        applyLightEntry(light, s, 1 - t, modelCenter);
-        removeTransitionExtra(i);
-        if (t >= 1) {
-          removeDirectionalLight(i);
-        }
-      } else if (s && e) {
-        if (isLightEntryEqual(s, e)) {
-          const light = ensureDirectionalLightAt(i, e.type || 'directional');
-          applyLightEntry(light, e, 1, modelCenter);
-          removeTransitionExtra(i);
-        } else {
-          const light = ensureDirectionalLightAt(i, s.type || 'directional');
-          applyLightEntry(light, s, 1 - t, modelCenter);
-          const extra = ensureTransitionExtra(i, e.type || 'directional');
-          applyLightEntry(extra.light, e, t, modelCenter);
-          if (extra.helper) updateDirectionalHelper(extra.helper, extra.light);
-          if (t >= 1) {
-            removeTransitionExtra(i);
-            const finalLight = ensureDirectionalLightAt(i, e.type || 'directional');
-            applyLightEntry(finalLight, e, 1, modelCenter);
-          }
-        }
+      const startEntry = s || e || {};
+      const endEntry = e || s || {};
+      const type = endEntry.type || startEntry.type || 'directional';
+      const light = ensureDirectionalLightAt(i, type);
+
+      const startColor = new THREE.Color(startEntry.color || '#ffffff');
+      const endColor = new THREE.Color(endEntry.color || '#ffffff');
+      light.color.copy(lerpColorHSL(startColor, endColor, t));
+
+      const startIntensity = Number.isFinite(startEntry.intensity) ? startEntry.intensity : 0;
+      const endIntensity = Number.isFinite(endEntry.intensity) ? endEntry.intensity : 0;
+      light.intensity = Math.max(0, startIntensity + (endIntensity - startIntensity) * t);
+
+      const startOffset = startEntry.offset || { x: 10, y: 10, z: 10 };
+      const endOffset = endEntry.offset || { x: 10, y: 10, z: 10 };
+      const offset = new THREE.Vector3(
+        (startOffset.x || 0) + ((endOffset.x || 0) - (startOffset.x || 0)) * t,
+        (startOffset.y || 0) + ((endOffset.y || 0) - (startOffset.y || 0)) * t,
+        (startOffset.z || 0) + ((endOffset.z || 0) - (startOffset.z || 0)) * t
+      );
+      light.position.copy(modelCenter.clone().add(offset));
+
+      const startTarget = startEntry.targetOffset || { x: 0, y: 0, z: 0 };
+      const endTarget = endEntry.targetOffset || { x: 0, y: 0, z: 0 };
+      const targetOffset = new THREE.Vector3(
+        (startTarget.x || 0) + ((endTarget.x || 0) - (startTarget.x || 0)) * t,
+        (startTarget.y || 0) + ((endTarget.y || 0) - (startTarget.y || 0)) * t,
+        (startTarget.z || 0) + ((endTarget.z || 0) - (startTarget.z || 0)) * t
+      );
+      light.userData.targetOffset = targetOffset;
+      light.target.position.copy(modelCenter.clone().add(targetOffset));
+
+      if (light.isSpotLight) {
+        const startDistance = Number.isFinite(startEntry.distance) ? startEntry.distance : 0;
+        const endDistance = Number.isFinite(endEntry.distance) ? endEntry.distance : 0;
+        light.distance = startDistance + (endDistance - startDistance) * t;
+
+        const startAngle = Number.isFinite(startEntry.angle) ? startEntry.angle : light.angle;
+        const endAngle = Number.isFinite(endEntry.angle) ? endEntry.angle : light.angle;
+        light.angle = startAngle + (endAngle - startAngle) * t;
+
+        const startPenumbra = Number.isFinite(startEntry.penumbra) ? startEntry.penumbra : 0;
+        const endPenumbra = Number.isFinite(endEntry.penumbra) ? endEntry.penumbra : 0;
+        light.penumbra = startPenumbra + (endPenumbra - startPenumbra) * t;
+
+        const startDecay = Number.isFinite(startEntry.decay) ? startEntry.decay : 1;
+        const endDecay = Number.isFinite(endEntry.decay) ? endEntry.decay : 1;
+        light.decay = startDecay + (endDecay - startDecay) * t;
       }
 
       const helper = directionalHelpers[i];
-      if (helper && directionalLights[i]) {
-        updateDirectionalHelper(helper, directionalLights[i]);
+      if (helper && light) {
+        updateDirectionalHelper(helper, light);
+      }
+
+      removeTransitionExtra(i);
+      if (!e && t >= 1) {
+        removeDirectionalLight(i);
       }
     }
   }

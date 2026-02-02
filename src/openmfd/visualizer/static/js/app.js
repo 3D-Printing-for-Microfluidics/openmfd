@@ -47,6 +47,11 @@ const cameraSystem = createCameraSystem({
       previewSystem.syncFromMain();
     }
   },
+  onCameraModeChange: (mode) => {
+    if (keyframeSystem?.applyCameraModeToKeyframes) {
+      keyframeSystem.applyCameraModeToKeyframes(mode);
+    }
+  },
   onControlTypeChange: (type) => {
     applyControlsType(type, false);
     syncCameraControlSelect();
@@ -889,22 +894,97 @@ function resetThemeSettings() {
   syncThemeInputs('dark');
 }
 
+function buildModelKey(entry) {
+  const type = (entry?.type || 'unknown').toLowerCase();
+  const id = entry?.id || entry?.name || 'unknown';
+  return `${type}|${id}`;
+}
+
+function buildModelSelectionPayload() {
+  if (!modelSelector || !modelManager) return null;
+  const snapshot = modelSelector.getSelectionSnapshot();
+  const entries = modelManager.getModelList() || [];
+  const byKey = {};
+  entries.forEach((entry, idx) => {
+    const key = buildModelKey(entry);
+    const visible = snapshot.models?.[`glb_cb_${idx}`];
+    const version = snapshot.versions?.[`glb_ver_${idx}`] || entry.versionId;
+    if (visible === undefined && version === undefined) return;
+    byKey[key] = {
+      visible: visible !== undefined ? !!visible : true,
+      version,
+      name: entry?.name,
+      type: entry?.type,
+    };
+  });
+  const groups = {};
+  Object.entries(snapshot.groups || {}).forEach(([id, checked]) => {
+    groups[id] = !!checked;
+  });
+  return { byKey, groups };
+}
+
+function sortVersionIds(ids) {
+  return ids.sort((a, b) => {
+    if (a === 'v0') return -1;
+    if (b === 'v0') return 1;
+    const aMatch = /^v(\d+)$/i.exec(a);
+    const bMatch = /^v(\d+)$/i.exec(b);
+    const aNum = aMatch ? Number.parseInt(aMatch[1], 10) : Number.POSITIVE_INFINITY;
+    const bNum = bMatch ? Number.parseInt(bMatch[1], 10) : Number.POSITIVE_INFINITY;
+    if (aNum !== bNum) return aNum - bNum;
+    return a.localeCompare(b);
+  });
+}
+
+function getGlobalVersionId(strategy = 'smallest') {
+  const entries = modelManager?.getModelList?.() || [];
+  const union = new Set();
+  entries.forEach((entry) => {
+    (entry?.versions || []).forEach((ver) => union.add(ver.id));
+  });
+  const ids = Array.from(union);
+  if (!ids.length) return null;
+  const sorted = sortVersionIds(ids);
+  return strategy === 'largest' ? sorted[sorted.length - 1] : sorted[0];
+}
+
+function applyDefaultVersionVisibilityConstraint() {
+  if (!modelSelector?.applyVersionConstraint || !modelManager) return;
+  if (getDefaultModelVersionStrategy() !== 'smallest') return;
+  const target = getGlobalVersionId('smallest');
+  if (!target) return;
+  modelSelector.applyVersionConstraint(target, { persist: false });
+  if (modelManager?.setModelVersionSelections) {
+    modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions, { force: true });
+  }
+  modelManager.updateVisibility();
+}
+
+function buildCameraPayload() {
+  const raw = localStorage.getItem('openmfd_cameras_v1');
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
 function buildSettingsPayload() {
   const payload = {
-    version: 1,
-    localStorage: {
-      [AUTO_RELOAD_STORAGE_KEY]: localStorage.getItem(AUTO_RELOAD_STORAGE_KEY),
-      [AUTO_RELOAD_INTERVAL_KEY]: localStorage.getItem(AUTO_RELOAD_INTERVAL_KEY),
-      [AXES_STORAGE_KEY]: localStorage.getItem(AXES_STORAGE_KEY),
-      [DEFAULT_CONTROLS_TYPE_STORAGE_KEY]: localStorage.getItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY),
-      [MODEL_SETTINGS_BEHAVIOR_KEY]: localStorage.getItem(MODEL_SETTINGS_BEHAVIOR_KEY),
-      [MODEL_DEFAULT_VERSION_KEY]: localStorage.getItem(MODEL_DEFAULT_VERSION_KEY),
-      openmfd_cameras_v1: localStorage.getItem('openmfd_cameras_v1'),
-      openmfd_theme: localStorage.getItem('openmfd_theme'),
-      openmfd_theme_defs_v1: localStorage.getItem('openmfd_theme_defs_v1'),
+    version: 2,
+    general: {
+      autoReloadEnabled,
+      autoReloadIntervalMs,
+      axesVisible: axes?.visible ?? true,
+      defaultControlsType: cameraSystem.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
+      modelSettingsBehavior: getModelSettingsBehavior(),
+      defaultModelVersion: getDefaultModelVersionStrategy(),
     },
+    camera: buildCameraPayload(),
     lights: lightSystem.getLightState(),
-    models: modelSelector ? modelSelector.getSelectionSnapshot() : null,
+    models: buildModelSelectionPayload(),
     theme: themeManager.getThemeState(),
     animation: {
       keyframes: keyframeSystem ? keyframeSystem.getKeyframes() : [],
@@ -950,7 +1030,6 @@ async function saveSettingsToFile() {
 
 function applySettingsPayload(payload, sections = {}) {
   if (!payload || typeof payload !== 'object') return;
-  const stored = payload.localStorage || {};
   const apply = {
     general: sections.general !== false,
     theme: sections.theme !== false,
@@ -959,63 +1038,36 @@ function applySettingsPayload(payload, sections = {}) {
     animation: sections.animation !== false,
   };
 
-  if (apply.general) {
-    const keys = [
-      AUTO_RELOAD_STORAGE_KEY,
-      AUTO_RELOAD_INTERVAL_KEY,
-      AXES_STORAGE_KEY,
-      DEFAULT_CONTROLS_TYPE_STORAGE_KEY,
-      MODEL_SETTINGS_BEHAVIOR_KEY,
-      MODEL_DEFAULT_VERSION_KEY,
-    ];
-    keys.forEach((key) => {
-      if (key in stored) {
-        const value = stored[key];
-        if (value === null || value === undefined) {
-          localStorage.removeItem(key);
-        } else {
-          localStorage.setItem(key, value);
-        }
-      }
-    });
+  const isNewFormat = payload.version >= 2 || payload.general || payload.camera || payload.models;
 
-    if (stored[AXES_STORAGE_KEY] !== null && stored[AXES_STORAGE_KEY] !== undefined) {
-      applyAxesState(stored[AXES_STORAGE_KEY] !== 'false');
+  if (apply.general && isNewFormat) {
+    const general = payload.general || {};
+    if (general.axesVisible !== undefined) {
+      applyAxesState(!!general.axesVisible);
     }
-
-    if (stored[DEFAULT_CONTROLS_TYPE_STORAGE_KEY]) {
-      const type = stored[DEFAULT_CONTROLS_TYPE_STORAGE_KEY];
-      cameraSystem.setDefaultControlType(type);
-      if (defaultControlTypeSelect) defaultControlTypeSelect.value = type;
+    if (general.defaultControlsType) {
+      cameraSystem.setDefaultControlType(general.defaultControlsType);
+      if (defaultControlTypeSelect) defaultControlTypeSelect.value = general.defaultControlsType;
     }
-
-    if (stored[AUTO_RELOAD_INTERVAL_KEY]) {
-      const next = Number.parseInt(stored[AUTO_RELOAD_INTERVAL_KEY], 10);
-      if (Number.isFinite(next) && next >= 250) {
-        setAutoReloadIntervalMs(next);
-        if (autoReloadIntervalInput) autoReloadIntervalInput.value = String(next);
-      }
+    if (Number.isFinite(general.autoReloadIntervalMs)) {
+      setAutoReloadIntervalMs(general.autoReloadIntervalMs);
+      if (autoReloadIntervalInput) autoReloadIntervalInput.value = String(general.autoReloadIntervalMs);
     }
-
-    if (stored[AUTO_RELOAD_STORAGE_KEY] !== null && stored[AUTO_RELOAD_STORAGE_KEY] !== undefined) {
-      autoReloadEnabled = stored[AUTO_RELOAD_STORAGE_KEY] !== 'false';
+    if (general.autoReloadEnabled !== undefined) {
+      autoReloadEnabled = !!general.autoReloadEnabled;
       setAutoReload(autoReloadEnabled);
     }
-
-    if (stored[MODEL_SETTINGS_BEHAVIOR_KEY]) {
-      const behavior = stored[MODEL_SETTINGS_BEHAVIOR_KEY];
+    if (general.modelSettingsBehavior) {
       if (modelSettingsBehaviorSelect) {
-        modelSettingsBehaviorSelect.value = behavior;
+        modelSettingsBehaviorSelect.value = general.modelSettingsBehavior;
       }
-      setModelSettingsBehavior(behavior);
+      setModelSettingsBehavior(general.modelSettingsBehavior);
     }
-
-    if (stored[MODEL_DEFAULT_VERSION_KEY]) {
-      const strategy = stored[MODEL_DEFAULT_VERSION_KEY];
+    if (general.defaultModelVersion) {
       if (defaultModelVersionSelect) {
-        defaultModelVersionSelect.value = strategy;
+        defaultModelVersionSelect.value = general.defaultModelVersion;
       }
-      setDefaultModelVersionStrategy(strategy);
+      setDefaultModelVersionStrategy(general.defaultModelVersion);
       modelManager.applyDefaultVersionStrategy();
       if (modelSelector) {
         const snapshot = modelSelector.getSelectionSnapshot();
@@ -1024,47 +1076,65 @@ function applySettingsPayload(payload, sections = {}) {
           versions: modelManager.getVersionSelections(),
         }, { persist: true });
       }
+      applyDefaultVersionVisibilityConstraint();
       modelManager.loadAllModels().then(() => {
         lightSystem.updateDirectionalLightTargets();
       });
     }
   }
 
-  if (apply.general && payload.models && modelSelector) {
-    modelSelector.applySelectionSnapshot(payload.models, { persist: true });
+  if (apply.camera && isNewFormat && payload.camera) {
+    localStorage.setItem('openmfd_cameras_v1', JSON.stringify(payload.camera));
+    cameraSystem.initCameraStates();
+    cameraSystem.resetCameraHome();
+    syncCameraControlSelect();
+  }
+
+  if (apply.general && isNewFormat && payload.models && modelSelector) {
+    const entries = modelManager.getModelList() || [];
+    const snapshot = modelSelector.getSelectionSnapshot();
+    const nextModels = { ...(snapshot.models || {}) };
+    const nextGroups = { ...(snapshot.groups || {}) };
+    const nextVersions = { ...(snapshot.versions || {}) };
+
+    if (payload.models.groups) {
+      Object.entries(payload.models.groups).forEach(([id, checked]) => {
+        nextGroups[id] = !!checked;
+      });
+    }
+
+    if (payload.models.byKey) {
+      entries.forEach((entry, idx) => {
+        const key = buildModelKey(entry);
+        const item = payload.models.byKey[key];
+        if (!item) return;
+        nextModels[`glb_cb_${idx}`] = item.visible !== undefined ? !!item.visible : true;
+        if (item.version) {
+          nextVersions[`glb_ver_${idx}`] = item.version;
+        }
+      });
+    }
+
+    modelSelector.applySelectionSnapshot({
+      models: nextModels,
+      groups: nextGroups,
+      versions: nextVersions,
+    }, { persist: true });
     if (modelManager?.setModelVersionSelections) {
-      modelManager.setModelVersionSelections(payload.models.versions, { force: true });
+      modelManager.setModelVersionSelections(nextVersions, { force: true });
     }
     modelManager.updateVisibility();
   }
 
-  if (apply.theme) {
-    let themeState = payload.theme;
-    if (!themeState) {
-      try {
-        const defs = stored.openmfd_theme_defs_v1 ? JSON.parse(stored.openmfd_theme_defs_v1) : null;
-        themeState = {
-          activeTheme: stored.openmfd_theme || 'dark',
-          themes: defs || undefined,
-        };
-      } catch (e) {
-        themeState = null;
-      }
-    }
-    if (themeState) {
-      themeManager.setThemeState(themeState);
-      if (themeSelect) {
-        themeSelect.value = themeState.activeTheme || themeSelect.value;
-        syncThemeInputs(themeSelect.value);
-      }
-    }
-  }
 
-  if (apply.camera && stored.openmfd_cameras_v1) {
-    localStorage.setItem('openmfd_cameras_v1', stored.openmfd_cameras_v1);
-    cameraSystem.initCameraStates();
-    cameraSystem.resetCameraHome();
-    syncCameraControlSelect();
+  if (!isNewFormat) return;
+
+  if (apply.theme && payload.theme) {
+    themeManager.setThemeState(payload.theme);
+    if (themeSelect) {
+      themeSelect.value = payload.theme.activeTheme || themeSelect.value;
+      syncThemeInputs(themeSelect.value);
+    }
   }
 
   if (apply.lighting && payload.lights) {
@@ -1468,6 +1538,7 @@ async function handleModelRefresh() {
         versions: modelManager.getVersionSelections(),
       }, { persist: false });
     }
+    applyDefaultVersionVisibilityConstraint();
     modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
     modelManager.updateVisibility();
     await modelManager.loadAllModels();
@@ -1552,6 +1623,7 @@ async function initModels() {
       versions: modelManager.getVersionSelections(),
     }, { persist: false });
   }
+  applyDefaultVersionVisibilityConstraint();
   modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
   await modelManager.loadAllModels();
   lightSystem.ensureDefaultLight();

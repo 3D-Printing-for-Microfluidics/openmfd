@@ -13,6 +13,7 @@ export function createCameraSystem({
   getBoundingBoxScene,
   buildVisibleGroup,
   onCameraChange,
+  onCameraModeChange,
   onControlTypeChange,
   onActiveCameraChange,
 }) {
@@ -679,6 +680,9 @@ export function createCameraSystem({
     }
     ensureCameraHelper();
     if (onCameraChange) onCameraChange();
+    if (onCameraModeChange && !isApplyingCameraState) {
+      onCameraModeChange(cameraMode);
+    }
     updateUpdateButton();
   }
 

@@ -705,19 +705,17 @@ async function handleSnapshotSave() {
     const renderHeight = exportHeight;
     let saveHandle = null;
     if (settings.renderer === 'pathtracing') {
-      if (!window.showSaveFilePicker) {
-        setSnapshotStatus('Path tracing snapshot requires a save file dialog.');
-        return;
+      if (window.showSaveFilePicker) {
+        saveHandle = await window.showSaveFilePicker({
+          suggestedName: settings.fileName,
+          types: [
+            {
+              description: 'PNG Image',
+              accept: { 'image/png': ['.png'] },
+            },
+          ],
+        });
       }
-      saveHandle = await window.showSaveFilePicker({
-        suggestedName: settings.fileName,
-        types: [
-          {
-            description: 'PNG Image',
-            accept: { 'image/png': ['.png'] },
-          },
-        ],
-      });
       blob = await renderPathTracingSnapshot({
         width: renderWidth,
         height: renderHeight,
@@ -833,24 +831,22 @@ async function handleAnimationExport() {
     applyExportCameraSize(exportWidth, exportHeight);
 
     if (usePathTracing) {
-      if (!window.showSaveFilePicker) {
-        setAnimationExportStatus('Path tracing export requires a save file dialog.');
-        return;
-      }
       const suggestedName = settings.fileName || `openmfd-animation.${settings.type || 'webm'}`;
-      const saveHandle = await window.showSaveFilePicker({
-        suggestedName,
-        types: [
-          {
-            description: 'Video',
-            accept: {
-              'video/webm': ['.webm'],
-              'video/mp4': ['.mp4'],
-              'video/avi': ['.avi'],
+      const saveHandle = window.showSaveFilePicker
+        ? await window.showSaveFilePicker({
+          suggestedName,
+          types: [
+            {
+              description: 'Video',
+              accept: {
+                'video/webm': ['.webm'],
+                'video/mp4': ['.mp4'],
+                'video/avi': ['.avi'],
+              },
             },
-          },
-        ],
-      });
+          ],
+        })
+        : null;
 
       const totalFrames = Math.max(1, Math.ceil((durationMs / 1000) * effectiveFps) + 1);
 
@@ -929,9 +925,13 @@ async function handleAnimationExport() {
         return;
       }
       setAnimationExportStatus('Saving...');
-      const writable = await saveHandle.createWritable();
-      await writable.write(videoBlob);
-      await writable.close();
+      if (saveHandle) {
+        const writable = await saveHandle.createWritable();
+        await writable.write(videoBlob);
+        await writable.close();
+      } else {
+        await saveBlobAsFile(videoBlob, settings.fileName);
+      }
       closeAnimationExportDialog();
       return;
     }

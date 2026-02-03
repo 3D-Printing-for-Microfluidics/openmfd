@@ -10,13 +10,13 @@ OpenMFD includes a browser-based visualizer for viewing and interacting with the
 Navigate to your project directory and run:
 
 ```bash
-mfd-serve
+omfd
 ```
 
 Or, if using uv:
 
 ```bash
-uv run mfd-serve
+uv run omfd
 ```
 
 This command starts a local web server. If the page does not open automatically, go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. To stop the server, press Enter in the terminal where it is running.

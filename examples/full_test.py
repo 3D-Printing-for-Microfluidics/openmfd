@@ -608,7 +608,7 @@ class SerpentineChannel(Component):
 
 # Pinhole(channel_size=(8, 8, 6)).preview()
 
-render_animation = True
+render_animation = False
 devices = []
 for preview in [
     "render",
@@ -641,6 +641,11 @@ for preview in [
     harc_width = 24
     harc_height = 36
     serp_width = 1200
+    text = TextExtrusion(
+        "Demo Device",
+        height=10,
+        font_size=150,
+    ).translate((device_length / 2, device_width - 150, 240))
     f_in1 = Pinhole(channel_size=(8, 8, 6)).translate((0, 500, 75))
     f_in2 = Pinhole(channel_size=(8, 8, 6)).translate(
         (0, device_width - 500 - pinhole_width, 75)
@@ -692,6 +697,7 @@ for preview in [
     )
     view2 = ViewingRegion().translate((2000, device_width / 2 - view_width / 2, 150))
 
+    dev.add_void("Text", text, label="device")
     dev.add_subcomponent("F_IN1", f_in1)
     dev.add_subcomponent("F_IN2", f_in2)
     dev.add_subcomponent("F_OUT", f_out)

@@ -6,6 +6,7 @@ import numpy as np
 from pathlib import Path
 from trimesh.scene import Scene
 from trimesh.visual import ColorVisuals
+from trimesh.visual.material import PBRMaterial
 
 from . import Shape
 from . import Color
@@ -185,7 +186,11 @@ def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
     m = shape._object.to_mesh()
     tm = trimesh.Trimesh(vertices=m.vert_properties, faces=m.tri_verts)
     rgba = shape._color._to_float()
-    tm.visual = ColorVisuals(tm, vertex_colors=[rgba] * len(tm.vertices))
+    if len(rgba) == 3:
+        rgba = (*rgba, 1.0)
+    vertex_rgba = (rgba[0], rgba[1], rgba[2], 1.0)
+    tm.visual = ColorVisuals(tm, vertex_colors=[vertex_rgba] * len(tm.vertices))
+    tm.visual.material = PBRMaterial(baseColorFactor=rgba)
     return tm
 
 

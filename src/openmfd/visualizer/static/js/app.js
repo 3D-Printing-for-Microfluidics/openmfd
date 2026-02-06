@@ -114,6 +114,7 @@ const camPosZ = document.getElementById('camPosZ');
 const camTargetX = document.getElementById('camTargetX');
 const camTargetY = document.getElementById('camTargetY');
 const camTargetZ = document.getElementById('camTargetZ');
+const camDistance = document.getElementById('camDistance');
 const camRoll = document.getElementById('camRoll');
 const camFov = document.getElementById('camFov');
 const defaultControlTypeSelect = document.getElementById('defaultControlTypeSelect');
@@ -333,7 +334,7 @@ function getSnapshotSettings() {
     renderer: snapshotRendererSelect?.value || 'raster',
     pathTracing: {
       pixelRatio: Number.parseFloat(snapshotPtPixelRatio?.value || '0.8') || 0.8,
-      exposure: Number.parseFloat(snapshotPtExposure?.value || '1') || 1,
+      exposure: Number.parseFloat(snapshotPtExposure?.value || '1.5') || 1.5,
       samples: Number.parseInt(snapshotPtSamples?.value || '64', 10) || 64,
     },
   };
@@ -376,7 +377,7 @@ function getAnimationExportSettings() {
     renderer: animationRendererSelect?.value || 'raster',
     pathTracing: {
       pixelRatio: Number.parseFloat(animationPtPixelRatio?.value || '0.8') || 0.8,
-      exposure: Number.parseFloat(animationPtExposure?.value || '1') || 1,
+      exposure: Number.parseFloat(animationPtExposure?.value || '1.5') || 1.5,
       samples: Number.parseInt(animationPtSamples?.value || '32', 10) || 32,
     },
   };
@@ -720,7 +721,7 @@ async function handleSnapshotSave() {
         width: renderWidth,
         height: renderHeight,
         pixelRatio: settings.pathTracing?.pixelRatio ?? 0.8,
-        exposure: settings.pathTracing?.exposure ?? 1,
+        exposure: settings.pathTracing?.exposure ?? 1.5,
         samples: settings.pathTracing?.samples ?? 64,
       });
     } else {
@@ -875,7 +876,7 @@ async function handleAnimationExport() {
           width: exportWidth,
           height: exportHeight,
           pixelRatio: settings.pathTracing?.pixelRatio ?? 0.8,
-          exposure: settings.pathTracing?.exposure ?? 1,
+          exposure: settings.pathTracing?.exposure ?? 1.5,
           samples: settings.pathTracing?.samples ?? 32,
         });
 
@@ -1526,6 +1527,7 @@ cameraSystem.bindCameraUI({
     targetX: camTargetX,
     targetY: camTargetY,
     targetZ: camTargetZ,
+    distance: camDistance,
     roll: camRoll,
     fov: camFov,
   },

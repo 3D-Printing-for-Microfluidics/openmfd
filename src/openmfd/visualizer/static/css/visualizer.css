@@ -145,6 +145,16 @@ canvas {
   margin-top: 0;
 }
 
+#modelSelector form {
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+#modelSelector.is-in-dialog form {
+  max-height: 45vh;
+}
+
 #modelSelector .model-row {
   display: flex;
   align-items: center;

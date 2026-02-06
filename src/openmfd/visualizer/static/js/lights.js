@@ -1,7 +1,7 @@
 import * as THREE from '../lib/three/three.module.js';
 
 export function createLightSystem({ scene, world, cameraSystem, previewSystem, getModelCenterModel }) {
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
   world.add(ambientLight);
 
   const directionalLights = [];

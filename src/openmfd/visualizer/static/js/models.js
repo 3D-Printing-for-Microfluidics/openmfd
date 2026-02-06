@@ -10,6 +10,7 @@ export function createModelManager({ scene, world }) {
   let models = [];
   let lastModifieds = [];
   let listSignature = '';
+  let isLoadingModels = false;
   let visibilityResolver = null;
   const visibilityOverrides = new Map();
   let defaultVersionStrategy = 'largest';
@@ -176,69 +177,74 @@ export function createModelManager({ scene, world }) {
 
 
   async function loadAllModels() {
+    isLoadingModels = true;
     modelGroups.forEach((group) => disposeGroup(group));
     models = [];
     modelGroups = [];
     modelVersionScenes = [];
     lastModifieds = Array(glbFiles.length).fill(null);
 
-    const loadedScenes = await Promise.all(
-      modelEntries.map(async (entry, idx) => {
-        const versionScenes = new Map();
-        const versionLoads = entry.versions.map((ver) =>
-          new Promise((resolve) => {
-            const cacheBuster = `?cb=${Date.now()}`;
-            if (!ver.file) {
-              resolve({ id: ver.id, scene: null });
-              return;
-            }
-            loader.load(
-              ver.file + cacheBuster,
-              (gltf) => resolve({ id: ver.id, scene: gltf.scene }),
-              undefined,
-              () => resolve({ id: ver.id, scene: null })
-            );
-          })
-        );
-        const results = await Promise.all(versionLoads);
-        results.forEach(({ id, scene }) => {
-          if (!scene) return;
-          scene.traverse((child) => {
-            if (child.isMesh) {
-              const mat = child.material;
-              mat.metalness = 0.5;
-              mat.transparent = true;
-              mat.side = THREE.FrontSide;
-              if (Array.isArray(mat)) {
-                mat.forEach((m) => {
-                  if (m && m.userData && m.userData.baseOpacity === undefined) {
-                    m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
-                  }
-                });
-              } else if (mat && mat.userData && mat.userData.baseOpacity === undefined) {
-                mat.userData.baseOpacity = Number.isFinite(mat.opacity) ? mat.opacity : 1;
+    try {
+      const loadedScenes = await Promise.all(
+        modelEntries.map(async (entry, idx) => {
+          const versionScenes = new Map();
+          const versionLoads = entry.versions.map((ver) =>
+            new Promise((resolve) => {
+              const cacheBuster = `?cb=${Date.now()}`;
+              if (!ver.file) {
+                resolve({ id: ver.id, scene: null });
+                return;
               }
-            }
+              loader.load(
+                ver.file + cacheBuster,
+                (gltf) => resolve({ id: ver.id, scene: gltf.scene }),
+                undefined,
+                () => resolve({ id: ver.id, scene: null })
+              );
+            })
+          );
+          const results = await Promise.all(versionLoads);
+          results.forEach(({ id, scene }) => {
+            if (!scene) return;
+            scene.traverse((child) => {
+              if (child.isMesh) {
+                const mat = child.material;
+                mat.metalness = 0.01;
+                mat.transparent = true;
+                mat.side = THREE.FrontSide;
+                if (Array.isArray(mat)) {
+                  mat.forEach((m) => {
+                    if (m && m.userData && m.userData.baseOpacity === undefined) {
+                      m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
+                    }
+                  });
+                } else if (mat && mat.userData && mat.userData.baseOpacity === undefined) {
+                  mat.userData.baseOpacity = Number.isFinite(mat.opacity) ? mat.opacity : 1;
+                }
+              }
+            });
+            versionScenes.set(id, scene);
           });
-          versionScenes.set(id, scene);
-        });
 
-        const wrapper = new THREE.Group();
-        const activeId = entry.versionId;
-        versionScenes.forEach((scene, id) => {
-          scene.visible = id === activeId;
-          wrapper.add(scene);
-        });
-        wrapper.visible = getVisibility(idx);
-        modelGroups[idx] = wrapper;
-        modelVersionScenes[idx] = versionScenes;
-        const activeScene = versionScenes.get(activeId) || versionScenes.values().next().value || null;
-        models[idx] = activeScene || null;
-        world.add(wrapper);
-        return wrapper;
-      })
-    );
-    return loadedScenes;
+          const wrapper = new THREE.Group();
+          const activeId = entry.versionId;
+          versionScenes.forEach((scene, id) => {
+            scene.visible = id === activeId;
+            wrapper.add(scene);
+          });
+          wrapper.visible = getVisibility(idx);
+          modelGroups[idx] = wrapper;
+          modelVersionScenes[idx] = versionScenes;
+          const activeScene = versionScenes.get(activeId) || versionScenes.values().next().value || null;
+          models[idx] = activeScene || null;
+          world.add(wrapper);
+          return wrapper;
+        })
+      );
+      return loadedScenes;
+    } finally {
+      isLoadingModels = false;
+    }
   }
 
   function setModelVersion(idx, versionId, { reload = true, force = false } = {}) {
@@ -421,6 +427,9 @@ export function createModelManager({ scene, world }) {
   }
 
   async function checkForUpdates() {
+    if (isLoadingModels) {
+      return { listChanged: false, filesChanged: false, busy: true };
+    }
     const newList = await fetchModelList();
     if (!newList) {
       return { listChanged: false, filesChanged: false, error: 'offline' };

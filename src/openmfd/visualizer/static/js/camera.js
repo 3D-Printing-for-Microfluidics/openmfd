@@ -696,6 +696,9 @@ export function createCameraSystem({
     inputs.targetX.value = target.x.toFixed(3);
     inputs.targetY.value = target.y.toFixed(3);
     inputs.targetZ.value = target.z.toFixed(3);
+    if (inputs.distance) {
+      inputs.distance.value = pos.distanceTo(target).toFixed(3);
+    }
     if (inputs.roll) {
       const rollValue = allowRoll ? getCameraRollDeg() : 0;
       inputs.roll.value = rollValue.toFixed(2);
@@ -745,7 +748,34 @@ export function createCameraSystem({
       } else {
         updateActiveCameraStateFromControls();
       }
+      syncCameraInputs();
     }
+  }
+
+  function applyDistanceInput() {
+    if (!inputs?.distance) return;
+    const distanceValue = parseFloat(inputs.distance.value);
+    if (!Number.isFinite(distanceValue) || distanceValue < 0) return;
+
+    const currentPos = toModelSpace(camera.position);
+    const currentTarget = toModelSpace(controls.target);
+    const direction = currentPos.clone().sub(currentTarget);
+    if (direction.lengthSq() < 1e-6) {
+      direction.set(0, 0, 1);
+    } else {
+      direction.normalize();
+    }
+
+    const nextPos = currentTarget.clone().add(direction.multiplyScalar(distanceValue));
+    const rollDeg = allowRoll ? getCameraRollDeg() : 0;
+    setCameraPose(toSceneSpace(nextPos), toSceneSpace(currentTarget), rollDeg);
+
+    if (!isHomeMode && camerasState[activeCameraIndex]) {
+      commitActiveCameraState();
+    } else {
+      updateActiveCameraStateFromControls();
+    }
+    if (onCameraChange) onCameraChange();
   }
 
   function setRollEnabled(enabled) {
@@ -913,6 +943,10 @@ export function createCameraSystem({
         .forEach((input) => {
           input.addEventListener('input', applyCameraInputs);
         });
+
+      if (inputs.distance) {
+        inputs.distance.addEventListener('input', applyDistanceInput);
+      }
     }
 
     updateRemoveButton();

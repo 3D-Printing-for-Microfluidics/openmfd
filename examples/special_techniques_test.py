@@ -63,11 +63,14 @@ device = Device(
 
 device.add_label("bulk", Color.from_name("gray", 127))
 device.add_label("void", Color.from_name("aqua", 127))
+device.add_label("squeeze", Color.from_name("aqua", 127))
+device.add_label("zero", Color.from_name("aqua", 127))
+device.add_label("film", Color.from_name("aqua", 127))
 
 bulk = Cube(device._size, center=False)
 bulk.translate(device._position)
 
-device.add_bulk("bulk", bulk, label="bulk")
+device.add_bulk("bulkshape", bulk, label="bulk")
 
 device.add_void(
     "channel",
@@ -86,7 +89,7 @@ device.add_regional_settings(
     PositionSettings(
         special_layer_techniques=[SqueezeOutResin(enabled=True, count=2, squeeze_force=5.0, squeeze_time=200.0)],
     ),
-    label="void",
+    label="squeeze",
 )
 
 device.add_regional_settings(
@@ -96,7 +99,7 @@ device.add_regional_settings(
         exposure_time=250.0,
         special_image_techniques=[ZeroMicronLayer(enabled=True, count=2)],
     ),
-    label="void",
+    label="zero",
 )
 
 device.add_regional_settings(
@@ -106,12 +109,14 @@ device.add_regional_settings(
         exposure_time=250.0,
         special_image_techniques=[PrintOnFilm(enabled=True, distance_up_mm=0.3)],
     ),
-    label="void",
+    label="film",
 )
 
 # Optional: override defaults at device level
 # device.add_default_position_settings(position_settings)
 # device.add_default_exposure_settings(exposure_settings)
+
+device.preview()
 
 # Slice
 slicer = Slicer(

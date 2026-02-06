@@ -56,7 +56,7 @@ device.add_void("channel4", channel4, label="void")
 # Bulk block (add last)
 bulk = Cube(device._size, center=False)
 bulk.translate(device._position)
-device.add_bulk("bulk", bulk, label="bulk")
+device.add_bulk("bulk_shape", bulk, label="bulk")
 
 device.preview()
 

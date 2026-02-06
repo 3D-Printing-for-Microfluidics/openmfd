@@ -6,22 +6,30 @@ set_fn(50)
 
 vdev = Visitech_LRS10_Device("vdev", position=(0, 0, 0), layers=100, layer_size=0.015)
 
-wdev = Wintech_Device("wdev", position=(0, 0, 1000), layers=100, layer_size=0.0015)
+wdev = Wintech_Device("wdev", position=(0, 0, 0), layers=100, layer_size=0.0015)
 
 vdev.add_label("device", Color.from_name("aqua", 100))
 wdev.add_label("device", Color.from_name("blue", 100))
 
 vdev.add_bulk(
-    "v_bulk", Cube(vdev._size, center=False).translate(vdev._position), label="device"
+    "v_bulk", Cube(vdev._size, center=False), label="device"
 )
 wdev.add_bulk(
-    "w_bulk", Cube(wdev._size, center=False).translate(wdev._position), label="device"
+    "w_bulk", Cube(wdev._size, center=False), label="device"
 )
-vdev.add_subcomponent("wintech", wdev.translate((0, 0, 0)))
-vdev.add_subcomponent("wintech", wdev.translate((100, 100, 0)))
+wdev.add_void(
+    "test_void",
+    Cube((100, 100, 100), center=False).translate((0, 0, 0)),
+    label="device",
+)
+wdev.translate((0, 0, 100))
+wdev2 = wdev.copy().translate((150, 150, 0))
 
+vdev.add_subcomponent("wintech", wdev)
+vdev.add_subcomponent("wintech2", wdev2)
+
+# wdev2.preview()
 vdev.preview()
-# dev.preview()
 
 settings = Settings(
     # user="Test User",
@@ -73,7 +81,7 @@ settings = Settings(
 slicer = Slicer(
     device=vdev,
     settings=settings,
-    filename="test_slicer",
+    filename="VHROE_demo",
     minimize_file=True,
     zip_output=False,
 )

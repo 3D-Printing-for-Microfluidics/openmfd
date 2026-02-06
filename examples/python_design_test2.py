@@ -153,7 +153,7 @@ device.preview()
 slicer = Slicer(
     device=device,
     settings=settings,
-    filename="test_slicer",
+    filename="python_design_test2_demo",
     minimize_file=True,
     zip_output=False,
 )

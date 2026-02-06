@@ -27,34 +27,34 @@ set_fn(50)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # # Add a shape
-# # component.add_void(
+# # component.add_bulk(
 # #     "simple_cube",
 # #     Cube((2, 2, 2), center=False).translate((1, 1, 1)),
 # #     label="default",
 # # )
-# # component.add_void(
+# # component.add_bulk(
 # #     "simple_round_cube",
 # #     RoundedCube((10, 10, 10), (2.5, 2.5, 2.5), center=True),
 # #     label="default",
 # # )
-# # component.add_void("simple_sphere", Sphere((2, 2, 2), center=False), label="default")
-# # component.add_void(
+# # component.add_bulk("simple_sphere", Sphere((2, 2, 2), center=False), label="default")
+# # component.add_bulk(
 # #     "simple_cylinder",
 # #     Cylinder(radius=1, height=2, center_xy=False, center_z=False),
 # #     label="default",
 # # )
-# # component.add_void("text", TextExtrusion("Hello!!"), label="default")
-# # component.add_void(
+# # component.add_bulk("text", TextExtrusion("Hello!!"), label="default")
+# # component.add_bulk(
 # #     "import",
 # #     ImportModel("examples/Diamond_51.stl").resize((10, 10, 8)).translate((-10, 0, 0)),
 # #     label="default",
 # # )
-# # component.add_void(
+# # component.add_bulk(
 # #     f"tpms",
 # #     TPMS(func=TPMS.diamond, size=(10, 10, 8), fill=0.0, refinement=50),
 # #     label="default",
 # # )
-# # component.add_void(
+# # component.add_bulk(
 # #     "polychannel",
 # #     Polychannel(
 # #         [
@@ -74,7 +74,7 @@ set_fn(50)
 # #     ),
 # #     label="default",
 # # )
-# # component.add_void(
+# # component.add_bulk(
 # #     "beziercurve",
 # #     Polychannel(
 # #         [
@@ -116,6 +116,8 @@ set_fn(50)
 #     size=(255, 255, 15), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
 # )
 
+# component.add_label("default", Color.from_rgba((0, 255, 0, 0)))
+
 # # # Rotation then translation
 # c1 = TestCube().translate((10, 10, 0))
 # c2 = TestCube().rotate(90).translate((10, 10, 0))
@@ -156,6 +158,10 @@ set_fn(50)
 # component.add_subcomponent("C2", c2)
 # component.add_subcomponent("C3", c3)
 # component.add_subcomponent("C4", c4)
+
+# component.add_bulk(
+#     "bulk_cube", Cube(component._size, center=False), label="default"
+# )
 
 # # Mesh the component
 # component.preview()
@@ -203,7 +209,7 @@ set_fn(50)
 # # IMPORTANT: If you want to see inside the inverted device, you need to create you bulk shape last
 # bulk_cube = Cube(device_size, center=False)
 # bulk_cube.translate(device_position)
-# device.add_bulk("bulk1", bulk_cube, label="device")
+# device.add_bulk("bulkcube", bulk_cube, label="device")
 
 # # Mesh the component
 # device.preview()
@@ -217,7 +223,7 @@ set_fn(50)
 # # Add label
 # component.add_label("default", Color.from_rgba((0, 255, 0, 127)))
 # # Add a shape
-# component.add_void(
+# component.add_bulk(
 #     "polychannel",
 #     Polychannel(
 #         [

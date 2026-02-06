@@ -1,4 +1,4 @@
-from openmfd import Component, Color, ImportModel, TPMS
+from openmfd import Component, Color, ImportModel, TPMS, Cube
 
 # ############### 1 Test all basic components ##################
 component = Component(
@@ -72,10 +72,10 @@ class TPMSComponent(Component):
         )
 
         # Setup labels
-        self.add_label("device", Color.from_name("cyan", 255))
+        self.add_label("default", Color.from_name("cyan", 255))
 
         # Build bulk shape
-        self.add_void(
+        self.add_bulk(
             "BulkShape",
             TPMS(
                 func=TPMS.diamond,
@@ -83,8 +83,8 @@ class TPMSComponent(Component):
                 # cells=(2, 2, 25),
                 fill=0.0,
                 refinement=25,
-            ).translate((30, 30, 0)),
-            label="device",
+            ),
+            label="default",
         )
 
 
@@ -94,8 +94,12 @@ for i in range(2):
             component.add_subcomponent(
                 f"tpms_subcomponent_{i}{j}{k}",
                 TPMSComponent().translate((10 * i, 10 * j, 8 * k)),
-                hide_in_render=True,
+                hide_in_render=False,
             )
+
+component.relabel({"default": "default"}, recursive=True)
+
+component.add_bulk("bulkcube", Cube(component._size, center=False), label="default")
 
 # Mesh the component
 component.preview()

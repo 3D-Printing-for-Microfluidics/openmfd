@@ -603,6 +603,10 @@ class SerpentineChannel(Component):
             label="device",
         )
 
+        self.add_default_exposure_settings(ExposureSettings())
+        self.add_default_position_settings(PositionSettings())
+        self.set_burn_in_exposure([1000])
+
 
 # SerpentineChannel(width=256, turns=10, layers=3).preview()
 
@@ -865,7 +869,7 @@ settings = Settings(
 slicer = Slicer(
     device=dev,
     settings=settings,
-    filename="test_slicer",
+    filename="full_test_demo",
     minimize_file=True,
     zip_output=False,
 )

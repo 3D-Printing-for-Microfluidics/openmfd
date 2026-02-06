@@ -72,7 +72,11 @@ channel = Cube((inner._size[0], 40, 10)).translate((0, 100, 20))
 inner.add_void("channel", channel, label="void")
 
 # Embed the inner device into the outer device
-inner.translate((500, 400, 10))  # translation in outer device pixels/layers
+# calculate translation (center inner device within outer device)
+translation_x = (outer._size[0]*outer._px_size - inner._size[0]*inner._px_size) / 2
+translation_y = (outer._size[1]*outer._px_size - inner._size[1]*inner._px_size) / 2
+print(outer._size, inner._size, translation_x, translation_y, translation_x / outer._px_size, translation_y / outer._px_size)
+inner.translate((translation_x / outer._px_size, translation_y / outer._px_size, 0))  # translation in outer device pixels/layers
 outer.add_subcomponent("inner", inner)
 
 outer.preview()

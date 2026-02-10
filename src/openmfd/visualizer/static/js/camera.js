@@ -264,6 +264,44 @@ export function createCameraSystem({
     return baseUp.clone().applyQuaternion(quat);
   }
 
+  const MAX_PITCH_DEG = 89.9999;
+  function normalizeAngleDeg(deg) {
+    if (!Number.isFinite(deg)) return 0;
+    const wrapped = ((deg % 360) + 360) % 360;
+    return wrapped;
+  }
+
+  function clampPitchDeg(deg) {
+    if (!Number.isFinite(deg)) return 0;
+    return Math.max(-MAX_PITCH_DEG, Math.min(MAX_PITCH_DEG, deg));
+  }
+
+  function directionToAngles(direction) {
+    const dir = direction.clone();
+    const length = dir.length();
+    if (length < 1e-6) {
+      return { yaw: 0, pitch: 0 };
+    }
+    dir.divideScalar(length);
+    const yaw = THREE.MathUtils.radToDeg(Math.atan2(dir.y, dir.x)) + 90;
+    const pitch = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(dir.z, -1, 1)));
+    return {
+      yaw: normalizeAngleDeg(yaw),
+      pitch: clampPitchDeg(pitch),
+    };
+  }
+
+  function anglesToDirection(yawDeg, pitchDeg) {
+    const yawRad = THREE.MathUtils.degToRad(normalizeAngleDeg(yawDeg - 90));
+    const pitchRad = THREE.MathUtils.degToRad(clampPitchDeg(pitchDeg));
+    const cosPitch = Math.cos(pitchRad);
+    return new THREE.Vector3(
+      cosPitch * Math.cos(yawRad),
+      cosPitch * Math.sin(yawRad),
+      Math.sin(pitchRad)
+    );
+  }
+
   function clampFov(value) {
     if (!Number.isFinite(value)) return defaultFov;
     return Math.min(120, Math.max(5, value));
@@ -305,6 +343,7 @@ export function createCameraSystem({
       mode: cameraMode,
     };
   }
+
 
   function saveCameraStates() {
     localStorage.setItem(
@@ -390,15 +429,24 @@ export function createCameraSystem({
     renderCameraList();
   }
 
-  function getModelCenterWorld() {
+  function getWorldTargetObject() {
     const bboxScene = getBoundingBoxScene();
-    let target = null;
     if (bboxScene && bboxScene.visible) {
-      target = bboxScene;
-    } else {
-      target = buildVisibleGroup();
+      return bboxScene;
     }
+    world.updateMatrixWorld(true);
+    const group = buildVisibleGroup();
+    if (!group) return null;
+    group.matrixAutoUpdate = false;
+    group.matrix.copy(world.matrixWorld);
+    group.updateMatrixWorld(true);
+    return group;
+  }
+
+  function getModelCenterWorld() {
+    const target = getWorldTargetObject();
     if (!target) return new THREE.Vector3();
+    world.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(target);
     return box.getCenter(new THREE.Vector3());
   }
@@ -421,9 +469,7 @@ export function createCameraSystem({
   }
 
   function getTargetObject() {
-    const bboxScene = getBoundingBoxScene();
-    if (bboxScene && bboxScene.visible) return bboxScene;
-    return buildVisibleGroup();
+    return getWorldTargetObject();
   }
 
   function getFacePresetPosition(face) {
@@ -621,6 +667,7 @@ export function createCameraSystem({
     updateActiveCameraStateFromControls();
   }
 
+
   function updateRemoveButton() {
     if (!removeButton) return;
     const hasSelection = !isHomeMode && !!camerasState[activeCameraIndex];
@@ -690,9 +737,14 @@ export function createCameraSystem({
     if (!inputs) return;
     const pos = toModelSpace(camera.position);
     const target = toModelSpace(controls.target);
-    inputs.posX.value = pos.x.toFixed(3);
-    inputs.posY.value = pos.y.toFixed(3);
-    inputs.posZ.value = pos.z.toFixed(3);
+    const direction = pos.clone().sub(target);
+    const { yaw, pitch } = directionToAngles(direction);
+    if (inputs.yaw) {
+      inputs.yaw.value = yaw.toFixed(2);
+    }
+    if (inputs.pitch) {
+      inputs.pitch.value = pitch.toFixed(2);
+    }
     inputs.targetX.value = target.x.toFixed(3);
     inputs.targetY.value = target.y.toFixed(3);
     inputs.targetZ.value = target.z.toFixed(3);
@@ -701,7 +753,7 @@ export function createCameraSystem({
     }
     if (inputs.roll) {
       const rollValue = allowRoll ? getCameraRollDeg() : 0;
-      inputs.roll.value = rollValue.toFixed(2);
+      inputs.roll.value = normalizeAngleDeg(rollValue).toFixed(2);
       inputs.roll.disabled = !allowRoll;
       inputs.roll.title = allowRoll
         ? 'Roll (deg)'
@@ -713,31 +765,59 @@ export function createCameraSystem({
     }
   }
 
+  function evaluateNumericInput(rawValue, fallback) {
+    const text = String(rawValue ?? '').trim();
+    if (!text) return NaN;
+    if (/^[+-]?\d*\.?\d+$/.test(text)) {
+      const simple = Number(text);
+      return Number.isFinite(simple) ? simple : NaN;
+    }
+    const base = Number.isFinite(fallback) ? fallback : 0;
+    let expr = text
+      .replace(/\b(value|v|x|pos)\b/gi, `(${base})`)
+      .replace(/\bpi\b/gi, String(Math.PI))
+      .replace(/\be\b/gi, String(Math.E));
+    if (!/^[0-9+\-*/().\s]*$/.test(expr)) return NaN;
+    try {
+      const result = Function(`"use strict"; return (${expr});`)();
+      return Number.isFinite(result) ? result : NaN;
+    } catch (e) {
+      return NaN;
+    }
+  }
+
   function applyCameraInputs() {
     if (!inputs) return;
-    const position = new THREE.Vector3(
-      parseFloat(inputs.posX.value),
-      parseFloat(inputs.posY.value),
-      parseFloat(inputs.posZ.value)
-    );
+    const currentTarget = toModelSpace(controls.target);
+    const currentPos = toModelSpace(camera.position);
+    const currentDirection = currentPos.clone().sub(currentTarget);
+    const { yaw: currentYaw, pitch: currentPitch } = directionToAngles(currentDirection);
+    const currentDistance = currentPos.distanceTo(currentTarget);
+
     const target = new THREE.Vector3(
-      parseFloat(inputs.targetX.value),
-      parseFloat(inputs.targetY.value),
-      parseFloat(inputs.targetZ.value)
+      evaluateNumericInput(inputs.targetX.value, currentTarget.x),
+      evaluateNumericInput(inputs.targetY.value, currentTarget.y),
+      evaluateNumericInput(inputs.targetZ.value, currentTarget.z)
     );
-    const rollDeg = allowRoll && inputs.roll ? parseFloat(inputs.roll.value) : 0;
-    const fovDeg = inputs.fov ? parseFloat(inputs.fov.value) : null;
+    const yawDeg = inputs.yaw ? evaluateNumericInput(inputs.yaw.value, currentYaw) : NaN;
+    const pitchDeg = inputs.pitch ? evaluateNumericInput(inputs.pitch.value, currentPitch) : NaN;
+    const distanceValue = inputs.distance ? evaluateNumericInput(inputs.distance.value, currentDistance) : NaN;
+    const rollDeg = allowRoll && inputs.roll ? evaluateNumericInput(inputs.roll.value, getCameraRollDeg()) : 0;
+    const fovDeg = inputs.fov ? evaluateNumericInput(inputs.fov.value, perspectiveCamera.fov) : null;
+
+    const distance = Number.isFinite(distanceValue) ? Math.max(0, distanceValue) : currentDistance;
+    if (!Number.isFinite(yawDeg) || !Number.isFinite(pitchDeg)) return;
+    const direction = anglesToDirection(yawDeg, pitchDeg);
 
     if (
-      Number.isFinite(position.x) &&
-      Number.isFinite(position.y) &&
-      Number.isFinite(position.z) &&
       Number.isFinite(target.x) &&
       Number.isFinite(target.y) &&
       Number.isFinite(target.z) &&
+      Number.isFinite(distance) &&
       (allowRoll && inputs.roll ? Number.isFinite(rollDeg) : true) &&
       (inputs.fov ? Number.isFinite(fovDeg) : true)
     ) {
+      const position = target.clone().add(direction.multiplyScalar(distance));
       setCameraPose(toSceneSpace(position), toSceneSpace(target), rollDeg || 0);
       if (cameraMode === 'perspective' && Number.isFinite(fovDeg)) {
         perspectiveCamera.fov = Math.min(120, Math.max(5, fovDeg));
@@ -754,21 +834,32 @@ export function createCameraSystem({
 
   function applyDistanceInput() {
     if (!inputs?.distance) return;
-    const distanceValue = parseFloat(inputs.distance.value);
-    if (!Number.isFinite(distanceValue) || distanceValue < 0) return;
-
-    const currentPos = toModelSpace(camera.position);
     const currentTarget = toModelSpace(controls.target);
-    const direction = currentPos.clone().sub(currentTarget);
-    if (direction.lengthSq() < 1e-6) {
-      direction.set(0, 0, 1);
-    } else {
-      direction.normalize();
-    }
+    const currentPos = toModelSpace(camera.position);
+    const currentDirection = currentPos.clone().sub(currentTarget);
+    const { yaw: currentYaw, pitch: currentPitch } = directionToAngles(currentDirection);
+    const currentDistance = currentPos.distanceTo(currentTarget);
 
-    const nextPos = currentTarget.clone().add(direction.multiplyScalar(distanceValue));
-    const rollDeg = allowRoll ? getCameraRollDeg() : 0;
-    setCameraPose(toSceneSpace(nextPos), toSceneSpace(currentTarget), rollDeg);
+    const distanceValue = evaluateNumericInput(inputs.distance.value, currentDistance);
+    if (!Number.isFinite(distanceValue) || distanceValue < 0) return;
+    if (!inputs?.yaw || !inputs?.pitch) return;
+
+    const target = new THREE.Vector3(
+      evaluateNumericInput(inputs.targetX.value, currentTarget.x),
+      evaluateNumericInput(inputs.targetY.value, currentTarget.y),
+      evaluateNumericInput(inputs.targetZ.value, currentTarget.z)
+    );
+    if (!Number.isFinite(target.x) || !Number.isFinite(target.y) || !Number.isFinite(target.z)) return;
+
+    const yawDeg = evaluateNumericInput(inputs.yaw.value, currentYaw);
+    const pitchDeg = evaluateNumericInput(inputs.pitch.value, currentPitch);
+    if (!Number.isFinite(yawDeg) || !Number.isFinite(pitchDeg)) return;
+
+    const direction = anglesToDirection(yawDeg, pitchDeg);
+    const nextPos = target.clone().add(direction.multiplyScalar(distanceValue));
+    const rollInput = allowRoll ? evaluateNumericInput(inputs.roll?.value, getCameraRollDeg()) : 0;
+    const rollDeg = Number.isFinite(rollInput) ? rollInput : 0;
+    setCameraPose(toSceneSpace(nextPos), toSceneSpace(target), rollDeg);
 
     if (!isHomeMode && camerasState[activeCameraIndex]) {
       commitActiveCameraState();
@@ -776,6 +867,7 @@ export function createCameraSystem({
       updateActiveCameraStateFromControls();
     }
     if (onCameraChange) onCameraChange();
+    syncCameraInputs();
   }
 
   function setRollEnabled(enabled) {
@@ -929,10 +1021,14 @@ export function createCameraSystem({
     });
 
     if (inputs) {
+      const commitOnEnter = (handler) => (event) => {
+        if (event.key === 'Enter') {
+          handler();
+        }
+      };
       [
-        inputs.posX,
-        inputs.posY,
-        inputs.posZ,
+        inputs.yaw,
+        inputs.pitch,
         inputs.targetX,
         inputs.targetY,
         inputs.targetZ,
@@ -941,11 +1037,13 @@ export function createCameraSystem({
       ]
         .filter(Boolean)
         .forEach((input) => {
-          input.addEventListener('input', applyCameraInputs);
+          input.addEventListener('change', applyCameraInputs);
+          input.addEventListener('keydown', commitOnEnter(applyCameraInputs));
         });
 
       if (inputs.distance) {
-        inputs.distance.addEventListener('input', applyDistanceInput);
+        inputs.distance.addEventListener('change', applyDistanceInput);
+        inputs.distance.addEventListener('keydown', commitOnEnter(applyDistanceInput));
       }
     }
 
@@ -1012,6 +1110,7 @@ export function createCameraSystem({
   const handleControlsChange = () => {
     if (isApplyingCameraState) return;
     updateActiveCameraStateFromControls();
+    if (onCameraChange) onCameraChange();
   };
 
   if (controls && controls.addEventListener) {

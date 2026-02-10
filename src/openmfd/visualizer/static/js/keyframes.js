@@ -99,7 +99,7 @@ export function createKeyframeSystem({
     restoreCamera = true,
     restoreLights = true,
     restoreModels = true,
-    clearSelection = false,
+    clearKeyframeSelection = false,
     activateGlobalTab = false,
   } = {}) {
     if (!isEditing) return;
@@ -129,7 +129,7 @@ export function createKeyframeSystem({
 
     restoreDialogChrome();
 
-    if (clearSelection) {
+    if (clearKeyframeSelection) {
       clearSelection();
     } else {
       cameraSystem.refreshUpdateButton();
@@ -1355,6 +1355,22 @@ export function createKeyframeSystem({
       toggleBtn.classList.toggle('is-active', isPanelOpen);
     }
     setModelSelectorLocation(isPanelOpen);
+    if (!isPanelOpen) {
+      if (isEditing) {
+        if (lightSystemRef?.setStructureEditable) {
+          lightSystemRef.setStructureEditable(true);
+        }
+        exitKeyframeEditing({
+          restoreCamera: true,
+          restoreLights: true,
+          restoreModels: true,
+          clearKeyframeSelection: true,
+          activateGlobalTab: true,
+        });
+      } else if (activeKeyframeIndex !== null) {
+        clearSelection();
+      }
+    }
   }
 
   function setModelSelectorLocation(enabled) {
@@ -1676,7 +1692,7 @@ export function createKeyframeSystem({
     if (lightSystemRef?.setStructureEditable) {
       lightSystemRef.setStructureEditable(true);
     }
-    exitKeyframeEditing({ restoreCamera: false, restoreLights: false, restoreModels: false, clearSelection: false, activateGlobalTab: false });
+    exitKeyframeEditing({ restoreCamera: false, restoreLights: false, restoreModels: false, clearKeyframeSelection: false, activateGlobalTab: false });
   }
 
   return {
@@ -1861,7 +1877,7 @@ export function createKeyframeSystem({
       const hasSaved = !!cameraSystem.getActiveCameraState();
       if (isHome || hasSaved) {
         if (isEditing) {
-          exitKeyframeEditing({ restoreCamera: false, restoreLights: true, restoreModels: true, clearSelection: true, activateGlobalTab: true });
+          exitKeyframeEditing({ restoreCamera: false, restoreLights: true, restoreModels: true, clearKeyframeSelection: true, activateGlobalTab: true });
         } else if (activeKeyframeIndex !== null) {
           clearSelection();
           if (settingsSystemRef) {

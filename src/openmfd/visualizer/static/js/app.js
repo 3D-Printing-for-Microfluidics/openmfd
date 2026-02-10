@@ -14,6 +14,7 @@ const AXES_STORAGE_KEY = 'openmfd_axes_visible';
 const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'openmfd_default_controls_type';
 const MODEL_SETTINGS_BEHAVIOR_KEY = 'openmfd_model_settings_behavior';
 const MODEL_DEFAULT_VERSION_KEY = 'openmfd_model_default_version';
+const LIGHTS_STORAGE_KEY = 'openmfd_lights_v1';
 
 const sceneState = createScene();
 const {
@@ -64,9 +65,37 @@ const cameraSystem = createCameraSystem({
   },
 });
 
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+renderer.domElement.addEventListener('dblclick', (event) => {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+  const camera = cameraSystem.getCamera();
+  raycaster.setFromCamera(pointer, camera);
+  const targetGroup = modelManager.buildVisibleGroup();
+  if (!targetGroup) return;
+  targetGroup.matrixAutoUpdate = false;
+  targetGroup.matrix.copy(world.matrixWorld);
+  targetGroup.updateMatrixWorld(true);
+  const hits = raycaster.intersectObject(targetGroup, true);
+  const hit = hits.find((entry) => entry.object?.isMesh);
+  if (!hit) return;
+
+  const roll = cameraSystem.getCameraState().roll || 0;
+  cameraSystem.setCameraPose(camera.position.clone(), hit.point.clone(), roll);
+});
+
 keyframeSystem = createKeyframeSystem({ cameraSystem, modelManager });
 
-const previewSystem = createPreviewSystem({ scene, controls, cameraSystem });
+const previewSystem = createPreviewSystem({
+  scene,
+  world,
+  controls,
+  cameraSystem,
+  buildVisibleGroup: modelManager.buildVisibleGroup,
+});
 
 lightSystem = createLightSystem({
   scene,
@@ -75,6 +104,11 @@ lightSystem = createLightSystem({
   previewSystem,
   getModelCenterModel: modelManager.getModelCenterModel,
 });
+if (lightSystem?.setLightStateChangeCallback) {
+  lightSystem.setLightStateChangeCallback(() => {
+    saveLightState();
+  });
+}
 
 const modelSelector = createModelSelector({
   formEl: document.getElementById('glbForm'),
@@ -108,9 +142,8 @@ const centerTargetBtn = document.getElementById('centerTargetBtn');
 const addCameraBtn = document.getElementById('addCameraBtn');
 const addCameraBtnSettings = document.getElementById('addCameraBtnSettings');
 const removeCameraBtnSettings = document.getElementById('removeCameraBtnSettings');
-const camPosX = document.getElementById('camPosX');
-const camPosY = document.getElementById('camPosY');
-const camPosZ = document.getElementById('camPosZ');
+const camYaw = document.getElementById('camYaw');
+const camPitch = document.getElementById('camPitch');
 const camTargetX = document.getElementById('camTargetX');
 const camTargetY = document.getElementById('camTargetY');
 const camTargetZ = document.getElementById('camTargetZ');
@@ -230,6 +263,29 @@ let themeManager = null;
 let pendingSettingsList = null;
 const previewSettingsCustomFiles = new Map();
 const previewSettingsCustomOrder = [];
+let suppressLocalPersistence = false;
+let skipBeforeUnloadSave = false;
+
+function saveLightState() {
+  if (suppressLocalPersistence || !lightSystem?.getLightState) return;
+  const state = lightSystem.getLightState();
+  if (!state) return;
+  localStorage.setItem(LIGHTS_STORAGE_KEY, JSON.stringify(state));
+}
+
+function restorePersistedViewState() {
+  suppressLocalPersistence = true;
+  try {
+    const lightRaw = localStorage.getItem(LIGHTS_STORAGE_KEY);
+    if (lightRaw) {
+      const lightState = JSON.parse(lightRaw);
+      lightSystem.applyLightState(lightState);
+    }
+  } catch (e) {
+    // ignore
+  }
+  suppressLocalPersistence = false;
+}
 
 function applyControlsType(type, persist = true) {
   const nextControls = setControlsType(type);
@@ -483,10 +539,12 @@ function getPathTracingLightState() {
 
   const ambientColor = new THREE.Color(state.ambient?.color || '#000000').convertSRGBToLinear();
   const directional = (state.directional || []).map((light) => {
-    const pos = new THREE.Vector3(light.offset?.x || 0, light.offset?.y || 0, light.offset?.z || 0)
-      .add(modelCenter);
-    const target = new THREE.Vector3(light.targetOffset?.x || 0, light.targetOffset?.y || 0, light.targetOffset?.z || 0)
-      .add(modelCenter);
+    const pos = light.position && Number.isFinite(light.position.x)
+      ? new THREE.Vector3(light.position.x, light.position.y, light.position.z)
+      : modelCenter.clone().add(new THREE.Vector3(10, 10, 10));
+    const target = light.targetPosition && Number.isFinite(light.targetPosition.x)
+      ? new THREE.Vector3(light.targetPosition.x, light.targetPosition.y, light.targetPosition.z)
+      : modelCenter.clone();
     const color = new THREE.Color(light.color || '#ffffff').convertSRGBToLinear();
     return {
       type: light.type || 'directional',
@@ -1224,6 +1282,7 @@ function resetCameraSettings() {
 }
 
 function resetLightingSettings() {
+  localStorage.removeItem(LIGHTS_STORAGE_KEY);
   lightSystem.resetLights();
 }
 
@@ -1419,6 +1478,7 @@ function applySettingsPayload(payload, sections = {}) {
       }
       applyDefaultVersionVisibilityConstraint();
       modelManager.loadAllModels().then(() => {
+        cameraSystem.setTargetToModelCenter();
         lightSystem.updateDirectionalLightTargets();
       });
     }
@@ -1521,9 +1581,8 @@ cameraSystem.bindCameraUI({
   removeButton: removeCameraBtnSettings,
   presetButtons: cameraPresetButtons,
   inputFields: {
-    posX: camPosX,
-    posY: camPosY,
-    posZ: camPosZ,
+    yaw: camYaw,
+    pitch: camPitch,
     targetX: camTargetX,
     targetY: camTargetY,
     targetZ: camTargetZ,
@@ -1884,6 +1943,7 @@ async function handleModelRefresh() {
     modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
     modelManager.updateVisibility();
     await modelManager.loadAllModels();
+    cameraSystem.setTargetToModelCenter();
     lightSystem.ensureDefaultLight();
     lightSystem.updateDirectionalLightTargets();
     settingsSystem?.refreshPreviewInfo();
@@ -1908,6 +1968,8 @@ function setAutoReloadIntervalMs(nextIntervalMs) {
 }
 
 async function resetAllSettings() {
+  skipBeforeUnloadSave = true;
+  suppressLocalPersistence = true;
   localStorage.removeItem(AUTO_RELOAD_STORAGE_KEY);
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(AXES_STORAGE_KEY);
@@ -1921,6 +1983,7 @@ async function resetAllSettings() {
   localStorage.removeItem('openmfd_model_selection_v2');
   localStorage.removeItem('openmfd_model_selection_v3');
   localStorage.removeItem('openmfd_controls_type');
+  localStorage.removeItem(LIGHTS_STORAGE_KEY);
   await fetch('/set_preview_dir', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1968,6 +2031,7 @@ async function initModels() {
   applyDefaultVersionVisibilityConstraint();
   modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
   await modelManager.loadAllModels();
+  cameraSystem.setTargetToModelCenter();
   lightSystem.ensureDefaultLight();
   lightSystem.updateDirectionalLightTargets();
   settingsSystem?.refreshPreviewInfo();
@@ -2266,6 +2330,14 @@ async function init() {
     setAutoReloadIntervalMs,
     initModels,
   });
+  if (previewSystem?.setInteractionDependencies) {
+    previewSystem.setInteractionDependencies({
+      lightSystem,
+      getActiveTab: settingsSystem.getActiveTab,
+      buildVisibleGroup: modelManager.buildVisibleGroup,
+      world,
+    });
+  }
   keyframeSystem.setEditorDependencies({
     settingsDialog,
     settingsDialogClose,
@@ -2301,11 +2373,19 @@ async function init() {
       lightSystem.updateDirectionalLightTargets();
     });
   }
+  suppressLocalPersistence = true;
   await initModels();
 
   cameraSystem.initCameraStates();
   cameraSystem.resetCameraHome();
+  restorePersistedViewState();
+  suppressLocalPersistence = false;
   syncCameraControlSelect();
+
+  window.addEventListener('beforeunload', () => {
+    if (skipBeforeUnloadSave || suppressLocalPersistence) return;
+    saveLightState();
+  });
 
   initAutoReload();
   initResizing();

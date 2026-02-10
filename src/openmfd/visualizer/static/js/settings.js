@@ -134,6 +134,7 @@ export function createSettingsSystem({
   return {
     initTabs,
     activateTab,
+    getActiveTab: () => activeTab,
     initGeneralSettings,
     refreshPreviewInfo,
   };

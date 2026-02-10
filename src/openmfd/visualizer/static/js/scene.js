@@ -25,10 +25,18 @@ export function createScene() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   document.body.appendChild(renderer.domElement);
+  renderer.domElement.setAttribute('tabindex', '0');
+  renderer.domElement.style.outline = 'none';
+  renderer.domElement.addEventListener('pointerdown', () => {
+    renderer.domElement.focus();
+  });
 
   const orbitControls = new OrbitControls(perspectiveCamera, renderer.domElement);
   orbitControls.enableDamping = true;
   orbitControls.dampingFactor = 0.08;
+  if (typeof orbitControls.listenToKeyEvents === 'function') {
+    orbitControls.listenToKeyEvents(window);
+  }
 
   const trackballControls = new TrackballControls(perspectiveCamera, renderer.domElement);
   trackballControls.enabled = false;

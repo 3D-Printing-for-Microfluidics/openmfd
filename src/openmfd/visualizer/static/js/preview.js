@@ -1,13 +1,32 @@
 import * as THREE from '../lib/three/three.module.js';
 import { OrbitControls } from '../lib/three/controls/OrbitControls.js';
 
-export function createPreviewSystem({ scene, controls: initialControls, cameraSystem }) {
+export function createPreviewSystem({ scene, world, controls: initialControls, cameraSystem, buildVisibleGroup }) {
   let controls = initialControls;
+  let buildVisibleGroupRef = buildVisibleGroup || null;
+  let worldRef = world || null;
+  let lightSystemRef = null;
+  let getActiveTabRef = null;
   let dialogViewer = null;
   let previewRenderer = null;
   let previewCamera = null;
   let previewControls = null;
   let isOpen = false;
+  let isRaycastBound = false;
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+
+  function updateHelperVisibility() {
+    const activeTab = getActiveTabRef ? getActiveTabRef() : null;
+    const showCameraHelpers = isOpen && activeTab === 'camera';
+    const showLightHelpers = isOpen && activeTab === 'lights';
+    if (cameraSystem?.setCameraHelperVisible) {
+      cameraSystem.setCameraHelperVisible(showCameraHelpers);
+    }
+    if (lightSystemRef?.setHelpersVisible) {
+      lightSystemRef.setHelpersVisible(showLightHelpers);
+    }
+  }
 
   function ensureRenderer() {
     if (!dialogViewer) return;
@@ -22,9 +41,44 @@ export function createPreviewSystem({ scene, controls: initialControls, cameraSy
       previewControls = new OrbitControls(previewCamera, previewRenderer.domElement);
       previewControls.enableDamping = true;
       previewControls.dampingFactor = 0.08;
+      bindRaycastEvents();
     } else if (previewRenderer.domElement.parentElement !== dialogViewer) {
       dialogViewer.appendChild(previewRenderer.domElement);
     }
+  }
+
+  function bindRaycastEvents() {
+    if (isRaycastBound || !previewRenderer) return;
+    previewRenderer.domElement.addEventListener('dblclick', (event) => {
+      if (!previewCamera || !buildVisibleGroupRef || !worldRef) return;
+      const activeTab = getActiveTabRef ? getActiveTabRef() : null;
+      if (activeTab !== 'camera' && activeTab !== 'lights') return;
+
+      const rect = previewRenderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(pointer, previewCamera);
+      const targetGroup = buildVisibleGroupRef();
+      if (!targetGroup) return;
+      targetGroup.matrixAutoUpdate = false;
+      targetGroup.matrix.copy(worldRef.matrixWorld);
+      targetGroup.updateMatrixWorld(true);
+      const hits = raycaster.intersectObject(targetGroup, true);
+      const hit = hits.find((entry) => entry.object?.isMesh);
+      if (!hit) return;
+
+      if (activeTab === 'camera') {
+        const camera = cameraSystem.getCamera();
+        if (!camera) return;
+        const roll = cameraSystem.getCameraState().roll || 0;
+        cameraSystem.setCameraPose(camera.position.clone(), hit.point.clone(), roll);
+        syncFromMain();
+      } else if (activeTab === 'lights') {
+        lightSystemRef?.setActiveLightTarget?.(hit.point.clone());
+      }
+    });
+    isRaycastBound = true;
   }
 
   function bindViewer(viewerEl) {
@@ -34,6 +88,7 @@ export function createPreviewSystem({ scene, controls: initialControls, cameraSy
       syncFromMain();
       updateSize();
     }
+    updateHelperVisibility();
   }
 
   function updateSize() {
@@ -66,6 +121,7 @@ export function createPreviewSystem({ scene, controls: initialControls, cameraSy
       syncFromMain();
       updateSize();
     }
+    updateHelperVisibility();
   }
 
   function render() {
@@ -81,6 +137,13 @@ export function createPreviewSystem({ scene, controls: initialControls, cameraSy
     syncFromMain,
     setOpen,
     render,
+    setInteractionDependencies: ({ lightSystem, getActiveTab, buildVisibleGroup: buildGroup, world: worldInput }) => {
+      if (lightSystem) lightSystemRef = lightSystem;
+      if (typeof getActiveTab === 'function') getActiveTabRef = getActiveTab;
+      if (buildGroup) buildVisibleGroupRef = buildGroup;
+      if (worldInput) worldRef = worldInput;
+      updateHelperVisibility();
+    },
     setControls: (nextControls) => {
       controls = nextControls;
       if (isOpen) {

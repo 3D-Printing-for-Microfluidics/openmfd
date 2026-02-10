@@ -86,7 +86,7 @@ settings = Settings(
 			LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
 		],
 	),
-	resin=ResinType(),
+	resin=ResinType(bulk_exposure=300.0, exposure_offset=0.0),
 	default_position_settings=PositionSettings(),
 	default_exposure_settings=ExposureSettings(),
 )
@@ -133,6 +133,8 @@ Describes the optics that define pixel resolution.
 Metadata used for **traceability** and consistent settings across experiments.
 
 - Tracks monomers, absorbers, initiators, and additives as percentages.
+- `bulk_exposure` sets the base exposure time (ms) required for bulk polymerization.
+- `exposure_offset` is an optional offset (ms) before polymerization begins. Used to adjust for polymerization delay from oxygen inhibition or other added inhibitors.
 - These values are saved into the settings JSON and exported with the print file.
 
 ### `PositionSettings`
@@ -144,10 +146,11 @@ Controls **motion behavior** between layers (lift, speeds, waits, squeeze).
 
 ### `ExposureSettings`
 
-Controls **light exposure behavior** per layer (time, power, wavelength).
+Controls **light exposure behavior** per layer (multiplier, power, wavelength).
 
 - This is where you tune curing behavior.
 - Use defaults first; adjust only after test prints.
+- Actual exposure time is computed as $(bulk\_exposure - exposure\_offset) * multiplier + exposure\_offset$.
 
 ---
 
@@ -160,14 +163,14 @@ from openmfd import ExposureSettings, PositionSettings
 
 # Apply defaults to the whole device
 device.add_default_exposure_settings(
-	ExposureSettings(exposure_time=300.0, power_setting=100)
+	ExposureSettings(bulk_exposure_multiplier=1.0, power_setting=100)
 )
 device.add_default_position_settings(
 	PositionSettings(distance_up=1.0, up_speed=25.0, down_speed=20.0)
 )
 
-# Optional: burn-in layers (longer exposures at the start)
-device.set_burn_in_exposure([600.0, 600.0, 450.0])
+# Optional: burn-in layers in ms (longer exposures at the start)
+device.set_burn_in_exposure([10000.0, 5000.0, 2500.0])
 ```
 
 **Checkpoint:** If you later inspect the slicer output, the first three layers should use the burn-in exposure values above.

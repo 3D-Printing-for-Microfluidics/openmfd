@@ -924,7 +924,7 @@ class Component(_InstantiationTrackerMixin):
 
         Parameters:
 
-        - exposure_times (list[float]): List of exposure times in seconds for the burn-in process.
+        - exposure_times (list[float]): List of exposure times in milliseconds for the burn-in process.
         - label (str): The label associated with the burn-in region. If not provided, it will create a new label with this name and a default color (red).
         """
         self._ensure_unlocked("set burn-in exposure")

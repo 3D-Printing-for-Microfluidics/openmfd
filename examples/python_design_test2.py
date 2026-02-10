@@ -27,7 +27,7 @@ settings = Settings(
             LightEngine(px_size=0.0076, px_count=(2560, 1600), wavelengths=[365])
         ],
     ),
-    resin=ResinType(),
+    resin=ResinType(bulk_exposure=300.0),
     default_position_settings=PositionSettings(
         # distance_up=1.0,
         # initial_wait=0.0,
@@ -40,7 +40,7 @@ settings = Settings(
     ),
     default_exposure_settings=ExposureSettings(
         # grayscale_correction=False,
-        # exposure_time=300.0,
+        # bulk_exposure_multiplier=300.0 / 300.0,
         # power_setting=100,
         # relative_focus_position=0.0,
         # wait_before_exposure=0.0,

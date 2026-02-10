@@ -232,6 +232,7 @@ def generate_secondary_images_from_folders(
     image_dir: Path,
     mask_key: str,
     settings: "SecondaryDoseSettings",
+    resin: "ResinType",
     save_temp_files: bool = False,
 ):
     """Generate secondary images from existing image and mask folders."""
@@ -264,11 +265,11 @@ def generate_secondary_images_from_folders(
     # R = Roof -> D - (i[0] - (i[-1] & i[-2] & ...))
 
     # Extract settings
-    edge_dose = settings.edge_exposure_settings.exposure_time
+    edge_dose = settings.edge_exposure_settings.get_exposure_time(resin)
     erosion_px = settings.edge_erosion_px
     dilation_px = settings.edge_dilation_px
 
-    roof_dose = settings.roof_exposure_settings.exposure_time
+    roof_dose = settings.roof_exposure_settings.get_exposure_time(resin)
     roof_erosion_px = settings.roof_erosion_px
     layers_above = settings.roof_layers_above
 

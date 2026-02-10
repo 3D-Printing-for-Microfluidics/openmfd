@@ -72,7 +72,7 @@ class Valve20px(Component):
             Cylinder(height=1, radius=10, center_z=False).translate((18, 18, 6)),
             MembraneSettings(
                 max_membrane_thickness_um=20,
-                exposure_time=500,
+                bulk_exposure_multiplier=500 / 300.0,
                 defocus_um=50,
                 dilation_px=2,
             ),

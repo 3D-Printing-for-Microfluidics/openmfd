@@ -69,7 +69,7 @@ Repeats an exposure in a subsequent layer with a 0 um Z move between layers. Thi
 from openmfd import ExposureSettings, ZeroMicronLayer
 
 exp = ExposureSettings(
-	exposure_time=250,
+	bulk_exposure_multiplier=0.25,
 	special_image_techniques=[ZeroMicronLayer(enabled=True, count=2)],
 )
 ```
@@ -82,7 +82,7 @@ Raises the build platform and exposes on film (not connected to bulk material/bu
 from openmfd import ExposureSettings, PrintOnFilm
 
 exp = ExposureSettings(
-	exposure_time=250,
+	bulk_exposure_multiplier=1.0,
 	special_image_techniques=[PrintOnFilm(enabled=True, distance_up_mm=0.3)],
 )
 ```

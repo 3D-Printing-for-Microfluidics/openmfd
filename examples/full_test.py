@@ -75,7 +75,7 @@ class Valve20px(VariableLayerThicknessComponent):
             Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
             MembraneSettings(
                 max_membrane_thickness_um=20,
-                exposure_time=500,
+                bulk_exposure_multiplier=500 / 300.0,
                 defocus_um=50,
                 dilation_px=2,
             ),
@@ -95,7 +95,7 @@ class Valve20px(VariableLayerThicknessComponent):
             "SecondaryDose",
             Cube((8, 8, 8), center=False).translate((14, 14, 0)),
             SecondaryDoseSettings(
-                edge_exposure_time=250.0,
+                edge_bulk_exposure_multiplier=250.0 / 300.0,
                 edge_erosion_px=2,
             ),
             label="extra",
@@ -184,7 +184,7 @@ class DC(VariableLayerThicknessComponent):
             Cylinder(height=2, radius=10, center_z=False).translate((18, 18, 12)),
             MembraneSettings(
                 max_membrane_thickness_um=20,
-                exposure_time=500,
+                bulk_exposure_multiplier=500 / 300.0,
                 defocus_um=50,
                 dilation_px=2,
             ),
@@ -603,10 +603,6 @@ class SerpentineChannel(Component):
             label="device",
         )
 
-        self.add_default_exposure_settings(ExposureSettings())
-        self.add_default_position_settings(PositionSettings())
-        self.set_burn_in_exposure([1000])
-
 
 # SerpentineChannel(width=256, turns=10, layers=3).preview()
 
@@ -792,7 +788,7 @@ for preview in [
         "EdgeExposure",
         Cube((2560, 1600, 250), center=False).translate((0, 0, 0))
         - Cube((2460, 1500, 250), center=False).translate((50, 50, 0)),
-        ExposureSettings(exposure_time=1000),
+        ExposureSettings(bulk_exposure_multiplier=1000 / 300.0),
         label="edge",
     )
 
@@ -845,7 +841,7 @@ settings = Settings(
         ],
         vacuum_available=False,
     ),
-    resin=ResinType(),
+    resin=ResinType(bulk_exposure=300.0),
     default_position_settings=PositionSettings(
         # distance_up=1.0,
         # initial_wait=0.0,
@@ -858,7 +854,7 @@ settings = Settings(
     ),
     default_exposure_settings=ExposureSettings(
         grayscale_correction=True,
-        # exposure_time=300.0,
+        # bulk_exposure_multiplier=300.0 / 300.0,
         # power_setting=100,
         # relative_focus_position=0.0,
         # wait_before_exposure=0.0,

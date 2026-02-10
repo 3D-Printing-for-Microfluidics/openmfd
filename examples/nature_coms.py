@@ -90,7 +90,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
 
         self.add_default_exposure_settings(
             ExposureSettings(
-                exposure_time=300,
+                bulk_exposure_multiplier=300 / 300.0,
             )
         )
 
@@ -105,7 +105,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             Cylinder(height=2, radius=3, center_xy=True).translate((9, 9, 39)),
             MembraneSettings(
                 max_membrane_thickness_um=10,
-                exposure_time=350,
+                bulk_exposure_multiplier=350 / 300.0,
                 dilation_px=2,
                 defocus_um=100.0,
             ),
@@ -116,10 +116,10 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             "secondary_settings",
             Cube((9, 18, 65), center=False),
             SecondaryDoseSettings(
-                edge_exposure_time=250.0,
+                edge_bulk_exposure_multiplier=250.0 / 300.0,
                 edge_erosion_px=2,
                 edge_dilation_px=0,
-                roof_exposure_time=200.0,
+                roof_bulk_exposure_multiplier=200.0 / 300.0,
                 roof_erosion_px=2,
                 roof_layers_above=5,
             ),
@@ -130,7 +130,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
             "exposure_settings",
             Cube((18, 9, 65), center=False),
             ExposureSettings(
-                exposure_time=400.0,
+                bulk_exposure_multiplier=400.0 / 300.0,
             ),
             label="pneumatic",
         )
@@ -197,7 +197,7 @@ MembraneValve6px().preview()
 #     ),
 #     default_exposure_settings=ExposureSettings(
 #         grayscale_correction=False,
-#         exposure_time=500.0,
+#         bulk_exposure_multiplier=500.0 / 300.0,
 #         power_setting=100,
 #         relative_focus_position=0.0,
 #         wait_before_exposure=0.0,

@@ -26,7 +26,7 @@ All of them are attached with `add_regional_settings(name, shape, settings, labe
 
 ## 1) ExposureSettings region
 
-Use this to locally change exposure time, power, or focus. This is the most common override.
+Use this to locally change exposure multiplier, power, or focus. This is the most common override.
 
 ```python
 from openmfd import ExposureSettings, Cube
@@ -37,7 +37,7 @@ device.add_label("region_exposure", Color.from_name("yellow", 127))
 device.add_regional_settings(
 	name="high_dose_zone",
 	shape=region,
-	settings=ExposureSettings(exposure_time=450.0, power_setting=120),
+	settings=ExposureSettings(bulk_exposure_multiplier=1.5, power_setting=120),
 	label="region_exposure",
 )
 ```
@@ -96,7 +96,7 @@ device.add_regional_settings(
 	shape=membrane_region,
 	settings=MembraneSettings(
 		max_membrane_thickness_um=20.0,
-		exposure_time=120.0,
+		bulk_exposure_multiplier=0.4,
 		dilation_px=1,
 		defocus_um=20.0,
 		on_film=False,
@@ -123,10 +123,10 @@ device.add_regional_settings(
 	name="edge_roof_reinforcement",
 	shape=sec_region,
 	settings=SecondaryDoseSettings(
-		edge_exposure_time=80.0,
+		edge_bulk_exposure_multiplier=0.27,
 		edge_erosion_px=1,
 		edge_dilation_px=1,
-		roof_exposure_time=120.0,
+		roof_bulk_exposure_multiplier=0.4,
 		roof_erosion_px=0,
 		roof_layers_above=3,
 		roof_on_film=False,

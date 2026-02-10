@@ -65,7 +65,7 @@ If slicing fails, check:
 - The device size matches the printer’s light engine resolution.
 - Bulk shapes exist.
 - If you need negative features, the device has at least one void.
-- Your `settings` JSON contains a valid printer and resin.
+- Your `settings` JSON contains a valid printer and resin (including `bulk_exposure`).
 
 ---
 

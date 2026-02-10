@@ -349,7 +349,16 @@ class Slicer:
 
             # Generate burn-in exposure settings
             if i < len(device.burnin_settings):
-                slice["exposure_settings"].exposure_time = device.burnin_settings[i]
+                burnin_ms = device.burnin_settings[i]
+                resin = self.settings.resin
+                denom = resin.bulk_exposure - resin.exposure_offset
+                if denom == 0:
+                    raise ValueError(
+                        "Resin bulk exposure must differ from exposure_offset to compute burn-in multiplier."
+                    )
+                slice["exposure_settings"].bulk_exposure_multiplier = (
+                    (burnin_ms - resin.exposure_offset) / denom
+                )
                 slice["exposure_settings"].burnin = True
 
     def _embed_image(self, pos, resolution, image_data, fqn):
@@ -588,7 +597,7 @@ class Slicer:
             info["slices"].sort(
                 key=lambda x: (
                     x["layer_position"],
-                    x["exposure_settings"].exposure_time,
+                    x["exposure_settings"].get_exposure_time(self.settings.resin),
                 )
             )
 
@@ -661,13 +670,13 @@ class Slicer:
                 # Compare settings, ignoring image file, exposure time, and the 2 waits
                 s1 = slice_info["exposure_settings"].to_dict()
                 del s1["Image file"]
-                del s1["Layer exposure time (ms)"]
+                del s1["Layer exposure multiplier"]
                 del s1["Wait before exposure (ms)"]
                 del s1["Wait after exposure (ms)"]
 
                 s2 = group[0]["exposure_settings"].to_dict()
                 del s2["Image file"]
-                del s2["Layer exposure time (ms)"]
+                del s2["Layer exposure multiplier"]
                 del s2["Wait before exposure (ms)"]
                 del s2["Wait after exposure (ms)"]
 
@@ -835,7 +844,7 @@ class Slicer:
                     if isinstance(settings, MembraneSettings):
                         settings.exposure_settings.fill_with_defaults(
                             device.default_exposure_settings,
-                            exceptions=["exposure_time"],
+                            exceptions=["bulk_exposure_multiplier"],
                         )
                         generate_membrane_images_from_folders(
                             data=sliced_devices_data[device_index],
@@ -848,17 +857,18 @@ class Slicer:
                     if isinstance(settings, SecondaryDoseSettings):
                         settings.edge_exposure_settings.fill_with_defaults(
                             device.default_exposure_settings,
-                            exceptions=["exposure_time"],
+                            exceptions=["bulk_exposure_multiplier"],
                         )
                         settings.roof_exposure_settings.fill_with_defaults(
                             device.default_exposure_settings,
-                            exceptions=["exposure_time"],
+                            exceptions=["bulk_exposure_multiplier"],
                         )
                         generate_secondary_images_from_folders(
                             data=sliced_devices_data[device_index],
                             image_dir=device_subdirectory,
                             mask_key=name,
                             settings=settings,
+                            resin=self.settings.resin,
                             save_temp_files=save_temp_files,
                         )
 
@@ -936,6 +946,12 @@ class Slicer:
                 "Named layer groups": {},
             }
 
+            print_settings["Default layer settings"]["Image settings"] = (
+                self.settings.default_exposure_settings.to_print_dict(
+                    self.settings.resin
+                )
+            )
+
             if self.settings.settings.get("Special print techniques") and "Print under vacuum" in self.settings.settings["Special print techniques"].keys():
                 vacuum_settings = self.settings.settings["Special print techniques"]["Print under vacuum"]
                 print_settings["Special print techniques"] = {
@@ -989,7 +1005,9 @@ class Slicer:
                 combined_slices_groups = []
                 for group in grouped_slices:
                     group_exposures = [
-                        slice_info["exposure_settings"].exposure_time
+                        slice_info["exposure_settings"].get_exposure_time(
+                            self.settings.resin
+                        )
                         for slice_info in group
                     ]
                     group_images = []
@@ -1054,7 +1072,11 @@ class Slicer:
 
                     # Update image settings from slice (just the max of wait times)
                     for g, slice_info in enumerate(group):
-                        new_image_settings = slice_info["exposure_settings"].to_dict()
+                        new_image_settings = (
+                            slice_info["exposure_settings"].to_print_dict(
+                                self.settings.resin
+                            )
+                        )
                         if group_exposure_settings is None:
                             group_exposure_settings = new_image_settings
                         if (

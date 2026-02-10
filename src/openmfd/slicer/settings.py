@@ -76,8 +76,8 @@ class Settings:
 
         if default_exposure_settings.grayscale_correction is None:
             default_exposure_settings.grayscale_correction = False
-        if default_exposure_settings.exposure_time is None:
-            default_exposure_settings.exposure_time = 300.0
+        if default_exposure_settings.bulk_exposure_multiplier is None:
+            default_exposure_settings.bulk_exposure_multiplier = 1.0
         if default_exposure_settings.power_setting is None:
             default_exposure_settings.power_setting = 100
         if default_exposure_settings.wavelength is None:
@@ -258,7 +258,7 @@ class Settings:
     def _serialize_exposure_settings(self) -> dict:
         return {
             "grayscale_correction": self.default_exposure_settings.grayscale_correction,
-            "exposure_time": self.default_exposure_settings.exposure_time,
+            "bulk_exposure_multiplier": self.default_exposure_settings.bulk_exposure_multiplier,
             "power_setting": self.default_exposure_settings.power_setting,
             "wavelength": self.default_exposure_settings.wavelength,
             "relative_focus_position": self.default_exposure_settings.relative_focus_position,
@@ -289,7 +289,7 @@ class Settings:
     def _deserialize_exposure_settings(data: dict) -> ExposureSettings:
         return ExposureSettings(
             grayscale_correction=data.get("grayscale_correction"),
-            exposure_time=data.get("exposure_time"),
+            bulk_exposure_multiplier=data.get("bulk_exposure_multiplier"),
             power_setting=data.get("power_setting"),
             wavelength=data.get("wavelength"),
             relative_focus_position=data.get("relative_focus_position"),
@@ -351,6 +351,8 @@ class Settings:
 class ResinType:
     def __init__(
         self,
+        bulk_exposure: float,
+        exposure_offset: float = 0.0,
         monomer: list[tuple[str, float]] = [("PEG", 100)],
         uv_absorbers: list[tuple[str, float]] = [("NPS", 2.0)],
         initiators: list[tuple[str, float]] = [("IRG", 1.0)],
@@ -361,6 +363,8 @@ class ResinType:
         
         Parameters:
 
+        - bulk_exposure: Base exposure time for bulk polymerization in milliseconds.
+        - exposure_offset: Optional exposure offset before polymerization begins in milliseconds. Used to adjust for polymerization delay from oxygen inhibition or other added inhibitors.
         - monomer: List of tuples (name, percentage) for monomers.
         - uv_absorbers: List of tuples (name, percentage) for UV absorbers.
         - initiators: List of tuples (name, percentage) for photoinitiators.
@@ -384,6 +388,11 @@ class ResinType:
 
         
         """
+
+        if not isinstance(bulk_exposure, (int, float)) or bulk_exposure <= 0:
+            raise ValueError("bulk_exposure must be a positive number")
+        if not isinstance(exposure_offset, (int, float)) or exposure_offset < 0:
+            raise ValueError("exposure_offset must be a non-negative number")
         
         if not isinstance(monomer, list) or not all(
             (isinstance(x, tuple) or isinstance(x, list)) and len(x) == 2 for x in monomer
@@ -423,6 +432,8 @@ class ResinType:
         self.uv_absorbers = uv_absorbers
         self.initiators = initiators
         self.additives = additives
+        self.bulk_exposure = float(bulk_exposure)
+        self.exposure_offset = float(exposure_offset)
 
     def __str__(self):
         # String matching schema
@@ -445,6 +456,8 @@ class ResinType:
 
     def to_dict(self) -> dict:
         return {
+            "bulk_exposure": self.bulk_exposure,
+            "exposure_offset": self.exposure_offset,
             "monomer": [list(x) for x in self.monomer],
             "uv_absorbers": [list(x) for x in self.uv_absorbers],
             "initiators": [list(x) for x in self.initiators],
@@ -454,6 +467,8 @@ class ResinType:
     @classmethod
     def from_dict(cls, data: dict) -> ResinType:
         return cls(
+            bulk_exposure=data.get("bulk_exposure"),
+            exposure_offset=data.get("exposure_offset", 0.0),
             monomer=[tuple(x) for x in data.get("monomer", [])],
             uv_absorbers=[tuple(x) for x in data.get("uv_absorbers", [])],
             initiators=[tuple(x) for x in data.get("initiators", [])],
@@ -780,7 +795,7 @@ class ExposureSettings:
         grayscale_correction: bool = None,
         # image_x_offset: float = None,
         # image_y_offset: float = None,
-        exposure_time: float = None,
+        bulk_exposure_multiplier: float = None,
         # light_engine: str = None,
         power_setting: int = None,
         wavelength: int = None,
@@ -796,7 +811,7 @@ class ExposureSettings:
         Parameters:
 
         - grayscale_correction: Whether to apply grayscale correction.
-        - exposure_time: Exposure time in milliseconds.
+        - bulk_exposure_multiplier: Multiplier applied to resin bulk exposure.
         - power_setting: Power setting of the light engine in percentage.
         - wavelength: Wavelength of the light engine in nm.
         - relative_focus_position: Relative focus position in microns.
@@ -807,7 +822,7 @@ class ExposureSettings:
         Default Values:
 
         - grayscale_correction: bool = False,
-        - exposure_time: float = 0.0,
+        - bulk_exposure_multiplier: float = 1.0,
         - power_setting: int = 100,
         - wavelength: int = 365,
         - relative_focus_position: float = 0.0,
@@ -819,7 +834,7 @@ class ExposureSettings:
         self.grayscale_correction = grayscale_correction
         self.image_x_offset = None
         self.image_y_offset = None
-        self.exposure_time = exposure_time
+        self.bulk_exposure_multiplier = bulk_exposure_multiplier
         self.light_engine = None
         self.power_setting = power_setting
         self.wavelength = wavelength
@@ -836,7 +851,7 @@ class ExposureSettings:
             "Do light grayscale correction": self.grayscale_correction,
             "Image x offset (um)": self.image_x_offset,
             "Image y offset (um)": self.image_y_offset,
-            "Layer exposure time (ms)": self.exposure_time,
+            "Layer exposure multiplier": self.bulk_exposure_multiplier,
             "Light engine": self.light_engine,
             "Light engine power setting": self.power_setting,
             "Light engine wavelength (nm)": self.wavelength,
@@ -872,7 +887,7 @@ class ExposureSettings:
             grayscale_correction=self.grayscale_correction,
             # image_x_offset=self.image_x_offset,
             # image_y_offset=self.image_y_offset,
-            exposure_time=self.exposure_time,
+            bulk_exposure_multiplier=self.bulk_exposure_multiplier,
             # light_engine=self.light_engine,
             power_setting=self.power_setting,
             wavelength=self.wavelength,
@@ -881,6 +896,44 @@ class ExposureSettings:
             wait_after_exposure=self.wait_after_exposure,
             special_image_techniques=self.special_image_techniques.copy(),
         )
+
+    def get_exposure_time(self, resin: "ResinType") -> float | None:
+        if self.bulk_exposure_multiplier is None:
+            return None
+        return (
+            (resin.bulk_exposure - resin.exposure_offset)
+            * self.bulk_exposure_multiplier
+            + resin.exposure_offset
+        )
+
+    def to_print_dict(self, resin: "ResinType") -> dict:
+        temp_dict = {
+            "Image file": self.image_file,
+            "Do light grayscale correction": self.grayscale_correction,
+            "Image x offset (um)": self.image_x_offset,
+            "Image y offset (um)": self.image_y_offset,
+            "Layer exposure time (ms)": self.get_exposure_time(resin),
+            "Light engine": self.light_engine,
+            "Light engine power setting": self.power_setting,
+            "Light engine wavelength (nm)": self.wavelength,
+            "Relative focus position (um)": self.relative_focus_position,
+            "Wait before exposure (ms)": self.wait_before_exposure,
+            "Wait after exposure (ms)": self.wait_after_exposure,
+        }
+        if len(self.special_image_techniques) > 0:
+            temp_dict["Special image techniques"] = {}
+            for sit in self.special_image_techniques:
+                if isinstance(sit, ZeroMicronLayer):
+                    temp_dict["Special image techniques"]["Zero micron layer"] = {
+                        "Enable zero micron": sit.enabled,
+                        "Zero micron count": sit.count,
+                    }
+                if isinstance(sit, PrintOnFilm):
+                    temp_dict["Special image techniques"]["Print on film"] = {
+                        "Enable print on film": sit.enabled,
+                        "Distance up (mm)": sit.distance_up,
+                    }
+        return temp_dict
 
     def fill_with_defaults(
         self, defaults: ExposureSettings, exceptions: list[str] = None
@@ -896,7 +949,7 @@ class MembraneSettings:
     def __init__(
         self,
         max_membrane_thickness_um: float = 0.0,
-        exposure_time: float = 0.0,
+        bulk_exposure_multiplier: float = 1.0,
         dilation_px: int = 0,
         defocus_um: float = 0.0,
         special_image_techniques: list[SpecialImageTechniques] = [],
@@ -907,7 +960,7 @@ class MembraneSettings:
         Parameters:
 
         - max_membrane_thickness_um: Maximum membrane thickness in microns.
-        - exposure_time: Exposure time for membrane in milliseconds.
+        - bulk_exposure_multiplier: Multiplier applied to resin bulk exposure.
         - dilation_px: Dilation in pixels
         - defocus_um: Defocus position in microns.
         - special_image_techniques: List of SpecialImageTechniques to apply.
@@ -916,7 +969,7 @@ class MembraneSettings:
         self.max_membrane_thickness_um = max_membrane_thickness_um
         self.dilation_px = dilation_px
         self.exposure_settings = ExposureSettings(
-            exposure_time=exposure_time,
+            bulk_exposure_multiplier=bulk_exposure_multiplier,
             relative_focus_position=defocus_um,
             special_image_techniques=special_image_techniques,
         )
@@ -935,7 +988,7 @@ class MembraneSettings:
         """Create a copy of the membrane settings."""
         return MembraneSettings(
             max_membrane_thickness_um=self.max_membrane_thickness_um,
-            exposure_time=self.exposure_settings.exposure_time,
+            bulk_exposure_multiplier=self.exposure_settings.bulk_exposure_multiplier,
             dilation_px=self.dilation_px,
             defocus_um=self.exposure_settings.relative_focus_position,
             special_image_techniques=self.exposure_settings.special_image_techniques.copy(),
@@ -944,10 +997,10 @@ class MembraneSettings:
 class SecondaryDoseSettings:
     def __init__(
         self,
-        edge_exposure_time: float = None,
+        edge_bulk_exposure_multiplier: float = None,
         edge_erosion_px: int = 0,
         edge_dilation_px: int = 0,
-        roof_exposure_time: float = None,
+        roof_bulk_exposure_multiplier: float = None,
         roof_erosion_px: int = 0,
         roof_layers_above: int = 0,
     ):
@@ -956,31 +1009,33 @@ class SecondaryDoseSettings:
 
         Parameters:
 
-        - edge_exposure_time: Exposure time for edge features in milliseconds.
+        - edge_bulk_exposure_multiplier: Multiplier applied to resin bulk exposure for edge features.
         - edge_erosion_px: Erosion in pixels
         - edge_dilation_px: Dilation in pixels
-        - roof_exposure_time: Exposure time for roof features in milliseconds.
+        - roof_bulk_exposure_multiplier: Multiplier applied to resin bulk exposure for roof features.
         - roof_erosion_px: Erosion in pixels
         - roof_layers_above: Number of layers above roof features to apply secondary dose.
         """
 
-        if edge_exposure_time is None:
+        if edge_bulk_exposure_multiplier is None:
             if edge_erosion_px > 0 or edge_dilation_px > 0:
                 raise ValueError(
-                    "Edge exposure time must be set if edge erosion or dilation is specified"
+                    "Edge exposure multiplier must be set if edge erosion or dilation is specified"
                 )
-        if roof_exposure_time is None:
+        if roof_bulk_exposure_multiplier is None:
             if roof_erosion_px > 0 or roof_layers_above > 0:
                 raise ValueError(
-                    "Roof exposure time must be set if roof erosion or layers above is specified"
+                    "Roof exposure multiplier must be set if roof erosion or layers above is specified"
                 )
         self.edge_erosion_px = edge_erosion_px
         self.edge_dilation_px = edge_dilation_px
         self.roof_erosion_px = roof_erosion_px
         self.roof_layers_above = roof_layers_above
-        self.edge_exposure_settings = ExposureSettings(exposure_time=edge_exposure_time)
+        self.edge_exposure_settings = ExposureSettings(
+            bulk_exposure_multiplier=edge_bulk_exposure_multiplier
+        )
         self.roof_exposure_settings = ExposureSettings(
-            exposure_time=roof_exposure_time
+            bulk_exposure_multiplier=roof_bulk_exposure_multiplier
         )
 
     def __eq__(self, other):
@@ -999,10 +1054,10 @@ class SecondaryDoseSettings:
     def copy(self):
         """Create a copy of the secondary dose settings."""
         return SecondaryDoseSettings(
-            edge_exposure_time=self.edge_exposure_settings.exposure_time,
+            edge_bulk_exposure_multiplier=self.edge_exposure_settings.bulk_exposure_multiplier,
             edge_erosion_px=self.edge_erosion_px,
             edge_dilation_px=self.edge_dilation_px,
-            roof_exposure_time=self.roof_exposure_settings.exposure_time,
+            roof_bulk_exposure_multiplier=self.roof_exposure_settings.bulk_exposure_multiplier,
             roof_erosion_px=self.roof_erosion_px,
             roof_layers_above=self.roof_layers_above,
         )

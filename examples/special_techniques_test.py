@@ -37,12 +37,12 @@ position_settings = PositionSettings(
 
 # Base exposure settings (no special image techniques)
 exposure_settings = ExposureSettings(
-    exposure_time=250.0,
+    bulk_exposure_multiplier=250.0 / 300.0,
 )
 
 settings = Settings(
     printer=printer,
-    resin=ResinType(),
+    resin=ResinType(bulk_exposure=300.0),
     default_position_settings=position_settings,
     default_exposure_settings=exposure_settings,
     special_print_techniques=[vacuum],
@@ -96,7 +96,7 @@ device.add_regional_settings(
     "zero_um_region",
     zero_um_region,
     ExposureSettings(
-        exposure_time=250.0,
+        bulk_exposure_multiplier=250.0 / 300.0,
         special_image_techniques=[ZeroMicronLayer(enabled=True, count=2)],
     ),
     label="zero",
@@ -106,7 +106,7 @@ device.add_regional_settings(
     "film_region",
     film_region,
     ExposureSettings(
-        exposure_time=250.0,
+        bulk_exposure_multiplier=250.0 / 300.0,
         special_image_techniques=[PrintOnFilm(enabled=True, distance_up_mm=0.3)],
     ),
     label="film",

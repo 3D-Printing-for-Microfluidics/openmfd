@@ -20,7 +20,7 @@ settings = Settings(
         ],
         xy_stage_available=True,
     ),
-    resin=ResinType(),
+    resin=ResinType(bulk_exposure=300.0),
     default_position_settings=PositionSettings(),
     default_exposure_settings=ExposureSettings(),
 )

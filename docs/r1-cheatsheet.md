@@ -117,9 +117,9 @@ Settings objects (key parameters):
 - `Settings(printer, resin, default_position_settings, default_exposure_settings, special_print_techniques=[...], user="", purpose="", description="")`
 - `Printer(name, light_engines, xy_stage_available=False, vacuum_available=False)`
 - `LightEngine(px_size, px_count, wavelengths, grayscale_available=[False])`
-- `ResinType(monomer=[...], uv_absorbers=[...], initiators=[...], additives=[...])`
+- `ResinType(bulk_exposure, exposure_offset=0.0, monomer=[...], uv_absorbers=[...], initiators=[...], additives=[...])`
 - `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
-- `ExposureSettings(grayscale_correction, exposure_time, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
+- `ExposureSettings(grayscale_correction, bulk_exposure_multiplier, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
 
 Settings JSON I/O:
 
@@ -160,7 +160,10 @@ Stitching notes:
 ## Regional settings
 
 - `component.add_regional_settings(name, shape, settings, label)`
-- `ExposureSettings`, `PositionSettings`, `MembraneSettings`, `SecondaryDoseSettings`
+- `ExposureSettings(bulk_exposure_multiplier, power_setting, wavelength, relative_focus_position, wait_before_exposure, wait_after_exposure, special_image_techniques=[...])`
+- `PositionSettings(distance_up, initial_wait, up_speed, up_acceleration, up_wait, down_speed, down_acceleration, final_wait, special_layer_techniques=[...])`
+- `MembraneSettings(max_membrane_thickness_um, bulk_exposure_multiplier, dilation_px, defocus_um, special_image_techniques=[...])`
+- `SecondaryDoseSettings(edge_bulk_exposure_multiplier, edge_erosion_px, edge_dilation_px, roof_bulk_exposure_multiplier, roof_erosion_px, roof_layers_above)`
 
 ## Global tessellation (optional)
 

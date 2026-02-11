@@ -4,9 +4,9 @@ from openmfd.component_library import Pinhole
 
 set_fn(50)
 
-vdev = Visitech_LRS10_Device("vdev", position=(0, 0, 0), layers=100, layer_size=0.015)
+vdev = Device.with_visitech_1x("vdev", position=(0, 0, 0), layers=100, layer_size=0.015)
 
-wdev = Wintech_Device("wdev", position=(0, 0, 0), layers=100, layer_size=0.0015)
+wdev = Device.with_wintech("wdev", position=(0, 0, 0), layers=100, layer_size=0.0015)
 
 vdev.add_label("device", Color.from_name("aqua", 100))
 wdev.add_label("device", Color.from_name("blue", 100))

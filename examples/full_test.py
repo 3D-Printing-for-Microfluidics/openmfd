@@ -621,7 +621,7 @@ for preview in [
     "preview_5",
 ] if render_animation else ["render"]:
 
-    dev = Visitech_LRS10_Device(
+    dev = Device.with_visitech_1x(
         "FullTestDevice", position=(0, 0, 0), layers=250, layer_size=0.01
     )
 

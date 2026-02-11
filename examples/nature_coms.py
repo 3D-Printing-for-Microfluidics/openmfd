@@ -1,7 +1,7 @@
 import inspect
 from openmfd import (
     set_fn,
-    Visitech_LRS10_Device,
+    Device,
     Component,
     VariableLayerThicknessComponent,
     Port,
@@ -151,7 +151,7 @@ class MembraneValve6px(VariableLayerThicknessComponent):
 MembraneValve6px().preview()
 
 
-# device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=25, layer_size=0.01)
+# device = Device.with_visitech_1x("TestDevice", (0, 0, 0), layers=25, layer_size=0.01)
 # device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
 # v = MembraneValve6px().translate((50, 50, 0))
 # device.add_subcomponent(f"valve", v)

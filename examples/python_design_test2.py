@@ -1,6 +1,6 @@
 from openmfd import (
     set_fn,
-    Visitech_LRS10_Device,
+    Device,
     Component,
     Color,
     Cube,
@@ -52,7 +52,7 @@ settings = Settings.from_file("settings.json")
 settings.save("settings2.json")
 
 
-device = Visitech_LRS10_Device("TestDevice", (0, 0, 0), layers=250, layer_size=0.01)
+device = Device.with_visitech_1x("TestDevice", (0, 0, 0), layers=250, layer_size=0.01)
 
 device.add_label("device", Color.from_rgba((0, 255, 255, 127)))
 device.add_label("pneumatic", Color.from_rgba((0, 255, 0, 127)))

@@ -18,9 +18,6 @@ from .openmfd import (
     VariableLayerThicknessComponent,
     Device,
     StitchedDevice,
-    Visitech_LRS10_Device,
-    Visitech_LRS20_Device,
-    Wintech_Device,
 )
 
 from .backend import (

@@ -7,7 +7,8 @@ Quick reference to build, render, and slice a device.
 - `Component(size, position, px_size, layer_size, quiet=False)`
 - `Device(name, position, layers, layer_size, px_count, px_size, quiet=False)`
 - `StitchedDevice(name, position, layers, layer_size, tiles_x, tiles_y, base_px_count=(2560,1600), overlap_px=0, px_size=0.0076, quiet=False)`
-- `Visitech_LRS10_Device`, `Visitech_LRS20_Device`, `Wintech_Device`
+- `Both Device and StitchedDevice can use ._with_visitech_1x(), ._with_visitech_2x(), or ._with_wintech() contructors`
+- `If alternate constructor is used, you don't need to specify px_size or px_count`
 - `VariableLayerThicknessComponent(size, position, px_size, layer_sizes, quiet=False)`
 
 ## Labels and colors

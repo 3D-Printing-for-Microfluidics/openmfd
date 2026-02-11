@@ -23,12 +23,12 @@ If you already have a component from earlier steps, you can skip the geometry po
 
 ## Step 1 — Create a device (printer-aware)
 
-Devices encode the printer geometry (pixel count, pixel size, layer size). For a Visitech LRS10-based printer you can use the built-in device class:
+Devices encode the printer geometry (pixel count, pixel size, layer size). For a Visitech LRS10-based printer you can use the built-in device classmethod:
 
 ```python
-from openmfd import Visitech_LRS10_Device
+from openmfd import Device
 
-device = Visitech_LRS10_Device(
+device = Device.with_visitech_1x(
 	name="MyFirstDevice",
 	position=(0, 0, 0),
 	layers=200,          # total layer count

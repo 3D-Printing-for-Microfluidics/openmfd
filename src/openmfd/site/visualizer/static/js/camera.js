@@ -1,4 +1,4 @@
-import * as THREE from '../lib/three/three.module.js';
+import * as THREE from 'three';
 
 const CAMERA_STORAGE_KEY = 'openmfd_cameras_v1';
 const CAMERA_DEFAULT_COUNT = 0;
@@ -451,7 +451,7 @@ export function createCameraSystem({
     return box.getCenter(new THREE.Vector3());
   }
 
-  function setTargetToModelCenter() {
+  function setTargetToModelCenter({ persist = true } = {}) {
     const center = getModelCenterWorld();
     controls.target.copy(center);
     controls.update();
@@ -461,7 +461,11 @@ export function createCameraSystem({
     }
     syncCameraInputs();
     if (!isHomeMode && camerasState[activeCameraIndex]) {
-      commitActiveCameraState();
+      if (persist) {
+        commitActiveCameraState();
+      } else {
+        updateActiveCameraStateFromControls();
+      }
     } else {
       updateActiveCameraStateFromControls();
     }

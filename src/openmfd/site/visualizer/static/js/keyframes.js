@@ -1,4 +1,4 @@
-import * as THREE from '../lib/three/three.module.js';
+import * as THREE from 'three';
 
 const KEYFRAME_STORAGE_KEY = 'openmfd_keyframes_v1';
 const DEFAULT_HOLD_DURATION = 1;

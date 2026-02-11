@@ -1,3 +1,6 @@
+import '@fortawesome/fontawesome-free/css/all.css';
+import '../css/visualizer.css';
+
 import { createScene } from './scene.js';
 import { createModelManager } from './models.js';
 import { createModelSelector } from './modelSelector.js';
@@ -1478,7 +1481,7 @@ function applySettingsPayload(payload, sections = {}) {
       }
       applyDefaultVersionVisibilityConstraint();
       modelManager.loadAllModels().then(() => {
-        cameraSystem.setTargetToModelCenter();
+        cameraSystem.setTargetToModelCenter({ persist: false });
         lightSystem.updateDirectionalLightTargets();
       });
     }
@@ -1943,7 +1946,7 @@ async function handleModelRefresh() {
     modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
     modelManager.updateVisibility();
     await modelManager.loadAllModels();
-    cameraSystem.setTargetToModelCenter();
+    cameraSystem.setTargetToModelCenter({ persist: false });
     lightSystem.ensureDefaultLight();
     lightSystem.updateDirectionalLightTargets();
     settingsSystem?.refreshPreviewInfo();
@@ -2031,7 +2034,7 @@ async function initModels() {
   applyDefaultVersionVisibilityConstraint();
   modelManager.setModelVersionSelections(modelSelector.getSelectionSnapshot().versions);
   await modelManager.loadAllModels();
-  cameraSystem.setTargetToModelCenter();
+  cameraSystem.setTargetToModelCenter({ persist: false });
   lightSystem.ensureDefaultLight();
   lightSystem.updateDirectionalLightTargets();
   settingsSystem?.refreshPreviewInfo();

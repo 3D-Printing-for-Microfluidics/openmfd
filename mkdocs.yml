@@ -1,6 +1,6 @@
 site_name: OpenMFD Documentation
 docs_dir: docs
-site_dir: src/openmfd/docs_site
+site_dir: src/openmfd/site/docs
 use_directory_urls: false
 
 dev_addr: '127.0.0.1:5000'

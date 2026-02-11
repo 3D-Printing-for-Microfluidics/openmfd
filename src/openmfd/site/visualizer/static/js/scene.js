@@ -1,6 +1,6 @@
-import * as THREE from '../lib/three/three.module.js';
-import { OrbitControls } from '../lib/three/controls/OrbitControls.js';
-import { TrackballControls } from '../lib/three/controls/TrackballControls.js';
+import * as THREE from 'three';
+import { OrbitControls } from '../../../static/js/controls/OrbitControls.js';
+import { TrackballControls } from '../../../static/js/controls/TrackballControls.js';
 
 export function createScene() {
   const scene = new THREE.Scene();

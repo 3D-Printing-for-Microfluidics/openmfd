@@ -1,4 +1,4 @@
-import * as THREE from '../lib/three/three.module.js';
+import * as THREE from 'three';
 
 export function createLightSystem({ scene, world, cameraSystem, previewSystem, getModelCenterModel }) {
   const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);

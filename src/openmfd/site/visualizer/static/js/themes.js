@@ -1,4 +1,4 @@
-import * as THREE from '../lib/three/three.module.js';
+import * as THREE from 'three';
 
 const THEME_STORAGE_KEY = 'openmfd_theme';
 const THEME_DEFS_KEY = 'openmfd_theme_defs_v1';

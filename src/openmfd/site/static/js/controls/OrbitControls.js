@@ -8,7 +8,7 @@ import {
 	Plane,
 	Ray,
 	MathUtils
-} from '../three.module.js';
+} from 'three';
 import { Controls } from './Controls.js';
 
 /**

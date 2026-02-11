@@ -1,5 +1,8 @@
-import { EventDispatcher } from '../three.module.js';
-import { warn } from '../utils.js';
+import { EventDispatcher } from 'three';
+
+function warn( ...params ) {
+	console.warn( ...params );
+}
 
 /**
  * Abstract base class for controls.

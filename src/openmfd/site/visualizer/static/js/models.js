@@ -1,5 +1,5 @@
-import * as THREE from '../lib/three/three.module.js';
-import { GLTFLoader } from '../lib/three/loaders/GLTFLoader.js';
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export function createModelManager({ scene, world }) {
   const loader = new GLTFLoader();

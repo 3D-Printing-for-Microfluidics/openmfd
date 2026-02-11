@@ -1,5 +1,5 @@
-import * as THREE from '../lib/three/three.module.js';
-import { OrbitControls } from '../lib/three/controls/OrbitControls.js';
+import * as THREE from 'three';
+import { OrbitControls } from '../../../static/js/controls/OrbitControls.js';
 
 export function createPreviewSystem({ scene, world, controls: initialControls, cameraSystem, buildVisibleGroup }) {
   let controls = initialControls;

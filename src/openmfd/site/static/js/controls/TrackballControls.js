@@ -4,7 +4,7 @@ import {
 	Quaternion,
 	Vector2,
 	Vector3
-} from '../three.module.js';
+} from 'three';
 import { Controls } from './Controls.js';
 
 /**

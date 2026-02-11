@@ -33,7 +33,7 @@ FILE := $(word 2,$(MAKECMDGOALS))
 $(eval $(FILE):;@:)
 endif
 
-.PHONY: init build serve mem-profile py-profile run oneshell-test
+.PHONY: init build serve mem-profile py-profile run oneshell-test web-install web-build
 
 init:
 	set -euo pipefail; \
@@ -42,11 +42,13 @@ init:
 	$(UV) pip install -U pip; \
 	$(UV) pip install -e ".[dev]"; \
 	echo "Initialized uv venv at $(VENV_DIR)."
+	$(MAKE) web-install
 
 build:
 	set -e; \
 	$(ENSURE_UV_VENV) \
 	$(UV) run mkdocs build; \
+	$(MAKE) web-build; \
 	$(UV) build
 
 serve:
@@ -74,3 +76,11 @@ run:
 	if [[ -z "$(FILE)" ]]; then echo "Usage: make run path/to/script.py"; exit 1; fi; \
 	module=$$($(UV) run python -c "$$CONVERT_TO_MODULE" "$(FILE)"); \
 	time $(UV) run python -m $$module
+
+web-install:
+	set -e; \
+	npm --prefix src/openmfd/site install
+
+web-build:
+	set -e; \
+	npm --prefix src/openmfd/site run build

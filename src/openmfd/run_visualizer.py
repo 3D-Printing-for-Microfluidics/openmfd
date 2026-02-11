@@ -24,16 +24,20 @@ def get_openmfd_env_dir():
 
 def start_server():
     env_dir = get_openmfd_env_dir()
-    visualizer_dir = (env_dir / "visualizer").resolve()
-    static_dir = visualizer_dir / "static"
-    docs_dir = (env_dir / "docs_site").resolve()
+    site_root = (env_dir / "site").resolve()
+    visualizer_root = (site_root / "visualizer").resolve()
+    build_dir = (site_root / "dist").resolve()
+    visualizer_dist_dir = (build_dir / "visualizer").resolve()
+    serve_dir = visualizer_dist_dir if visualizer_dist_dir.is_dir() else visualizer_root
+    static_dir = visualizer_root / "static"
+    docs_dir = (site_root / "docs").resolve()
 
     app = Flask(__name__, static_folder=str(static_dir), static_url_path="/static")
 
     selected_preview_dir = None
     render_sessions = {}
 
-    if not visualizer_dir.is_dir():
+    if not visualizer_root.is_dir():
         raise RuntimeError("Cannot find visualizer directory!")
 
     def get_glb_dir():
@@ -43,7 +47,7 @@ def start_server():
         if cwd_preview.is_dir():
             return cwd_preview
 
-        default_dir = visualizer_dir / "demo_device"
+        default_dir = visualizer_root / "demo_device"
         if default_dir.is_dir():
             return default_dir
 
@@ -150,11 +154,11 @@ def start_server():
 
     @app.route("/")
     def index():
-        return send_from_directory(str(visualizer_dir), "index.html")
+        return send_from_directory(str(serve_dir), "index.html")
 
     @app.route("/favicon.ico")
     def favicon():
-        return send_from_directory(str(visualizer_dir), "favicon.ico")
+        return send_from_directory(str(site_root), "static/favicon.ico")
 
     @app.route("/docs")
     @app.route("/docs/")
@@ -175,11 +179,25 @@ def start_server():
 
     @app.route("/main.js")
     def main_js():
-        return send_from_directory(str(visualizer_dir), "main.js")
+        return send_from_directory(str(serve_dir), "main.js")
+
+    @app.route("/assets/<path:subpath>")
+    def visualizer_assets_dist(subpath):
+        assets_dir = build_dir / "assets"
+        if not assets_dir.is_dir():
+            return abort(404)
+        return send_from_directory(str(assets_dir), subpath)
+
+    @app.route("/static/lib/pathTracing/GLTF_Model_Viewer.html")
+    def pathtracing_viewer():
+        built_viewer = build_dir / "visualizer" / "static" / "lib" / "pathTracing" / "GLTF_Model_Viewer.html"
+        if built_viewer.is_file():
+            return send_from_directory(str(built_viewer.parent), built_viewer.name)
+        return send_from_directory(str(static_dir / "lib" / "pathTracing"), "GLTF_Model_Viewer.html")
 
     @app.route("/visualizer/<path:subpath>")
     def visualizer_assets(subpath):
-        return send_from_directory(str(visualizer_dir), subpath)
+        return send_from_directory(str(serve_dir), subpath)
 
     @app.route("/glb_list.json")
     def glb_list():

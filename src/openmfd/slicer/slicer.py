@@ -966,10 +966,7 @@ class Slicer:
             print_settings["Default layer settings"]["Position settings"][
                 "Layer thickness (um)"
             ] = (embedded_devices[0][0]._layer_size * 1000)
-            fqn = embedded_devices[0][0].get_fully_qualified_name()
-            print_settings["Default layer settings"]["Image settings"][
-                "Image file"
-            ] = f"{fqn}/{fqn}-slice0000.png"
+            print_settings["Default layer settings"]["Image settings"]["Image file"] = ""
             print_settings["Default layer settings"]["Image settings"]["Light engine"] = (
                 embedded_devices[0][0].default_exposure_settings.light_engine
             )
@@ -1093,6 +1090,10 @@ class Slicer:
                             group_exposure_settings["Wait after exposure (ms)"] = (
                                 new_image_settings["Wait after exposure (ms)"]
                             )
+
+                    if not print_settings["Default layer settings"]["Image settings"].get("Image file"):
+                        if output_img_files:
+                            print_settings["Default layer settings"]["Image settings"]["Image file"] = output_img_files[0]
 
                     for file, exp in zip(output_img_files, output_times):
                         # Find closest named image setting

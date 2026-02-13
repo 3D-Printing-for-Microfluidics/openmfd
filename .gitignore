@@ -9,7 +9,7 @@ src/openmfd/site/node_modules/
 /*.prof
 /settings.json
 /*_demo/
-/preview/
+/_visualization/
 /tmp*/
 /dist/
 src/openmfd/site/dist/

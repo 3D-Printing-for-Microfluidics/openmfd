@@ -1483,7 +1483,7 @@ class Component(_InstantiationTrackerMixin):
     def preview_components(
         cls,
         components: "Component | list[Component]",
-        preview_dir: str = "preview",
+        preview_dir: str = "_visualization",
     ):
         """
         Preview one or more components in GLB files.
@@ -1493,7 +1493,7 @@ class Component(_InstantiationTrackerMixin):
         - components (Component | list[Component]): Components to preview. If a list is provided,
           each entry is exported with __vN suffixes (v1, v2, ...). If a single component is provided,
           no suffix is added.
-        - preview_dir (str): The directory where the preview GLB file will be saved. Default is "preview/".
+        - preview_dir (str): The directory where the preview GLB file will be saved. Default is "_visualization/".
 
         Returns:
 
@@ -1531,14 +1531,14 @@ class Component(_InstantiationTrackerMixin):
 
     def preview(
         self,
-        preview_dir: str = "preview",
+        preview_dir: str = "_visualization",
     ):
         """
         Preview the component in a GLB file.
 
         Parameters:
 
-        - preview_dir (str): The directory where the preview GLB file will be saved. Default is "preview/".
+        - preview_dir (str): The directory where the preview GLB file will be saved. Default is "_visualization/".
 
         Returns:
 

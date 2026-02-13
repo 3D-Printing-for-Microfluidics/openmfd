@@ -213,7 +213,8 @@ export function createModelManager({ scene, world }) {
     const versionScenes = new Map();
     const versionLoads = entry.versions.map((ver) =>
       new Promise((resolve) => {
-        const cacheBuster = ver.mtime != null ? `?cb=${ver.mtime}` : '';
+        const separator = ver.file && ver.file.includes('?') ? '&' : '?';
+        const cacheBuster = ver.mtime != null ? `${separator}cb=${ver.mtime}` : '';
         if (!ver.file) {
           resolve({ id: ver.id, scene: null });
           return;

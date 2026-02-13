@@ -5,6 +5,7 @@ import tempfile
 import uuid
 import subprocess
 from pathlib import Path
+from urllib.parse import quote
 
 from flask import Flask, jsonify, send_from_directory, abort, request, send_file, after_this_request
 
@@ -43,7 +44,7 @@ def start_server():
     def get_glb_dir():
         if selected_preview_dir and selected_preview_dir.is_dir():
             return selected_preview_dir
-        cwd_preview = CWD / "preview"
+        cwd_preview = CWD / "_visualization"
         if cwd_preview.is_dir():
             return cwd_preview
 
@@ -121,14 +122,14 @@ def start_server():
                     name = "Bounding Box"
                     type_str = "bounding box"
 
-                # remove CWD from path for JSON
-                path = path.resolve().relative_to(CWD)
+                rel_path = path.resolve().relative_to(preview_dir).as_posix()
+                file_url = f"/preview_file?path={quote(rel_path)}"
 
                 glb_list.append(
                     {
                         "name": name,
                         "type": type_str,
-                        "file": path.as_posix(),
+                        "file": file_url,
                         "version": version,
                         "base_name": base_name,
                         "mtime": stat.st_mtime,
@@ -145,10 +146,11 @@ def start_server():
             path = preview_dir / name
             if path.is_file():
                 stat = path.stat()
+                rel_path = path.resolve().relative_to(preview_dir).as_posix()
                 files.append(
                     {
                         "name": path.name,
-                        "path": str(path.resolve().relative_to(CWD)),
+                        "path": rel_path,
                         "mtime": stat.st_mtime,
                         "size": stat.st_size,
                     }
@@ -220,8 +222,8 @@ def start_server():
             return jsonify({"cwd": str(CWD), "source": "none", "preview_dir": ""})
         if selected_preview_dir and preview_dir == selected_preview_dir:
             source = "custom"
-        elif preview_dir == (CWD / "preview"):
-            source = "cwd/preview"
+        elif preview_dir == (CWD / "_visualization"):
+            source = "cwd/_visualization"
         else:
             source = "demo"
         return jsonify(
@@ -257,7 +259,7 @@ def start_server():
         rel_path = (request.args.get("path") or "").strip()
         if not rel_path:
             return jsonify({"error": "path required"}), 400
-        candidate = (CWD / rel_path).resolve()
+        candidate = (preview_dir / rel_path).resolve()
         try:
             candidate.relative_to(preview_dir)
         except ValueError:
@@ -269,6 +271,63 @@ def start_server():
         except json.JSONDecodeError:
             return jsonify({"error": "Invalid JSON"}), 400
         return jsonify(data)
+
+    @app.route("/save_preview_settings", methods=["POST"])
+    def save_preview_settings():
+        preview_dir = get_glb_dir()
+        if not preview_dir:
+            return jsonify({"error": "No preview directory"}), 404
+
+        demo_dir = (visualizer_root / "demo_device").resolve()
+        if preview_dir.resolve() == demo_dir:
+            return jsonify({"error": "Demo device is read-only"}), 400
+
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify({"error": "Invalid settings payload"}), 400
+
+        output_path = preview_dir / "openmfd-settings.json"
+        output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        return jsonify({"ok": True, "path": str(output_path.resolve())})
+
+    @app.route("/preview_file")
+    def preview_file():
+        preview_dir = get_glb_dir()
+        if not preview_dir:
+            return jsonify({"error": "No preview directory"}), 404
+        rel_path = (request.args.get("path") or "").strip()
+        if not rel_path:
+            return jsonify({"error": "path required"}), 400
+        candidate = (preview_dir / rel_path).resolve()
+        try:
+            candidate.relative_to(preview_dir)
+        except ValueError:
+            return jsonify({"error": "Path must be inside preview folder"}), 400
+        if not candidate.is_file():
+            return jsonify({"error": "File not found"}), 404
+        return send_from_directory(str(preview_dir), rel_path)
+
+    @app.route("/preview_dir_list")
+    def preview_dir_list():
+        raw_path = (request.args.get("path") or "").strip()
+        if not raw_path:
+            return jsonify({"error": "path required"}), 400
+
+        base_dir = (Path(raw_path) if Path(raw_path).is_absolute() else (CWD / raw_path)).resolve()
+        if not base_dir.is_dir():
+            return jsonify({"error": "Folder does not exist"}), 400
+
+        folders = []
+        for entry in sorted(base_dir.iterdir(), key=lambda p: p.name.lower()):
+            if not entry.is_dir():
+                continue
+            if any(entry.glob("*.glb")):
+                folders.append({
+                    "name": entry.name,
+                    "path": str(entry.resolve()),
+                })
+
+        return jsonify({"base": str(base_dir), "folders": folders})
 
     @app.route("/pathtracing_animation/start", methods=["POST"])
     def start_pathtracing_animation():
@@ -382,11 +441,7 @@ def start_server():
             selected_preview_dir = None
             return jsonify({"ok": True, "preview_dir": ""})
 
-        candidate = (CWD / raw_path).resolve()
-        try:
-            candidate.relative_to(CWD)
-        except ValueError:
-            return jsonify({"ok": False, "error": "Path must be inside CWD"}), 400
+        candidate = (Path(raw_path) if Path(raw_path).is_absolute() else (CWD / raw_path)).resolve()
 
         if not candidate.is_dir():
             return jsonify({"ok": False, "error": "Folder does not exist"}), 400
@@ -396,6 +451,7 @@ def start_server():
 
         selected_preview_dir = candidate
         return jsonify({"ok": True, "preview_dir": str(selected_preview_dir)})
+
 
     @app.route("/<path:filename>")
     def serve_glb(filename):

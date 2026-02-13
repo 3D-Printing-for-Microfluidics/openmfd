@@ -1,0 +1,533 @@
+{
+  "version": 2,
+  "general": {
+    "autoReloadEnabled": true,
+    "autoReloadIntervalMs": 1000,
+    "axesVisible": true,
+    "defaultControlsType": "orbit",
+    "defaultModelVersion": "largest"
+  },
+  "camera": {
+    "activeIndex": 0,
+    "cameras": [
+      {
+        "pos": {
+          "x": 9.72799968719482,
+          "y": 6.079958830777607,
+          "z": 42.341101985159334
+        },
+        "target": {
+          "x": 9.727999687194822,
+          "y": 6.079999923706054,
+          "z": 1.2499999999999998
+        },
+        "roll": 0,
+        "fov": 20,
+        "controlType": "orbit",
+        "mode": "perspective"
+      }
+    ],
+    "slotCount": 1
+  },
+  "lights": {
+    "ambient": {
+      "color": "#ffffff",
+      "intensity": 1
+    },
+    "directional": [
+      {
+        "type": "directional",
+        "color": "#ffffff",
+        "intensity": 1.5,
+        "position": {
+          "x": 19.727999687194824,
+          "y": 16.079999923706055,
+          "z": 11.25
+        },
+        "targetPosition": {
+          "x": 9.727999687194824,
+          "y": 6.079999923706055,
+          "z": 1.25
+        },
+        "range": 30
+      }
+    ]
+  },
+  "models": {
+    "byKey": {
+      "bounding box|bounding_box": {
+        "visible": true,
+        "version": "v0",
+        "name": "Bounding Box",
+        "type": "bounding box"
+      },
+      "bulk|bulk_device": {
+        "visible": true,
+        "version": "v0",
+        "name": "Device",
+        "type": "bulk"
+      },
+      "device|device": {
+        "visible": true,
+        "version": "v0",
+        "name": "Device",
+        "type": "device"
+      },
+      "regional exposure settings|regional_exposure_settings_edge": {
+        "visible": true,
+        "version": "v0",
+        "name": "Edge",
+        "type": "regional exposure settings"
+      },
+      "regional membrane settings|regional_membrane_settings_Pump1.dc_membrane": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump1.dc_membrane",
+        "type": "regional membrane settings"
+      },
+      "regional membrane settings|regional_membrane_settings_Pump1.valve_membrane": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump1.valve_membrane",
+        "type": "regional membrane settings"
+      },
+      "regional membrane settings|regional_membrane_settings_Pump2.dc_membrane": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump2.dc_membrane",
+        "type": "regional membrane settings"
+      },
+      "regional membrane settings|regional_membrane_settings_Pump2.valve_membrane": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump2.valve_membrane",
+        "type": "regional membrane settings"
+      },
+      "regional position settings|regional_position_settings_Pump1.slow": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump1.slow",
+        "type": "regional position settings"
+      },
+      "regional position settings|regional_position_settings_Pump2.slow": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump2.slow",
+        "type": "regional position settings"
+      },
+      "regional secondary dose|regional_secondary_dose_settings_Pump1.extra": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump1.extra",
+        "type": "regional secondary dose"
+      },
+      "regional secondary dose|regional_secondary_dose_settings_Pump2.extra": {
+        "visible": true,
+        "version": "v0",
+        "name": "Pump2.extra",
+        "type": "regional secondary dose"
+      },
+      "void|void_control": {
+        "visible": true,
+        "version": "v0",
+        "name": "Control",
+        "type": "void"
+      },
+      "void|void_device": {
+        "visible": true,
+        "version": "v0",
+        "name": "Device",
+        "type": "void"
+      },
+      "void|void_fluidic": {
+        "visible": true,
+        "version": "v0",
+        "name": "Fluidic",
+        "type": "void"
+      }
+    },
+    "groups": {
+      "group_cb_bulk": false,
+      "group_cb_void": false,
+      "group_cb_regional": false,
+      "group_cb_regional_exposure_settings": true,
+      "group_cb_regional_membrane_settings": true,
+      "group_cb_regional_position_settings": true,
+      "group_cb_regional_secondary_dose": true
+    }
+  },
+  "theme": {
+    "activeTheme": "dark",
+    "themes": {
+      "dark": {
+        "--bg": "#222222",
+        "--panel": "#222222",
+        "--section-bg": "#1a1a1a",
+        "--text": "#ffffff",
+        "--button-bg": "#3a3a3a",
+        "--button-text": "#ffffff",
+        "--button-border": "#555555",
+        "--button-bg-active": "#888888",
+        "--axis-x": "#aa4444",
+        "--axis-y": "#44aa44",
+        "--axis-z": "#4444aa"
+      },
+      "light": {
+        "--bg": "#f5f5f5",
+        "--panel": "#ffffff",
+        "--section-bg": "#f0f0f0",
+        "--text": "#111111",
+        "--button-bg": "#ffffff",
+        "--button-text": "#111111",
+        "--button-border": "#bbbbbb",
+        "--button-bg-active": "#f0f0f0",
+        "--axis-x": "#dd0000",
+        "--axis-y": "#00aa00",
+        "--axis-z": "#0000cc"
+      },
+      "custom": {
+        "--bg": "#1f1f1f",
+        "--panel": "#2a2a2a",
+        "--section-bg": "#1a1a1a",
+        "--text": "#f5f5f5",
+        "--button-bg": "#3d3d3d",
+        "--button-text": "#f5f5f5",
+        "--button-border": "#5a5a5a",
+        "--button-bg-active": "#7a7a7a",
+        "--axis-x": "#aa4444",
+        "--axis-y": "#44aa44",
+        "--axis-z": "#4444aa"
+      }
+    }
+  },
+  "animation": {
+    "keyframes": [
+      {
+        "camera": {
+          "controlType": "orbit",
+          "fov": 20,
+          "mode": "perspective",
+          "pos": {
+            "x": -15.925837234373466,
+            "y": -52.316124433635444,
+            "z": 27.472871430668512
+          },
+          "roll": 0,
+          "target": {
+            "x": 9.727999687194822,
+            "y": 6.079999923706054,
+            "z": 1.2499999999999998
+          }
+        },
+        "lights": {
+          "ambient": {
+            "color": "#ffffff",
+            "intensity": 1
+          },
+          "directional": [
+            {
+              "color": "#ffffff",
+              "intensity": 1.5,
+              "position": {
+                "x": 19.727999687194824,
+                "y": 16.079999923706055,
+                "z": 11.25
+              },
+              "range": 30,
+              "targetPosition": {
+                "x": 9.727999687194824,
+                "y": 6.079999923706055,
+                "z": 1.25
+              },
+              "type": "directional"
+            }
+          ]
+        },
+        "models": {
+          "byKey": {
+            "bounding box|bounding_box": {
+              "visible": true,
+              "version": "v0",
+              "name": "Bounding Box",
+              "type": "bounding box"
+            },
+            "bulk|bulk_bulk": {
+              "name": "Bulk",
+              "type": "bulk",
+              "version": "v0",
+              "visible": true
+            },
+            "bulk|bulk_device": {
+              "visible": false,
+              "version": "v0",
+              "name": "Device",
+              "type": "bulk"
+            },
+            "device|device": {
+              "visible": true,
+              "version": "v0",
+              "name": "Device",
+              "type": "device"
+            },
+            "ports|ports": {
+              "name": "Unconnected Ports",
+              "type": "ports",
+              "version": "v0",
+              "visible": true
+            },
+            "regional exposure settings|regional_exposure_settings_edge": {
+              "visible": false,
+              "version": "v0",
+              "name": "Edge",
+              "type": "regional exposure settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump1.dc_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.dc_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump1.valve_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.valve_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump2.dc_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.dc_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump2.valve_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.valve_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional position settings|regional_position_settings_Pump1.slow": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.slow",
+              "type": "regional position settings"
+            },
+            "regional position settings|regional_position_settings_Pump2.slow": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.slow",
+              "type": "regional position settings"
+            },
+            "regional secondary dose|regional_secondary_dose_settings_Pump1.extra": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.extra",
+              "type": "regional secondary dose"
+            },
+            "regional secondary dose|regional_secondary_dose_settings_Pump2.extra": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.extra",
+              "type": "regional secondary dose"
+            },
+            "void|void_control": {
+              "visible": false,
+              "version": "v0",
+              "name": "Control",
+              "type": "void"
+            },
+            "void|void_device": {
+              "visible": false,
+              "version": "v0",
+              "name": "Device",
+              "type": "void"
+            },
+            "void|void_fluidic": {
+              "visible": false,
+              "version": "v0",
+              "name": "Fluidic",
+              "type": "void"
+            }
+          },
+          "groups": {
+            "group_cb_bulk": false,
+            "group_cb_regional": false,
+            "group_cb_regional_exposure_settings": true,
+            "group_cb_regional_membrane_settings": true,
+            "group_cb_regional_position_settings": true,
+            "group_cb_regional_secondary_dose": true,
+            "group_cb_void": false
+          }
+        },
+        "holdDuration": 1,
+        "transitionDuration": 1,
+        "transitions": {}
+      },
+      {
+        "camera": {
+          "controlType": "orbit",
+          "fov": 20,
+          "mode": "perspective",
+          "pos": {
+            "x": 37.881911429134945,
+            "y": -50.227888684207024,
+            "z": 29.403944820784577
+          },
+          "roll": 0,
+          "target": {
+            "x": 9.727999687194822,
+            "y": 6.079999923706054,
+            "z": 1.2499999999999998
+          }
+        },
+        "lights": {
+          "ambient": {
+            "color": "#ffffff",
+            "intensity": 1
+          },
+          "directional": [
+            {
+              "color": "#ffffff",
+              "intensity": 1.5,
+              "position": {
+                "x": 19.727999687194824,
+                "y": 16.079999923706055,
+                "z": 11.25
+              },
+              "range": 30,
+              "targetPosition": {
+                "x": 9.727999687194824,
+                "y": 6.079999923706055,
+                "z": 1.25
+              },
+              "type": "directional"
+            }
+          ]
+        },
+        "models": {
+          "byKey": {
+            "bounding box|bounding_box": {
+              "visible": true,
+              "version": "v0",
+              "name": "Bounding Box",
+              "type": "bounding box"
+            },
+            "bulk|bulk_bulk": {
+              "name": "Bulk",
+              "type": "bulk",
+              "version": "v0",
+              "visible": true
+            },
+            "bulk|bulk_device": {
+              "visible": false,
+              "version": "v0",
+              "name": "Device",
+              "type": "bulk"
+            },
+            "device|device": {
+              "visible": true,
+              "version": "v0",
+              "name": "Device",
+              "type": "device"
+            },
+            "ports|ports": {
+              "name": "Unconnected Ports",
+              "type": "ports",
+              "version": "v0",
+              "visible": true
+            },
+            "regional exposure settings|regional_exposure_settings_edge": {
+              "visible": false,
+              "version": "v0",
+              "name": "Edge",
+              "type": "regional exposure settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump1.dc_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.dc_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump1.valve_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.valve_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump2.dc_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.dc_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional membrane settings|regional_membrane_settings_Pump2.valve_membrane": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.valve_membrane",
+              "type": "regional membrane settings"
+            },
+            "regional position settings|regional_position_settings_Pump1.slow": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.slow",
+              "type": "regional position settings"
+            },
+            "regional position settings|regional_position_settings_Pump2.slow": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.slow",
+              "type": "regional position settings"
+            },
+            "regional secondary dose|regional_secondary_dose_settings_Pump1.extra": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump1.extra",
+              "type": "regional secondary dose"
+            },
+            "regional secondary dose|regional_secondary_dose_settings_Pump2.extra": {
+              "visible": false,
+              "version": "v0",
+              "name": "Pump2.extra",
+              "type": "regional secondary dose"
+            },
+            "void|void_control": {
+              "visible": false,
+              "version": "v0",
+              "name": "Control",
+              "type": "void"
+            },
+            "void|void_device": {
+              "visible": false,
+              "version": "v0",
+              "name": "Device",
+              "type": "void"
+            },
+            "void|void_fluidic": {
+              "visible": false,
+              "version": "v0",
+              "name": "Fluidic",
+              "type": "void"
+            }
+          },
+          "groups": {
+            "group_cb_bulk": false,
+            "group_cb_regional": false,
+            "group_cb_regional_exposure_settings": true,
+            "group_cb_regional_membrane_settings": true,
+            "group_cb_regional_position_settings": true,
+            "group_cb_regional_secondary_dose": true,
+            "group_cb_void": false
+          }
+        },
+        "holdDuration": 1,
+        "transitionDuration": 0,
+        "transitions": {}
+      }
+    ],
+    "exportDefaults": {
+      "resolution": "1920x1080",
+      "fps": 30,
+      "quality": "medium",
+      "type": "webm"
+    }
+  }
+}

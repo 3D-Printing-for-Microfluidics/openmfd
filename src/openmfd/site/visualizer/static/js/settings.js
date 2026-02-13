@@ -58,7 +58,7 @@ export function createSettingsSystem({
         if (modelSourceValueInput) {
           if (data?.source === 'demo') {
             modelSourceValueInput.value = 'Demo Device';
-          } else if (data?.source === 'cwd/preview') {
+          } else if (data?.source === 'cwd/_visualization') {
             modelSourceValueInput.value = `Default (${relativePath})`;
           } else if (data?.source === 'custom') {
             modelSourceValueInput.value = relativePath;

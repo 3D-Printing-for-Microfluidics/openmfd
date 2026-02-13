@@ -12,7 +12,7 @@ All visualizer settings live in the **Settings** dialog. The tabs below cover ge
 
 The **General** tab includes settings that affect the viewing experience:
 
-- **Environment** — select the model folder. By default, the visualizer uses `Preview` under the current working directory (CWD); if that is missing, it falls back to the demo device. You can select a different folder inside the CWD.
+- **Environment** — select the model folder. By default, the visualizer uses `_visualization` under the current working directory (CWD); if that is missing, it falls back to the demo device. You can select a different folder inside the CWD.
 - **Model settings behavior** — change the default behavior when loading a model (show the Load Settings dialog, ignore model settings, or auto‑apply camera/lighting/animation settings).
 - **Default model version** — choose Smallest or Largest when multiple versions exist.
 - **Reset settings** — reset specific groups of settings (General, Theme, Camera, Lighting, Animation) or all settings.

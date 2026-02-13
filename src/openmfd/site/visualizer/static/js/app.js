@@ -15,7 +15,6 @@ const AUTO_RELOAD_STORAGE_KEY = 'openmfd_auto_reload';
 const AUTO_RELOAD_INTERVAL_KEY = 'openmfd_auto_reload_interval_ms';
 const AXES_STORAGE_KEY = 'openmfd_axes_visible';
 const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'openmfd_default_controls_type';
-const MODEL_SETTINGS_BEHAVIOR_KEY = 'openmfd_model_settings_behavior';
 const MODEL_DEFAULT_VERSION_KEY = 'openmfd_model_default_version';
 const LIGHTS_STORAGE_KEY = 'openmfd_lights_v1';
 
@@ -26,6 +25,8 @@ const {
   axes,
   renderer,
   controls: initialControls,
+  orbitControls,
+  trackballControls,
   perspectiveCamera,
   orthographicCamera,
   setControlsType,
@@ -110,6 +111,7 @@ lightSystem = createLightSystem({
 if (lightSystem?.setLightStateChangeCallback) {
   lightSystem.setLightStateChangeCallback(() => {
     saveLightState();
+    scheduleHistoryCapture();
   });
 }
 
@@ -218,13 +220,19 @@ const previewDirSetBtn = document.getElementById('previewDirSetBtn');
 const previewDirResetBtn = document.getElementById('previewDirResetBtn');
 const previewDirWarningEl = document.getElementById('previewDirWarning');
 const autoReloadIntervalInput = document.getElementById('autoReloadIntervalInput');
-const modelSettingsBehaviorSelect = document.getElementById('modelSettingsBehaviorSelect');
 const defaultModelVersionSelect = document.getElementById('defaultModelVersionSelect');
 const resetSettingsSelect = document.getElementById('resetSettingsSelect');
 const resetSettingsApplyBtn = document.getElementById('resetSettingsApplyBtn');
-const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-const loadSettingsBtn = document.getElementById('loadSettingsBtn');
 const settingsFileInput = document.getElementById('settingsFileInput');
+const fileMenuBtn = document.getElementById('fileMenuBtn');
+const editMenuBtn = document.getElementById('editMenuBtn');
+const menuOpenBtn = document.getElementById('menuOpenBtn');
+const menuSaveBtn = document.getElementById('menuSaveBtn');
+const menuSaveSettingsBtn = document.getElementById('menuSaveSettingsBtn');
+const menuLoadSettingsBtn = document.getElementById('menuLoadSettingsBtn');
+const menuSettingsBtn = document.getElementById('menuSettingsBtn');
+const menuUndoBtn = document.getElementById('menuUndoBtn');
+const menuRedoBtn = document.getElementById('menuRedoBtn');
 const previewSettingsDialog = document.getElementById('previewSettingsDialog');
 const previewSettingsClose = document.getElementById('previewSettingsClose');
 const previewSettingsFileSelect = document.getElementById('previewSettingsFileSelect');
@@ -235,6 +243,14 @@ const previewSettingsTheme = document.getElementById('previewSettingsTheme');
 const previewSettingsCamera = document.getElementById('previewSettingsCamera');
 const previewSettingsLighting = document.getElementById('previewSettingsLighting');
 const previewSettingsAnimation = document.getElementById('previewSettingsAnimation');
+const toastEl = document.getElementById('toast');
+const previewDirDialog = document.getElementById('previewDirDialog');
+const previewDirClose = document.getElementById('previewDirClose');
+const previewDirBaseInput = document.getElementById('previewDirBaseInput');
+const previewDirRefreshBtn = document.getElementById('previewDirRefreshBtn');
+const previewDirSelect = document.getElementById('previewDirSelect');
+const previewDirCancelBtn = document.getElementById('previewDirCancelBtn');
+const previewDirOpenBtn = document.getElementById('previewDirOpenBtn');
 const snapshotDialog = document.getElementById('snapshotDialog');
 const snapshotDialogClose = document.getElementById('snapshotDialogClose');
 const snapshotSaveBtn = document.getElementById('snapshotSaveBtn');
@@ -388,13 +404,155 @@ function setSnapshotStatus(message) {
   snapshotProgress.textContent = message || '';
 }
 
-function getModelSettingsBehavior() {
-  return localStorage.getItem(MODEL_SETTINGS_BEHAVIOR_KEY) || 'dialog';
+let toastTimer = null;
+
+const historyState = {
+  undoStack: [],
+  redoStack: [],
+  isApplying: false,
+  lastSerialized: null,
+  captureTimer: null,
+};
+
+function getHistorySnapshot() {
+  return {
+    cameraState: cameraSystem?.getCameraState?.() || null,
+    cameraStorage: localStorage.getItem('openmfd_cameras_v1') || null,
+    axesVisible: axes?.visible ?? true,
+    defaultControlsType: cameraSystem?.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
+    autoReloadEnabled,
+    autoReloadIntervalMs,
+    defaultModelVersion: getDefaultModelVersionStrategy(),
+    modelSelection: modelSelector?.getSelectionSnapshot?.() || null,
+    themeState: themeManager?.getThemeState?.() || null,
+    lights: lightSystem?.getLightState?.() || null,
+    keyframes: keyframeSystem?.getKeyframes?.() || [],
+  };
 }
 
-function setModelSettingsBehavior(value) {
-  const next = value || 'dialog';
-  localStorage.setItem(MODEL_SETTINGS_BEHAVIOR_KEY, next);
+function updateUndoRedoButtons() {
+  if (menuUndoBtn) menuUndoBtn.disabled = historyState.undoStack.length === 0;
+  if (menuRedoBtn) menuRedoBtn.disabled = historyState.redoStack.length === 0;
+}
+
+function pushHistorySnapshot() {
+  if (historyState.isApplying) return;
+  const snapshot = getHistorySnapshot();
+  const serialized = JSON.stringify(snapshot);
+  if (serialized === historyState.lastSerialized) return;
+  historyState.undoStack.push(snapshot);
+  if (historyState.undoStack.length > 100) {
+    historyState.undoStack.shift();
+  }
+  historyState.redoStack = [];
+  historyState.lastSerialized = serialized;
+  updateUndoRedoButtons();
+}
+
+function scheduleHistoryCapture() {
+  if (historyState.isApplying) return;
+  if (historyState.captureTimer) window.clearTimeout(historyState.captureTimer);
+  historyState.captureTimer = window.setTimeout(() => {
+    historyState.captureTimer = null;
+    pushHistorySnapshot();
+  }, 250);
+}
+
+function applyHistorySnapshot(snapshot) {
+  if (!snapshot) return;
+  historyState.isApplying = true;
+  if (snapshot.cameraStorage !== null) {
+    localStorage.setItem('openmfd_cameras_v1', snapshot.cameraStorage);
+  } else {
+    localStorage.removeItem('openmfd_cameras_v1');
+  }
+  cameraSystem.initCameraStates();
+  if (snapshot.cameraState) {
+    cameraSystem.applyExternalCameraState(snapshot.cameraState);
+  } else {
+    cameraSystem.resetCameraHome();
+  }
+  syncCameraControlSelect();
+
+  if (typeof snapshot.axesVisible === 'boolean') {
+    applyAxesState(snapshot.axesVisible);
+  }
+  if (snapshot.defaultControlsType) {
+    if (defaultControlTypeSelect) {
+      defaultControlTypeSelect.value = snapshot.defaultControlsType;
+    }
+    cameraSystem.setDefaultControlType(snapshot.defaultControlsType);
+    if (cameraSystem.isHomeMode() || !cameraSystem.getActiveCameraState()) {
+      applyControlsType(snapshot.defaultControlsType, false);
+    }
+  }
+  if (Number.isFinite(snapshot.autoReloadIntervalMs)) {
+    setAutoReloadIntervalMs(snapshot.autoReloadIntervalMs);
+    if (autoReloadIntervalInput) autoReloadIntervalInput.value = String(snapshot.autoReloadIntervalMs);
+  }
+  if (snapshot.autoReloadEnabled !== undefined) {
+    autoReloadEnabled = !!snapshot.autoReloadEnabled;
+    setAutoReload(autoReloadEnabled);
+  }
+  if (snapshot.defaultModelVersion) {
+    if (defaultModelVersionSelect) {
+      defaultModelVersionSelect.value = snapshot.defaultModelVersion;
+    }
+    setDefaultModelVersionStrategy(snapshot.defaultModelVersion);
+    modelManager.applyDefaultVersionStrategy();
+  }
+  if (snapshot.modelSelection && modelSelector) {
+    modelSelector.applySelectionSnapshot(snapshot.modelSelection, { persist: true });
+    if (modelManager?.setModelVersionSelections) {
+      modelManager.setModelVersionSelections(snapshot.modelSelection?.versions, { force: true });
+    }
+    modelManager.updateVisibility();
+  }
+  if (snapshot.themeState && themeManager) {
+    themeManager.setThemeState(snapshot.themeState);
+    if (themeSelect) {
+      themeSelect.value = snapshot.themeState.activeTheme || themeSelect.value;
+      syncThemeInputs(themeSelect.value);
+    }
+  }
+  if (snapshot.lights && lightSystem) {
+    lightSystem.applyLightState(snapshot.lights);
+  }
+  if (keyframeSystem?.setKeyframes && Array.isArray(snapshot.keyframes)) {
+    keyframeSystem.setKeyframes(snapshot.keyframes);
+  }
+  historyState.isApplying = false;
+}
+
+function undoHistory() {
+  if (historyState.undoStack.length === 0) return;
+  const current = getHistorySnapshot();
+  historyState.redoStack.push(current);
+  const prev = historyState.undoStack.pop();
+  historyState.lastSerialized = JSON.stringify(prev);
+  applyHistorySnapshot(prev);
+  updateUndoRedoButtons();
+}
+
+function redoHistory() {
+  if (historyState.redoStack.length === 0) return;
+  const current = getHistorySnapshot();
+  historyState.undoStack.push(current);
+  const next = historyState.redoStack.pop();
+  historyState.lastSerialized = JSON.stringify(next);
+  applyHistorySnapshot(next);
+  updateUndoRedoButtons();
+}
+
+function showToast(message, { variant = 'info', duration = 2200 } = {}) {
+  if (!toastEl) return;
+  toastEl.textContent = message || '';
+  toastEl.classList.toggle('is-error', variant === 'error');
+  toastEl.classList.add('is-visible');
+  if (toastTimer) window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => {
+    toastEl.classList.remove('is-visible');
+  }, duration);
 }
 
 function getDefaultModelVersionStrategy() {
@@ -1227,7 +1385,6 @@ async function resetGeneralSettings() {
   localStorage.removeItem(AUTO_RELOAD_STORAGE_KEY);
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
-  localStorage.removeItem(MODEL_SETTINGS_BEHAVIOR_KEY);
   localStorage.removeItem(MODEL_DEFAULT_VERSION_KEY);
   const defaultType = 'orbit';
   if (defaultControlTypeSelect) {
@@ -1239,9 +1396,6 @@ async function resetGeneralSettings() {
   setAutoReloadIntervalMs(1000);
   if (autoReloadIntervalInput) {
     autoReloadIntervalInput.value = '1000';
-  }
-  if (modelSettingsBehaviorSelect) {
-    modelSettingsBehaviorSelect.value = 'dialog';
   }
   autoReloadEnabled = true;
   setAutoReload(true);
@@ -1316,13 +1470,7 @@ async function fetchPreviewSettingsList() {
 
 async function checkPreviewSettingsPrompt() {
   const listData = await fetchPreviewSettingsList();
-  const behavior = getModelSettingsBehavior();
-  if (behavior === 'dialog') {
-    openPreviewSettingsDialog(listData || { files: [] });
-    return;
-  }
   if (!listData) return;
-  if (behavior === 'ignore') return;
 
   const file = listData.files?.[0];
   if (!file?.path) return;
@@ -1331,25 +1479,13 @@ async function checkPreviewSettingsPrompt() {
   const payload = await resp.json().catch(() => null);
   if (!payload) return;
 
-  if (behavior === 'camera-lights-animation') {
-    applySettingsPayload(payload, {
-      general: false,
-      theme: false,
-      camera: true,
-      lighting: true,
-      animation: true,
-    });
-    return;
-  }
-  if (behavior === 'all') {
-    applySettingsPayload(payload, {
-      general: true,
-      theme: true,
-      camera: true,
-      lighting: true,
-      animation: true,
-    });
-  }
+  applySettingsPayload(payload, {
+    general: false,
+    theme: false,
+    camera: true,
+    lighting: true,
+    animation: true,
+  });
 }
 
 function resetCameraSettings() {
@@ -1457,7 +1593,6 @@ function buildSettingsPayload() {
       autoReloadIntervalMs,
       axesVisible: axes?.visible ?? true,
       defaultControlsType: cameraSystem.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
-      modelSettingsBehavior: getModelSettingsBehavior(),
       defaultModelVersion: getDefaultModelVersionStrategy(),
     },
     camera: buildCameraPayload(),
@@ -1480,30 +1615,110 @@ function buildSettingsPayload() {
 async function saveSettingsToFile() {
   const payload = buildSettingsPayload();
   const jsonText = JSON.stringify(payload, null, 2);
-  if (window.showSaveFilePicker) {
-    const handle = await window.showSaveFilePicker({
-      suggestedName: 'openmfd-settings.json',
-      types: [
-        {
-          description: 'JSON',
-          accept: { 'application/json': ['.json'] },
-        },
-      ],
-    });
-    const writable = await handle.createWritable();
-    await writable.write(jsonText);
-    await writable.close();
+  try {
+    if (window.showSaveFilePicker) {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'openmfd-settings.json',
+        types: [
+          {
+            description: 'JSON',
+            accept: { 'application/json': ['.json'] },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(jsonText);
+      await writable.close();
+      showToast('Settings exported.');
+      return;
+    }
+    const blob = new Blob([jsonText], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'openmfd-settings.json';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showToast('Settings exported.');
+  } catch (error) {
+    if (error && error.name === 'AbortError') return;
+    showToast('Export failed.', { variant: 'error' });
+  }
+}
+
+async function saveSettingsToPreviewDir() {
+  if (!menuSaveBtn) return;
+  const previewInfo = await fetch('/preview_info.json').then((resp) => resp.json()).catch(() => null);
+  if (!previewInfo || previewInfo.source === 'demo' || previewInfo.source === 'none') {
+    menuSaveBtn.disabled = true;
+    showToast('Save unavailable for demo device.', { variant: 'error' });
     return;
   }
-  const blob = new Blob([jsonText], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'openmfd-settings.json';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+
+  const payload = buildSettingsPayload();
+  const resp = await fetch('/save_preview_settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => null);
+  if (resp && resp.ok) {
+    showToast('Settings saved to preview folder.');
+  } else {
+    showToast('Save failed.', { variant: 'error' });
+  }
+}
+
+async function updateMenuSaveAvailability() {
+  if (!menuSaveBtn) return;
+  const previewInfo = await fetch('/preview_info.json').then((resp) => resp.json()).catch(() => null);
+  const disabled = !previewInfo || previewInfo.source === 'demo' || previewInfo.source === 'none';
+  menuSaveBtn.disabled = disabled;
+}
+
+async function refreshPreviewDirList() {
+  if (!previewDirBaseInput || !previewDirSelect) return;
+  const basePath = previewDirBaseInput.value.trim();
+  if (!basePath) return;
+  const resp = await fetch(`/preview_dir_list?path=${encodeURIComponent(basePath)}`).catch(() => null);
+  if (!resp || !resp.ok) {
+    showToast('Unable to list folders.', { variant: 'error' });
+    return;
+  }
+  const data = await resp.json().catch(() => null);
+  previewDirSelect.innerHTML = '';
+  const folders = Array.isArray(data?.folders) ? data.folders : [];
+  if (!folders.length) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No valid folders found';
+    previewDirSelect.appendChild(opt);
+    return;
+  }
+  folders.forEach((entry) => {
+    const opt = document.createElement('option');
+    opt.value = entry.path;
+    opt.textContent = entry.name;
+    previewDirSelect.appendChild(opt);
+  });
+  previewDirSelect.value = folders[0].path;
+}
+
+async function openPreviewDirDialog() {
+  if (!previewDirDialog) return;
+  const info = await fetch('/preview_info.json').then((resp) => resp.json()).catch(() => null);
+  const cwd = info?.cwd || '';
+  if (previewDirBaseInput) {
+    previewDirBaseInput.value = cwd;
+  }
+  await refreshPreviewDirList();
+  previewDirDialog.classList.add('is-open');
+}
+
+function closePreviewDirDialog() {
+  if (!previewDirDialog) return;
+  previewDirDialog.classList.remove('is-open');
 }
 
 function applySettingsPayload(payload, sections = {}) {
@@ -1534,12 +1749,6 @@ function applySettingsPayload(payload, sections = {}) {
     if (general.autoReloadEnabled !== undefined) {
       autoReloadEnabled = !!general.autoReloadEnabled;
       setAutoReload(autoReloadEnabled);
-    }
-    if (general.modelSettingsBehavior) {
-      if (modelSettingsBehaviorSelect) {
-        modelSettingsBehaviorSelect.value = general.modelSettingsBehavior;
-      }
-      setModelSettingsBehavior(general.modelSettingsBehavior);
     }
     if (general.defaultModelVersion) {
       if (defaultModelVersionSelect) {
@@ -1724,6 +1933,7 @@ function initAxesToggle() {
     axes.visible = !axes.visible;
     localStorage.setItem(AXES_STORAGE_KEY, String(axes.visible));
     axesToggleBtn.textContent = axes.visible ? 'Axes: On' : 'Axes: Off';
+    scheduleHistoryCapture();
   });
 }
 
@@ -2025,6 +2235,7 @@ async function handleModelRefresh() {
     lightSystem.ensureDefaultLight();
     lightSystem.updateDirectionalLightTargets();
     settingsSystem?.refreshPreviewInfo();
+    await updateMenuSaveAvailability();
     await checkPreviewSettingsPrompt();
     return;
   }
@@ -2038,6 +2249,7 @@ async function handleModelRefresh() {
     lightSystem.ensureDefaultLight();
     lightSystem.updateDirectionalLightTargets();
     settingsSystem?.refreshPreviewInfo();
+    await updateMenuSaveAvailability();
   }
 }
 
@@ -2056,7 +2268,6 @@ async function resetAllSettings() {
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(AXES_STORAGE_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
-  localStorage.removeItem(MODEL_SETTINGS_BEHAVIOR_KEY);
   localStorage.removeItem('openmfd_theme');
   localStorage.removeItem('openmfd_theme_defs_v1');
   localStorage.removeItem('openmfd_cameras_v1');
@@ -2117,6 +2328,7 @@ async function initModels() {
   lightSystem.ensureDefaultLight();
   lightSystem.updateDirectionalLightTargets();
   settingsSystem?.refreshPreviewInfo();
+  await updateMenuSaveAvailability();
   await checkPreviewSettingsPrompt();
 }
 
@@ -2141,6 +2353,65 @@ function initResizing() {
   });
 }
 
+function initHistoryObservers() {
+  const handleControlChange = () => scheduleHistoryCapture();
+  const handleControlEnd = () => pushHistorySnapshot();
+  [orbitControls, trackballControls].forEach((ctrl) => {
+    if (!ctrl || typeof ctrl.addEventListener !== 'function') return;
+    ctrl.addEventListener('change', handleControlChange);
+    ctrl.addEventListener('end', handleControlEnd);
+  });
+
+  [resetCameraBtn, homeCameraBtn, centerTargetBtn, updateCameraBtn, cameraModeBtn,
+    addCameraBtn, addCameraBtnSettings, removeCameraBtnSettings].forEach((btn) => {
+    if (!btn) return;
+    btn.addEventListener('click', () => scheduleHistoryCapture());
+  });
+
+  cameraPresetButtons.forEach((btn) => {
+    btn.addEventListener('click', () => scheduleHistoryCapture());
+  });
+
+  if (autoReloadIntervalInput) {
+    autoReloadIntervalInput.addEventListener('change', () => scheduleHistoryCapture());
+  }
+
+  if (themeSelect) {
+    themeSelect.addEventListener('change', () => scheduleHistoryCapture());
+  }
+
+  if (themeResetBtn) {
+    themeResetBtn.addEventListener('click', () => scheduleHistoryCapture());
+  }
+
+  if (themeToCustomBtn) {
+    themeToCustomBtn.addEventListener('click', () => scheduleHistoryCapture());
+  }
+
+  Object.values(themeInputs || {}).forEach((input) => {
+    if (!input) return;
+    input.addEventListener('input', () => scheduleHistoryCapture());
+  });
+
+  if (keyframeListEl) {
+    keyframeListEl.addEventListener('input', () => scheduleHistoryCapture());
+    keyframeListEl.addEventListener('change', () => scheduleHistoryCapture());
+  }
+
+  if (keyframeSystem) {
+    const wrap = (name) => {
+      const original = keyframeSystem[name];
+      if (typeof original !== 'function') return;
+      keyframeSystem[name] = (...args) => {
+        const result = original(...args);
+        if (!historyState.isApplying) scheduleHistoryCapture();
+        return result;
+      };
+    };
+    ['addKeyframe', 'removeActiveKeyframe', 'setKeyframes', 'resetKeyframes', 'applyCameraModeToKeyframes', 'clearSelection'].forEach(wrap);
+  }
+}
+
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -2148,6 +2419,21 @@ function animate() {
   renderer.render(scene, cameraSystem.getCamera());
   viewCubeSystem?.render();
   previewSystem.render();
+}
+
+function isEditableTarget(target) {
+  if (!target) return false;
+  if (target.isContentEditable) return true;
+  const tagName = target.tagName;
+  return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+}
+
+function isEditingInput() {
+  return isEditableTarget(document.activeElement);
+}
+
+function isAnyDialogOpen() {
+  return !!document.querySelector('.modal.is-open');
 }
 
 async function init() {
@@ -2165,6 +2451,55 @@ async function init() {
   if (docsBtn) {
     docsBtn.addEventListener('click', () => {
       window.open('/docs/', '_blank', 'noopener');
+    });
+  }
+
+  if (menuOpenBtn) {
+    menuOpenBtn.addEventListener('click', async () => {
+      await openPreviewDirDialog();
+    });
+  }
+
+  if (menuSaveSettingsBtn) {
+    menuSaveSettingsBtn.addEventListener('click', async () => {
+      await saveSettingsToFile();
+    });
+  }
+
+  if (menuLoadSettingsBtn) {
+    menuLoadSettingsBtn.addEventListener('click', async () => {
+      try {
+        const listData = await fetchPreviewSettingsList();
+        if (listData) {
+          openPreviewSettingsDialog(listData);
+          return;
+        }
+        openPreviewSettingsDialog({ files: [] });
+      } catch (error) {
+        openPreviewSettingsDialog({ files: [] });
+      }
+    });
+  }
+
+  if (menuSettingsBtn) {
+    menuSettingsBtn.addEventListener('click', async () => {
+      settingsDialogBtn?.click();
+    });
+  }
+
+  if (menuSaveBtn) {
+    menuSaveBtn.addEventListener('click', async () => {
+      await saveSettingsToPreviewDir();
+    });
+  }
+  if (menuUndoBtn) {
+    menuUndoBtn.addEventListener('click', () => {
+      undoHistory();
+    });
+  }
+  if (menuRedoBtn) {
+    menuRedoBtn.addEventListener('click', () => {
+      redoHistory();
     });
   }
   if (saveSnapshotBtn) {
@@ -2232,27 +2567,6 @@ async function init() {
         if (keyframeSystem) keyframeSystem.resetKeyframes();
       } else if (value === 'all') {
         await resetAllSettings();
-      }
-    });
-  }
-
-  if (saveSettingsBtn) {
-    saveSettingsBtn.addEventListener('click', async () => {
-      await saveSettingsToFile();
-    });
-  }
-
-  if (loadSettingsBtn) {
-    loadSettingsBtn.addEventListener('click', async () => {
-      try {
-        const listData = await fetchPreviewSettingsList();
-        if (listData) {
-          openPreviewSettingsDialog(listData);
-          return;
-        }
-        openPreviewSettingsDialog({ files: [] });
-      } catch (error) {
-        openPreviewSettingsDialog({ files: [] });
       }
     });
   }
@@ -2351,6 +2665,44 @@ async function init() {
     });
   }
 
+  if (previewDirClose) {
+    previewDirClose.addEventListener('click', () => {
+      closePreviewDirDialog();
+    });
+  }
+
+  if (previewDirCancelBtn) {
+    previewDirCancelBtn.addEventListener('click', () => {
+      closePreviewDirDialog();
+    });
+  }
+
+  if (previewDirRefreshBtn) {
+    previewDirRefreshBtn.addEventListener('click', async () => {
+      await refreshPreviewDirList();
+    });
+  }
+
+  if (previewDirOpenBtn) {
+    previewDirOpenBtn.addEventListener('click', async () => {
+      if (!previewDirSelect || !previewDirSelect.value) return;
+      const resp = await fetch('/set_preview_dir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: previewDirSelect.value }),
+      }).catch(() => null);
+      if (!resp || !resp.ok) {
+        const data = await resp?.json().catch(() => null);
+        showToast(data?.error || 'Unable to set preview folder.', { variant: 'error' });
+        return;
+      }
+      closePreviewDirDialog();
+      await initModels();
+      await updateMenuSaveAvailability();
+      scheduleHistoryCapture();
+    });
+  }
+
   if (animationExportDialog) {
     animationExportDialog.addEventListener('click', (event) => {
       if (event.target === animationExportDialog) {
@@ -2358,6 +2710,52 @@ async function init() {
       }
     });
   }
+
+  window.addEventListener('keydown', (event) => {
+    if (!event) return;
+    if (isEditableTarget(event.target) || isEditingInput()) return;
+    if (isAnyDialogOpen()) return;
+    const isCtrl = event.ctrlKey || event.metaKey;
+    if (!isCtrl) return;
+    const key = event.key?.toLowerCase();
+    if (key === 'o') {
+      event.preventDefault();
+      menuOpenBtn?.click();
+    } else if (key === 's') {
+      event.preventDefault();
+      if (menuSaveBtn?.disabled) {
+        showToast('Save unavailable for demo device.', { variant: 'error' });
+        return;
+      }
+      menuSaveBtn?.click();
+    } else if (key === 'z') {
+      event.preventDefault();
+      undoHistory();
+    } else if (key === 'y') {
+      event.preventDefault();
+      redoHistory();
+    }
+  });
+
+  window.addEventListener('keydown', (event) => {
+    if (!event) return;
+    if (!isAnyDialogOpen()) return;
+    const isEditing = isEditableTarget(event.target) || isEditingInput();
+    event.stopImmediatePropagation();
+    if (!isEditing) {
+      event.preventDefault();
+    }
+  }, true);
+
+  window.addEventListener('keyup', (event) => {
+    if (!event) return;
+    if (!isAnyDialogOpen()) return;
+    const isEditing = isEditableTarget(event.target) || isEditingInput();
+    event.stopImmediatePropagation();
+    if (!isEditing) {
+      event.preventDefault();
+    }
+  }, true);
 
   syncAnimationExportTypeForQuality();
   updatePathTracingOptionVisibility();
@@ -2374,6 +2772,7 @@ async function init() {
       if (cameraSystem.isHomeMode() || !cameraSystem.getActiveCameraState()) {
         applyControlsType(nextType, false);
       }
+      scheduleHistoryCapture();
     });
   }
 
@@ -2433,12 +2832,6 @@ async function init() {
   });
   settingsSystem.initTabs('general');
   settingsSystem.initGeneralSettings();
-  if (modelSettingsBehaviorSelect) {
-    modelSettingsBehaviorSelect.value = getModelSettingsBehavior();
-    modelSettingsBehaviorSelect.addEventListener('change', () => {
-      setModelSettingsBehavior(modelSettingsBehaviorSelect.value);
-    });
-  }
   if (defaultModelVersionSelect) {
     defaultModelVersionSelect.value = getDefaultModelVersionStrategy();
     defaultModelVersionSelect.addEventListener('change', async () => {
@@ -2453,10 +2846,12 @@ async function init() {
       }
       await modelManager.loadAllModels();
       lightSystem.updateDirectionalLightTargets();
+      scheduleHistoryCapture();
     });
   }
   suppressLocalPersistence = true;
   await initModels();
+  await updateMenuSaveAvailability();
 
   cameraSystem.initCameraStates();
   cameraSystem.resetCameraHome();
@@ -2470,9 +2865,11 @@ async function init() {
   });
 
   initAutoReload();
+  initHistoryObservers();
   initResizing();
   document.body.classList.remove('is-loading');
   animate();
+  pushHistorySnapshot();
 }
 
 init();

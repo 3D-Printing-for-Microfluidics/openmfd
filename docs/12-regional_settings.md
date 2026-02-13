@@ -1,5 +1,5 @@
 # Configuring Regional Settings
-Prev: [Part 11: Interpreting Slicer Output](11-slicer_output.md)
+Prev: [Part 13: Interpreting Slicer Output](11-slicer_output.md)
 
 Regional settings let you override print behavior **inside specific 3D regions**. This is how you tune exposure or motion only where it matters (e.g., membranes, valve seats, or reinforcement zones).
 

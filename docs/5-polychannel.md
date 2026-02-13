@@ -1,5 +1,5 @@
 # Working with Polychannels
-Prev: [Part 4: Creating Your First Component](4-building_first_component.md)
+Prev: [Part 6: Parametric Design](6-parametric_design.md)
 
 A **polychannel** is a high-level channel shape built from a sequence of simple shapes that are automatically hulled together. It is the easiest way to make smooth, variable-width channels.
 
@@ -177,4 +177,4 @@ Now that you have a basic understanding of polychannels, you can move on to addi
 
 ## Next
 
-Next: [Part 6: Integrating Subcomponents](6-subcomponents.md)
+Next: [Part 8: Integrating Subcomponents](6-subcomponents.md)

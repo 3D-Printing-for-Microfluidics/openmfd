@@ -51,7 +51,6 @@ settings = Settings(
                 px_count=(1920, 1080),
                 wavelengths=[365],
                 grayscale_available=[False],
-                origin=(960.0, 540.0),
             ),
         ],
         vacuum_available=True,

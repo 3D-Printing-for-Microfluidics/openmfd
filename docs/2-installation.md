@@ -6,16 +6,16 @@ OpenMFD is available on PyPI. The recommended installation method uses [uv](http
 
 **Why use uv?**
 
-`uv` is a fast, modern Python package manager that makes working with virtual environments and dependencies much easier:
+`uv` is a fast, modern Python package manager that simplifies virtual environments and dependency management:
 
 - Installs packages significantly faster than pip
-- Automatically manages virtual environments for you
+- Automatically manages virtual environments
 - Provides a simpler, more reliable workflow for modern Python projects
 - Works as a drop-in replacement for pip in most cases
 
 ## Python versions
 
-Our core dependency (manifold3d) currently supports python 3.8 - 3.13
+Our core dependency (manifold3d) currently supports Python 3.8–3.13.
 
 ---
 
@@ -39,12 +39,6 @@ mkdir my-mfd-project && cd my-mfd-project
     uv run python -m examples.full_test
     ```
 
-If you are developing from source (this repo):
-```bash
-uv pip install -e .
-uv run python -m examples.full_test
-```
-
 ---
 
 ## Legacy: Install with venv and pip
@@ -62,7 +56,7 @@ uv run python -m examples.full_test
             CALL env\Scripts\activate
             ```
         - Windows PowerShell:
-            ```
+            ```powershell
             python -m venv env
             .\env\Scripts\Activate.ps1
             ```
@@ -75,22 +69,35 @@ uv run python -m examples.full_test
     python -m examples.full_test
     ```
 
-If you are developing from source (this repo):
-```bash
-pip install -e .
-```
+## Developing from source
 
----
+If you are working from the repository, use the Makefile targets below (requires `uv`).
 
-## Windows notes (manifold3d)
+1. Clone or download the repository.
+2. In a terminal, change into the repository root.
+3. Use the targets below to install and run the project.
 
-On some Windows setups (especially PowerShell/Command Prompt), `manifold3d` can fail to build from source.
+### Makefile targets
 
-**Workarounds:**
+- `make init` — creates the virtual environment, installs Python packages, and installs JS dependencies
+- `make build` — builds the docs, Vite site, and packages with uv
+- `make serve` — updates docs, builds the Vite site, and serves the OpenMFD webpage
+- `make run <python file>` — activates the virtual environment and runs a Python file
+- `make mem-profile <python file>` — activates the virtual environment and runs a Python file with heaptrack
+- `make py-profile <python file>` — activates the virtual environment and runs a Python file with cProfile
+- `make web-install` — installs JS dependencies
+- `make web-build` — builds the Vite site
 
-- Use **WSL2**, **Git Bash** or **Anaconda Prompt** (known to work).
-- Prefer **uv** or **conda** where prebuilt wheels are available.
-- If you must use PowerShell/CMD, install MSVC build tools and a recent CMake, then retry.
+## Troubleshooting
+
+**Issue:** `pip install uv` succeeds, but the `uv` command is not found.
+
+**Fix:** Run `pip show uv` and add the reported install location to your PATH.
+
+**Issue:** `pip install openmfd` fails while building the `manifold3d` wheel.
+
+**Fix:** Verify your Python version is supported (Python 3.8–3.13).
+
 
 ---
 

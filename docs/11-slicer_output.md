@@ -1,5 +1,5 @@
 # Interpreting Slicer Output
-Prev: [Part 10: Slicing Process](10-slicing.md)
+Prev: [Part 12: Slicing Process](10-slicing.md)
 
 This step explains what the slicer produces and how to validate it. OpenMFD outputs everything needed to reproduce the print: the **design metadata**, **settings**, and **image stack**.
 
@@ -66,4 +66,4 @@ If you enabled `minimize_file=True`, the slicer may store reduced images to save
 ---
 
 
-Next: [Part 12: Configuring Regional Settings](12-regional_settings.md)
+Next: [Part 14: Configuring Regional Settings](12-regional_settings.md)

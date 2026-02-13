@@ -1458,11 +1458,11 @@ class Component(_InstantiationTrackerMixin):
 
     def render(self, filename: str = "component.glb", do_bulk_difference: bool = True):
         """
-        Render the component to a GLB file.
+        Render the component to a file.
         
         Parameters:
 
-        - filename (str): The name of the output GLB file. Default is "component.glb".
+        - filename (str): The name of the output file. Default is "component.glb".
         - do_bulk_difference (bool): If True, applies a difference operation for bulk shapes. Default is True.
         
         Returns:

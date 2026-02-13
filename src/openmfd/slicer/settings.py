@@ -494,7 +494,6 @@ class LightEngine:
         px_count: tuple[int, int] = (2560, 1600),
         wavelengths: list[int] = [365],
         grayscale_available: list[bool] = [False],
-        origin: tuple[float, float] = (0.0, 0.0),  # Origin of image mm (x, y)
     ):
         """
         Initialize a LightEngine object.
@@ -506,7 +505,6 @@ class LightEngine:
         - px_count: Tuple of (width, height) pixel count.
         - wavelengths: List of supported wavelengths in nm.
         - grayscale_available: List of booleans indicating if grayscale is available for each wavelength.
-        - origin: Tuple of (x, y) origin in mm.
         """
         if not isinstance(px_size, (int, float)) or px_size <= 0:
             raise ValueError("Pixel size must be a positive number")
@@ -524,18 +522,11 @@ class LightEngine:
             isinstance(x, bool) for x in grayscale_available
         ):
             raise ValueError("Grayscale availability must be a list of booleans")
-        if (
-            not (isinstance(origin, tuple) or isinstance(origin, list))
-            or len(origin) != 2
-            or not all(isinstance(x, (int, float)) for x in origin)
-        ):
-            raise ValueError("Origin must be a tuple of two numbers (x, y)")
         self.name = name
         self.px_size = px_size
         self.px_count = px_count
         self.wavelengths = wavelengths
         self.grayscale_available = grayscale_available
-        self.origin = origin
 
     def to_dict(self) -> dict:
         return {
@@ -544,7 +535,6 @@ class LightEngine:
             "px_count": list(self.px_count),
             "wavelengths": list(self.wavelengths),
             "grayscale_available": list(self.grayscale_available),
-            "origin": list(self.origin),
         }
 
     @classmethod
@@ -555,7 +545,6 @@ class LightEngine:
             px_count=tuple(data.get("px_count", (2560, 1600))),
             wavelengths=list(data.get("wavelengths", [365])),
             grayscale_available=list(data.get("grayscale_available", [False])),
-            origin=tuple(data.get("origin", (0.0, 0.0))),
         )
 
 class Printer:

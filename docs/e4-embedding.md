@@ -89,7 +89,6 @@ When slicing:
 ## Troubleshooting
 
 - **Child Z not shifting** → make sure the child has a non‑zero Z position and non‑zero `layer_size`.
-- **Child XY misaligned** → verify the child is positioned relative to the parent and the parent is centered at the origin.
 - **Offsets not applied** → check if the top‑level device has a translation and the printer lacks XY stage support.
 
 ---

@@ -33,7 +33,7 @@ FILE := $(word 2,$(MAKECMDGOALS))
 $(eval $(FILE):;@:)
 endif
 
-.PHONY: init build serve mem-profile py-profile run oneshell-test web-install web-build
+.PHONY: init build serve mem-profile py-profile run web-install web-build
 
 init:
 	set -euo pipefail; \

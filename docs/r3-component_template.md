@@ -1,4 +1,4 @@
-Prev: [Table of Contents](0-TOC.md), [Part 8: Designing Custom Subcomponents](8-making_subcomponent.md)
+Prev: [Part 10: Designing Custom Subcomponents](8-making_subcomponent.md)
 
 ```python
 

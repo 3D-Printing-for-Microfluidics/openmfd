@@ -1,7 +1,7 @@
 # Creating Your First Slicable Device
-Prev: [Part 8: Designing Custom Subcomponents](8-making_subcomponent.md)
+Prev: [Part 10: Designing Custom Subcomponents](8-making_subcomponent.md)
 
-In this step, you will create a **device** (not just a component), attach slicing settings, and prepare it for the slicer. By the end, you will have a device that is ready to slice and export in Part 10.
+In this step, you will create a **device** (not just a component), attach slicing settings, and prepare it for the slicer. By the end, you will have a device that is ready to slice and export in Part 12.
 
 ## Why this step matters
 
@@ -156,7 +156,7 @@ Controls **light exposure behavior** per layer (multiplier, power, wavelength).
 
 ## Step 3b — Device-level defaults (global print behavior)
 
-In addition to `Settings`, you can attach **device/component-level defaults** that the slicer will apply to every layer unless you later specify regional overrides (covered in Part 12).
+In addition to `Settings`, you can attach **device/component-level defaults** that the slicer will apply to every layer unless you later specify regional overrides (covered in Part 14).
 
 ```python
 from openmfd import ExposureSettings, PositionSettings
@@ -195,6 +195,6 @@ device.preview()
 
 ## What’s next
 
-In Part 10, you will run the slicer using the device and settings you created here, and generate a print file you can inspect.
+In Part 12, you will run the slicer using the device and settings you created here, and generate a print file you can inspect.
 
-Next: [Part 10: Slicing Process](10-slicing.md)
+Next: [Part 12: Slicing Process](10-slicing.md)

@@ -1,5 +1,5 @@
 # Routing
-Prev: [Part 6: Integrating Subcomponents](6-subcomponents.md)
+Prev: [Part 8: Integrating Subcomponents](6-subcomponents.md)
 
 Routing connects **ports** with channels allowing for easier device design. In OpenMFD, routing provides three levels of control:
 
@@ -340,5 +340,5 @@ component.preview()
 
 Now that you’ve learned the main parts of making a fluidic component, you can move on to creating reusable modules.
 
-Next: [Part 8: Designing Custom Subcomponents](8-making_subcomponent.md)
+Next: [Part 10: Designing Custom Subcomponents](8-making_subcomponent.md)
 

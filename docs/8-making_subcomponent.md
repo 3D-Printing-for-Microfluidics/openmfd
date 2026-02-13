@@ -1,5 +1,5 @@
 # Designing Custom Subcomponents
-Prev: [Part 7: Routing](7-routing.md)
+Prev: [Part 9: Routing](7-routing.md)
 
 Designing your own subcomponents in OpenMFD is straightforward. You create a new class that inherits from `Component`, define geometry in `__init__`, and use `self.` for all operations. This lets you encapsulate reusable device features like mixers, valves, or junctions.
 
@@ -147,4 +147,4 @@ This pattern can be adapted for any custom subcomponent. Define your geometry an
 
 **Checkpoint:** In the visualizer, you should see a Y‑shaped channel inside a rectangular bulk.
 
-Next: [Part 9: Creating Your First Slicable Device](9-slicer_settings.md)
+Next: [Part 11: Creating Your First Slicable Device](9-slicer_settings.md)

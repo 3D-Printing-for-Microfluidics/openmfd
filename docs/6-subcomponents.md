@@ -1,5 +1,5 @@
 # Integrating Subcomponents
-Prev: [Part 5: Working with Polychannels](5-polychannel.md)
+Prev: [Part 7: Working with Polychannels](5-polychannel.md)
 
 Subcomponents are predesigned microfluidic features that you can import and reuse in your own devices. They help you build complex devices more quickly and consistently by leveraging existing designs. Subcomponents can come from the built-in `openmfd.component_library`, other libraries, or your own Python files.
 
@@ -57,4 +57,4 @@ component.render("my_first_component.glb")
 
 Now let’s explore routing!
 
-Next: [Part 7: Routing](7-routing.md)
+Next: [Part 9: Routing](7-routing.md)

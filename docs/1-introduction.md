@@ -1,7 +1,5 @@
 # Introduction
 
-Prev: [Table of Contents](0-TOC.md)
-
 
 OpenMFD is a Python package for the rapid design and prototyping of 3D-printed microfluidic devices. It is designed for researchers, engineers, and anyone interested in building complex microfluidic systems using modern additive manufacturing techniques.
 
@@ -29,7 +27,7 @@ This guide is a **step-by-step learning path**. It focuses on concepts and workf
 
 - **Component**: a reusable block made of **bulk** (solid) and **void** (channels).
 - **Device**: a printable assembly tied to a printer’s resolution.
-- **Labels**: named colors used to group geometry and settings.
+- **Labels**: named colors used to group geometry and settings for visualization purposes.
 - **Ports + routing**: define connections between components.
 - **Slicer**: turns the device into a JSON print job + image stack.
 
@@ -37,7 +35,7 @@ You will build up this model gradually throughout the tutorial.
 
 ## What you will learn
 
-By the end of Part 12, you will be able to:
+By the end of Part 14, you will be able to:
 
 - Design and preview components
 - Assemble devices and connect ports

@@ -1,5 +1,5 @@
 # Slicing Process
-Prev: [Part 9: Creating Your First Slicable Device](9-slicer_settings.md)
+Prev: [Part 11: Creating Your First Slicable Device](9-slicer_settings.md)
 
 In this step, you will run the slicer to convert your device into a print-ready output bundle. This is the moment where geometry, settings, and device size are combined into layer-by-layer images and metadata.
 
@@ -54,7 +54,7 @@ You can adjust slicer behavior with a few key flags:
 - `zip_output=True` produces a compressed archive instead of a directory.
 - `filename` controls the output folder name (keep it short and descriptive).
 
-Use defaults for your first run; adjust only after verifying the output in Part 11.
+Use defaults for your first run; adjust only after verifying the output in Part 13.
 
 ---
 
@@ -71,7 +71,7 @@ If slicing fails, check:
 
 ## Next
 
-In Part 11, you will inspect the slicer output, understand the JSON schema, and learn how to validate layer images and metadata.
+In Part 13, you will inspect the slicer output, understand the JSON schema, and learn how to validate layer images and metadata.
 
-Next: [Part 11: Interpreting Slicer Output](11-slicer_output.md)
+Next: [Part 13: Interpreting Slicer Output](11-slicer_output.md)
 

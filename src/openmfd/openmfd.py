@@ -428,6 +428,17 @@ class Component(_InstantiationTrackerMixin):
         
         # create new instance of the same class
         kwargs = self.init_kwargs if hasattr(self, 'init_kwargs') else {}
+
+        # if is Component class, it won't have init_kwargs, so we can just pass the attributes directly
+        kwargs.update({
+            "size": self._size,
+            "position": self._position,
+            "px_size": self._px_size,
+            "layer_size": self._layer_size,
+            "hide_in_render": self.hide_in_render,
+            "quiet": self.quiet,
+        })
+
         try:
             init_sig = inspect.signature(type(self).__init__)
             allowed_params = {

@@ -157,6 +157,18 @@ def _assert_bbox(
             "min": (0, 0, 0),
         },
     ],
+    ids=[
+        "cube",
+        "cube_center",
+        "cube_zero",
+        "cylinder_center",
+        "cylinder_offset",
+        "sphere_center",
+        "sphere_offset",
+        "rounded_cube",
+        "text_extrusion",
+        "tpms",
+    ],
 )
 def test_shape_constructors_render(case, tmp_path):
     shape = case["shape"]()

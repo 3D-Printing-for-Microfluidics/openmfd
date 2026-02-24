@@ -123,7 +123,8 @@ class Color:
                 index = int(name[1:])
                 tab_color_keys = list(TAB_COLORS.keys())
                 name = tab_color_keys[index % len(tab_color_keys)]
-            raise ValueError(f"Unknown color name: {name}")
+            else:
+                raise ValueError(f"Unknown color name: {name}")
         r, g, b = (
             BASE_COLORS.get(name)
             or TAB_COLORS.get(name)

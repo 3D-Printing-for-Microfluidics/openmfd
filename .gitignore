@@ -14,3 +14,5 @@ src/openmfd/site/node_modules/
 /dist/
 src/openmfd/site/dist/
 src/openmfd/site/docs/
+.coverage
+htmlcov/

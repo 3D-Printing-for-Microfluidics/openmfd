@@ -3,6 +3,18 @@ name: Publish to PyPI and RTD
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to PyPI and trigger RTD"
+        required: false
+        default: "false"
+      rtd_tag:
+        description: "RTD tag/branch to build (optional)"
+        required: false
+  workflow_run:
+    workflows: ["Debug Publish Trigger"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -36,6 +48,7 @@ jobs:
   pypi-publish:
     runs-on: ubuntu-latest
     needs: release-build
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true')
     permissions:
       id-token: write
     environment:
@@ -54,11 +67,22 @@ jobs:
   rtd-publish:
     runs-on: ubuntu-latest
     needs: pypi-publish # Only trigger docs update if PyPI upload succeeds
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.publish == 'true')
     steps:
       - name: Trigger Read the Docs
         # We use a POST request to the RTD API to trigger a build for the specific tag
         run: |
+          rtd_ref=""
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            rtd_ref="${{ github.event.release.tag_name }}"
+          else
+            rtd_ref="${{ inputs.rtd_tag }}"
+          fi
+          if [[ -z "$$rtd_ref" ]]; then
+            echo "No RTD ref provided; skipping Read the Docs trigger.";
+            exit 0;
+          fi
           curl -X POST \
-          -d "branches=${{ github.event.release.tag_name }}" \
+          -d "branches=$$rtd_ref" \
           -d "token=${{ secrets.RTD_TOKEN }}" \
           ${{ secrets.RTD_WEBHOOK_URL }}

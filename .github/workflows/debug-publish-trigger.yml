@@ -1,0 +1,14 @@
+name: Debug Publish Trigger
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger publish workflow
+        run: echo "Debug trigger completed."

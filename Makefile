@@ -33,7 +33,7 @@ FILE := $(word 2,$(MAKECMDGOALS))
 $(eval $(FILE):;@:)
 endif
 
-.PHONY: init build serve mem-profile py-profile run web-install web-build test test-coverage
+.PHONY: init build serve mem-profile py-profile run web-install web-build test test-coverage clean
 
 init:
 	set -euo pipefail; \
@@ -96,3 +96,11 @@ test-coverage:
 	set -e; \
 	$(ENSURE_UV_VENV) \
 	$(UV) run pytest -v --cov=openmfd --cov-report=html
+
+clean:
+	set -e; \
+	rm -rf .pytest_cache .coverage htmlcov dist; \
+	rm -rf src/openmfd/site/dist src/openmfd/site/docs src/openmfd/site/node_modules; \
+	find . -type d -name "__pycache__" -prune -exec rm -rf {} +; \
+	find . -type d -name "*_cache" -prune -exec rm -rf {} +; \
+	find . -type f -name "*.pyc" -delete

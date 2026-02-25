@@ -24,53 +24,62 @@ from .slicer import (
     SecondaryDoseSettings,
 )
 
-_instantiation_paths = {}
-
-
 class _InstantiationTrackerMixin:
-    """Mixin class to track where a component was instantiated."""
+    """Mixin to determine cache location based on instantiation or class definition."""
 
     def __init__(self):
-        name = type(self).__name__
-        if name not in _instantiation_paths:
-            # Get the first relevant frame outside of this class
-            for frame_info in inspect.stack():
-                filename = frame_info.filename
-                if "site-packages" in filename or filename == __file__:
-                    continue
-                self._instantiation_path = Path(filename).resolve()
-                _instantiation_paths[name] = self._instantiation_path
-                break
-        else:
-            # If already instantiated, use the existing path
-            self._instantiation_path = _instantiation_paths[name]
+        from . import Component  # local import avoids circular issues
+
+        # Directory where the core framework lives
+        component_module = sys.modules[Component.__module__]
+        framework_dir = Path(component_module.__file__).resolve().parent
+
+        frame = inspect.currentframe()
+        try:
+            caller = frame.f_back
+
+            while caller:
+                filename = Path(caller.f_code.co_filename).resolve()
+
+                # Skip any frame inside the framework directory
+                if not filename.is_relative_to(framework_dir):
+                    self._instantiation_path = filename
+                    break
+
+                caller = caller.f_back
+            else:
+                self._instantiation_path = None
+
+        finally:
+            del frame  # prevent reference cycles
+
+    # ---------------------------------------------------------
+
+    def _class_definition_path(self) -> Path:
+        module = sys.modules[self.__class__.__module__]
+        return Path(module.__file__).resolve()
+
+    # ---------------------------------------------------------
 
     @property
     def instantiation_dir(self) -> Path:
-        """Return directory of the file that instantiated the component, if it's a Component type or a Device subtype, otherwise the location the module is defined"""
-        if self is type(Component) or isinstance(self, Device):
+        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice
+
+        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
             return self._instantiation_path.parent
 
-        # Fallback: use where the class is defined
-        module_name = self.__class__.__module__
-        module = sys.modules.get(module_name) or importlib.import_module(module_name)
-        path = Path(module.__file__).resolve()
-        return path.parent
+        return self._class_definition_path().parent
+
+    # ---------------------------------------------------------
 
     @property
     def instantiating_file_stem(self) -> str:
-        """Return filename_stem of the file that instantiated the component, if it's a Component type or a Device subtype, otherwise the location the module is defined"""
-        from . import Device, Component
+        from . import Component, Device, VariableLayerThicknessComponent, StitchedDevice
 
-        if self is type(Component) or isinstance(self, Device):
+        if type(self) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
             return self._instantiation_path.stem
 
-        # Fallback: use where the class is defined
-        module_name = self.__class__.__module__
-        module = sys.modules.get(module_name) or importlib.import_module(module_name)
-        path = Path(module.__file__).resolve()
-        return path.stem
-
+        return self._class_definition_path().stem
 
 class Port(_InstantiationTrackerMixin):
     """

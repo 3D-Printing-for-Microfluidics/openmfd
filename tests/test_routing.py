@@ -7,6 +7,7 @@ import pytest
 from openmfd import Component, Port, Router
 from openmfd.backend import Color, Cube
 from openmfd import PolychannelShape, BezierCurveShape
+from openmfd.component_library import TJunction
 from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 
@@ -28,6 +29,13 @@ def _build_parent_component(size=(40, 30, 20)) -> Component:
     comp.add_bulk("device_bulk", Cube(size=size, center=False), label="device")
     return comp
 
+@pytest.mark.mesh
+def test_component_routing(tmp_path):
+    comp = _build_parent_component()
+
+    comp.add_subcomponent("junction", TJunction())
+
+    _render_and_validate(comp, tmp_path / "component_routing.glb")
 
 @pytest.mark.mesh
 def test_routing_fractional_path_render(tmp_path):

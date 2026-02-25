@@ -634,10 +634,18 @@ class Router:
         """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
+        from .. import Component, Device, VariableLayerThicknessComponent, StitchedDevice
+        if type(self._component) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+            if self._component._name is not None:
+                file_name = self._component._name
+            else:
+                file_name = type(self._component).__name__ + "_" + id(self._component)
+        else:
+            file_name = type(self._component).__name__
         cache_file = (
             instantiation_dir
             / f"{file_stem}_cache"
-            / f"{type(self._component).__name__}.pkl"
+            / f"{file_name}.pkl"
         )
 
         if os.path.exists(cache_file):
@@ -824,10 +832,18 @@ class Router:
         """
         instantiation_dir = self._component.instantiation_dir
         file_stem = self._component.instantiating_file_stem
+        from .. import Component, Device, VariableLayerThicknessComponent, StitchedDevice
+        if type(self._component) in (Component, Device, VariableLayerThicknessComponent, StitchedDevice):
+            if self._component._name is not None:
+                file_name = self._component._name
+            else:
+                file_name = type(self._component).__name__ + "_" + id(self._component)
+        else:
+            file_name = type(self._component).__name__
         cache_file = (
             instantiation_dir
             / f"{file_stem}_cache"
-            / f"{type(self._component).__name__}.pkl"
+            / f"{file_name}.pkl"
         )
 
         save_routes = {}

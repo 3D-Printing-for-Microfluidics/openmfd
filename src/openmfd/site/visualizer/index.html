@@ -418,7 +418,6 @@
 						<label>Renderer
 							<select id="snapshotRenderer">
 								<option value="raster" selected>Raster (default)</option>
-								<option value="pathtracing">Path Tracing (experimental)</option>
 							</select>
 						</label>
 					</div>
@@ -433,23 +432,8 @@
 							</select>
 						</label>
 					</div>
-					<div id="snapshotPathTracingOptions" class="input-grid" style="display:none; margin-top:0.5rem;">
-						<label>Pixel Ratio
-							<input id="snapshotPtPixelRatio" type="number" min="0.1" max="1" step="0.1" value="1.0">
-						</label>
-						<label>Exposure
-							<input id="snapshotPtExposure" type="number" min="0" step="0.1" value="2.0">
-						</label>
-						<label>Samples
-							<input id="snapshotPtSamples" type="number" min="1" step="1" value="64">
-						</label>
-					</div>
 				</div>
 				<div id="snapshotProgress" class="snapshot-progress"></div>
-				<div id="snapshotPathTracingProgress" class="snapshot-progress" style="display:none;">
-					<div>Samples: <span id="snapshotPathTracingLabel">0 / 0</span></div>
-					<div class="progress-bar"><div id="snapshotPathTracingFill" class="progress-bar-fill"></div></div>
-				</div>
 				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
 					<button id="snapshotSaveBtn" class="control-btn" type="button">Save Snapshot</button>
 				</div>
@@ -470,7 +454,6 @@
 						<label>Renderer
 							<select id="animationRenderer">
 								<option value="raster" selected>Raster (default)</option>
-								<option value="pathtracing">Path Tracing (experimental)</option>
 							</select>
 						</label>
 					</div>
@@ -502,37 +485,14 @@
 							</select>
 						</label>
 					</div>
-					<div id="animationPathTracingOptions" class="input-grid" style="display:none; margin-top:0.5rem;">
-						<label>Pixel Ratio
-							<input id="animationPtPixelRatio" type="number" min="0.1" max="1" step="0.1" value="1.0">
-						</label>
-						<label>Exposure
-							<input id="animationPtExposure" type="number" min="0" step="0.1" value="2.0">
-						</label>
-						<label>Samples / Frame
-							<input id="animationPtSamples" type="number" min="1" step="1" value="32">
-						</label>
-					</div>
 				</div>
 				<div id="animationExportProgress" class="snapshot-progress"></div>
-				<div id="animationPathTracingProgress" class="snapshot-progress" style="display:none;">
-					<div>Samples: <span id="animationPathTracingLabel">0 / 0</span></div>
-					<div class="progress-bar"><div id="animationPathTracingFill" class="progress-bar-fill"></div></div>
-				</div>
 				<div class="row-actions" style="gap:0.5rem;flex-wrap:wrap;">
 					<button id="animationExportSaveBtn" class="control-btn" type="button">Export Animation</button>
 				</div>
 			</div>
 		</div>
 	</div>
-
-	<iframe
-		id="pathTracingFrame"
-		src="/static/lib/pathTracing/GLTF_Model_Viewer.html"
-		title="Path Tracing Renderer"
-		referrerpolicy="no-referrer"
-		style="position:fixed;left:-10000px;top:0;width:64px;height:64px;opacity:0;pointer-events:none;border:0;"
-	></iframe>
 
 	<script type="module" src="static/js/app.js"></script>
 </body>

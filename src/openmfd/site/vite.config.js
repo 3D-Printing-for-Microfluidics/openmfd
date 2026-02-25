@@ -9,8 +9,7 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        visualizer: 'visualizer/index.html',
-        pathTracing: 'visualizer/static/lib/pathTracing/GLTF_Model_Viewer.html',
+        visualizer: 'visualizer/index.html'
       },
     },
   },

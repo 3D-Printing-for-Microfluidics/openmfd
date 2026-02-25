@@ -879,11 +879,11 @@ class RoundedCube(Shape):
 
         radius = list(radius)
         if radius[0] <= 0:
-            radius[0] = 0.0001
+            radius[0] = 0.00001
         if radius[1] <= 0:
-            radius[1] = 0.0001
+            radius[1] = 0.00001
         if radius[2] <= 0:
-            radius[2] = 0.0001
+            radius[2] = 0.00001
 
         spheres = []
         for i in range(2):

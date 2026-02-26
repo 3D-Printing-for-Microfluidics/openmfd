@@ -8,12 +8,9 @@ Use llms.txt (or llms-full.txt for the complete set) as a public, versioned sour
 	- llms.txt (shorter, curated)
 	- llms-full.txt (complete)
 2. Add the URL to your AI tool’s context, prompt, or config.
+    - https://openmfd.readthedocs.io/latest/llms.txt
+    - https://openmfd.readthedocs.io/latest/llms-full.txt
 3. Ask questions that reference OpenMFD workflows or APIs.
-
-Replace the placeholders below with your published docs domain:
-
-- https://openmfd.readthedocs.io/latest/llms.txt
-- https://openmfd.readthedocs.io/latest/llms-full.txt
 
 ## VS Code GitHub Copilot
 

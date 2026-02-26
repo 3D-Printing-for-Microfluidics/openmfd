@@ -39,6 +39,23 @@ jobs:
           make init
           make build
 
+      - name: Generate llms.txt files
+        uses: demodrive-ai/llms-txt-action@v1
+        with:
+          docs_dir: src/openmfd/site/docs
+          skip_llms_txt: false
+          skip_llms_full_txt: false
+          skip_md_files: true
+          sitemap_path: sitemap.xml
+
+      - name: Upload llms artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: llms-txt
+          path: |
+            src/openmfd/site/docs/llms.txt
+            src/openmfd/site/docs/llms-full.txt
+
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:

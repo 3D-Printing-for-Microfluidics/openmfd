@@ -12,7 +12,7 @@ Advanced structures such as polychannels (complex hulled shapes) and Bézier cur
 complex microfluidic architectures.
 """
 
-from .openmfd import (
+from .pymfcad import (
     Port,
     Component,
     VariableLayerThicknessComponent,

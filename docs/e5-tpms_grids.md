@@ -5,9 +5,9 @@ TPMS (Triply Periodic Minimal Surface) structures are advanced volumetric patter
 
 ---
 
-## What is a TPMS in OpenMFD?
+## What is a TPMS in PyMFCAD?
 
-In OpenMFD, a TPMS is defined by a scalar field function $f(x, y, z)$ whose zero‑level surface defines the structure. You provide this function (or use a built‑in one) and OpenMFD samples it into a volumetric shape.
+In PyMFCAD, a TPMS is defined by a scalar field function $f(x, y, z)$ whose zero‑level surface defines the structure. You provide this function (or use a built‑in one) and PyMFCAD samples it into a volumetric shape.
 
 ---
 
@@ -37,7 +37,7 @@ TPMS structures are typically used as **bulk**. Keep the geometry simple around 
 
 ```python
 # Pseudocode: use your TPMS function as the bulk
-tpms = openmfd.TPMS(
+tpms = pymfcad.TPMS(
 	size=(200, 200, 60),
 	function=gyroid,
 	period=(20, 20, 20),
@@ -70,7 +70,7 @@ Keep the component minimal and make the TPMS the **only** bulk shape. This avoid
 When using large TPMS regions, disable rendering for that component:
 
 ```python
-tpms_component = openmfd.Component(
+tpms_component = pymfcad.Component(
 	size=(200, 200, 60),
 	position=(0, 0, 0),
 	px_size=0.0076,

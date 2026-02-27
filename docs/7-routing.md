@@ -1,7 +1,7 @@
 # Routing
 Prev: [Part 8: Integrating Subcomponents](6-subcomponents.md)
 
-Routing connects **ports** with channels allowing for easier device design. In OpenMFD, routing provides three levels of control:
+Routing connects **ports** with channels allowing for easier device design. In PyMFCAD, routing provides three levels of control:
 
 - **Automatic paths** when speed matters
 - **Guided paths** when you need specific waypoints
@@ -13,7 +13,7 @@ This section shows when to use each approach and how they differ.
 
 ## Step 1 — Understand routing methods
 
-OpenMFD supports three approaches:
+PyMFCAD supports three approaches:
 
 - **Autoroute:** Automatic pathfinding (A*) that avoids obstacles.
 - **Fractional path:** Manual path defined as relative steps that sum to the endpoint.
@@ -26,13 +26,13 @@ OpenMFD supports three approaches:
 Ports are the connection points between your device and the outside world, or between subcomponents. Here we build a small device and add ports for external connections.
 
 ```python
-from openmfd import (
+from pymfcad import (
     Component,
     Port,
     Color,
     Cube,
 )
-from openmfd.component_library import Valve20px, TJunction
+from pymfcad.component_library import Valve20px, TJunction
 
 # Define our channel sizes
 channel_size = (8, 8, 6)
@@ -98,7 +98,7 @@ With the ports in place, you can now set up routing. The `Router` is initialized
 
 ```python
 # Create router object
-from openmfd import Router
+from pymfcad import Router
 router = Router(component, channel_size=channel_size, channel_margin=channel_margin)
 ```
 
@@ -153,7 +153,7 @@ router.route_with_fractional_path(
 Polychannel routing gives you the most flexibility for complex or non-linear channel paths. Using `PolychannelShape` and `BezierCurveShape` objects, you can fully customize the route, including features like variable cross-sections, non-Manhattan corners, and smooth curves. Like fractional routing, you control the path manually, but with even greater power and options.
 
 ```python
-from openmfd import BezierCurveShape
+from pymfcad import BezierCurveShape
 
 # Connect valve.P_OUT to component port D (polychannel with curve)
 polychannel_path = [
@@ -209,7 +209,7 @@ component.preview()
 Below is the complete code for reference. This example demonstrates how to combine autoroute, fractional, and polychannel routing, as well as how to stub unused connections.
 
 ```python
-from openmfd import (
+from pymfcad import (
     Component,
     Port,
     Router,
@@ -217,7 +217,7 @@ from openmfd import (
     Color,
     Cube,
 )
-from openmfd.component_library import Valve20px, TJunction
+from pymfcad.component_library import Valve20px, TJunction
 
 # Define our channel sizes
 channel_size = (8, 8, 6)

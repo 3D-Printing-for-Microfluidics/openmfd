@@ -1,4 +1,4 @@
-from openmfd import Component, Color, ImportModel, TPMS, Cube
+from pymfcad import Component, Color, ImportModel, TPMS, Cube
 
 # ############### 1 Test all basic components ##################
 component = Component(

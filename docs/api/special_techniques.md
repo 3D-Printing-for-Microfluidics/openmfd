@@ -1,16 +1,16 @@
 # Special Techniques
-::: openmfd.PrintUnderVacuum
+::: pymfcad.PrintUnderVacuum
     options:
       heading_level: 3
 
-::: openmfd.SqueezeOutResin
+::: pymfcad.SqueezeOutResin
     options:
       heading_level: 3
 
-::: openmfd.ZeroMicronLayer
+::: pymfcad.ZeroMicronLayer
     options:
       heading_level: 3
 
-::: openmfd.PrintOnFilm
+::: pymfcad.PrintOnFilm
     options:
       heading_level: 3

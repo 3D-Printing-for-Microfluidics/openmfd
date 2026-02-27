@@ -12,7 +12,7 @@ Use these at the **job level** by passing them to `Settings(..., special_print_t
 ### Print under vacuum
 
 ```python
-from openmfd import Settings, PrintUnderVacuum
+from pymfcad import Settings, PrintUnderVacuum
 
 vacuum = PrintUnderVacuum(
 	enabled=True,
@@ -44,7 +44,7 @@ These modify **motion per layer** and are attached to `PositionSettings`.
 **What it does:** Drives the build platform to a target force beyond the programmed layer thickness. This helps resolve layer thickness issues, especially in **large print areas** and **very small layer thicknesses** (sub 5 um) or with **viscous resins**.
 
 ```python
-from openmfd import PositionSettings, SqueezeOutResin
+from pymfcad import PositionSettings, SqueezeOutResin
 
 pos = PositionSettings(
 	distance_up=1.0,
@@ -66,7 +66,7 @@ These modify **exposure behavior** per layer and are attached to `ExposureSettin
 Repeats an exposure in a subsequent layer with a 0 um Z move between layers. This helps flush out partially polymerized material.
 
 ```python
-from openmfd import ExposureSettings, ZeroMicronLayer
+from pymfcad import ExposureSettings, ZeroMicronLayer
 
 exp = ExposureSettings(
 	bulk_exposure_multiplier=0.25,
@@ -79,7 +79,7 @@ exp = ExposureSettings(
 Raises the build platform and exposes on film (not connected to bulk material/build platform). This allows flushing partially polymerized material beyond the layer in Z and enables very small Z voids or layers that are not attached to each other.
 
 ```python
-from openmfd import ExposureSettings, PrintOnFilm
+from pymfcad import ExposureSettings, PrintOnFilm
 
 exp = ExposureSettings(
 	bulk_exposure_multiplier=1.0,

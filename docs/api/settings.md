@@ -1,24 +1,24 @@
 # Settings
-::: openmfd.Settings
+::: pymfcad.Settings
     options:
       heading_level: 3
 
-::: openmfd.Printer
+::: pymfcad.Printer
     options:
       heading_level: 3
 
-::: openmfd.LightEngine
+::: pymfcad.LightEngine
     options:
       heading_level: 3
 
-::: openmfd.ResinType
+::: pymfcad.ResinType
     options:
       heading_level: 3
 
-::: openmfd.PositionSettings
+::: pymfcad.PositionSettings
     options:
       heading_level: 3
 
-::: openmfd.ExposureSettings
+::: pymfcad.ExposureSettings
     options:
       heading_level: 3

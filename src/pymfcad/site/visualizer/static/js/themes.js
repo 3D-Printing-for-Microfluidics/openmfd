@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-const THEME_STORAGE_KEY = 'openmfd_theme';
-const THEME_DEFS_KEY = 'openmfd_theme_defs_v1';
+const THEME_STORAGE_KEY = 'pymfcad_theme';
+const THEME_DEFS_KEY = 'pymfcad_theme_defs_v1';
 
 const DEFAULT_THEMES = {
   dark: {
@@ -95,7 +95,7 @@ export function createThemeManager({ scene, axes }) {
     const bg = themes[themeName]['--bg'] || '#222222';
     scene.background = new THREE.Color(bg);
     updateAxesColors(axes, themes[themeName]);
-    window.dispatchEvent(new CustomEvent('openmfd-theme-changed', {
+    window.dispatchEvent(new CustomEvent('pymfcad-theme-changed', {
       detail: {
         theme: themeName,
         vars: { ...themes[themeName] },

@@ -16,7 +16,7 @@ Polychannels are powerful because they let you:
 ## Step 1 — Import the polychannel classes
 
 ```python
-from openmfd import Polychannel, PolychannelShape, BezierCurveShape
+from pymfcad import Polychannel, PolychannelShape, BezierCurveShape
 ```
 
 ---
@@ -61,7 +61,7 @@ channel = Polychannel(shapes)
 ## Step 3 — Add the polychannel to a component
 
 ```python
-from openmfd import Component, Color, Cube, Polychannel, PolychannelShape
+from pymfcad import Component, Color, Cube, Polychannel, PolychannelShape
 
 component = Component(
     size=(100, 100, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01
@@ -109,7 +109,7 @@ component.render("my_first_component.glb")
 Use `BezierCurveShape` when you want a smooth, curved segment.
 
 ```python
-from openmfd import Component, Color, Cube, Polychannel, PolychannelShape, BezierCurveShape
+from pymfcad import Component, Color, Cube, Polychannel, PolychannelShape, BezierCurveShape
 
 component = Component(
     size=(100, 100, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01

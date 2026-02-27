@@ -1,17 +1,17 @@
 # Component Library
-::: openmfd.component_library.Pinhole
+::: pymfcad.component_library.Pinhole
     options:
       heading_level: 3
 
-::: openmfd.component_library.TJunction
+::: pymfcad.component_library.TJunction
     options:
       heading_level: 3
 
-::: openmfd.component_library.TestCube
+::: pymfcad.component_library.TestCube
     options:
       heading_level: 3
       
-::: openmfd.component_library.Valve20px
+::: pymfcad.component_library.Valve20px
     options:
       heading_level: 3
       

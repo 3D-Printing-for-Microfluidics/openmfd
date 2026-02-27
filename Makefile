@@ -56,7 +56,7 @@ serve:
 	$(ENSURE_UV_VENV) \
 	$(UV) run mkdocs build; \
 	$(MAKE) web-build; \
-	$(UV) run omfd
+	$(UV) run pymfcad
 
 mem-profile:
 	set -e; \
@@ -81,11 +81,11 @@ run:
 
 web-install:
 	set -e; \
-	npm --prefix src/openmfd/site install
+	npm --prefix src/pymfcad/site install
 
 web-build:
 	set -e; \
-	npm --prefix src/openmfd/site run build
+	npm --prefix src/pymfcad/site run build
 
 test:
 	set -e; \
@@ -95,12 +95,12 @@ test:
 test-coverage:
 	set -e; \
 	$(ENSURE_UV_VENV) \
-	$(UV) run pytest -v --cov=openmfd --cov-report=html
+	$(UV) run pytest -v --cov=pymfcad --cov-report=html
 
 clean:
 	set -e; \
 	rm -rf .pytest_cache .coverage htmlcov dist; \
-	rm -rf src/openmfd/site/dist src/openmfd/site/docs; \
+	rm -rf src/pymfcad/site/dist src/pymfcad/site/docs; \
 	find . -type d -name "__pycache__" -prune -exec rm -rf {} +; \
 	find . -type d -name "*_cache" -prune -exec rm -rf {} +; \
 	find . -type f -name "*.pyc" -delete

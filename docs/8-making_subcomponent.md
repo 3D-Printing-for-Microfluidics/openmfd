@@ -1,7 +1,7 @@
 # Designing Custom Subcomponents
 Prev: [Part 9: Routing](7-routing.md)
 
-Designing your own subcomponents in OpenMFD is straightforward. You create a new class that inherits from `Component`, define geometry in `__init__`, and use `self.` for all operations. This lets you encapsulate reusable device features like mixers, valves, or junctions.
+Designing your own subcomponents in PyMFCAD is straightforward. You create a new class that inherits from `Component`, define geometry in `__init__`, and use `self.` for all operations. This lets you encapsulate reusable device features like mixers, valves, or junctions.
 
 Use the template here: [Custom Component Template](r3-component_template.md).
 
@@ -37,7 +37,7 @@ Below is a minimal example of a Y-junction mixer subcomponent:
 
 ```python
 import inspect
-from openmfd import Component, Port, Color, Cube, Polychannel, PolychannelShape
+from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
 
 class YJunctionMixer(Component):
     """

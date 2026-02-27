@@ -1,7 +1,7 @@
-site_name: OpenMFD Documentation
-site_url: https://openmfd.readthedocs.io/latest/
+site_name: pyMFCAD Documentation
+site_url: https://pymfcad.readthedocs.io/latest/
 docs_dir: docs
-site_dir: src/openmfd/site/docs
+site_dir: src/pymfcad/site/docs
 use_directory_urls: false
 
 dev_addr: '127.0.0.1:5000'
@@ -32,7 +32,7 @@ nav:
       - "Extra 6: Specialized Printing Techniques": e6-special_cases.md
       - "Extra 7: Advanced Visualizer Topics": e7-visualizer_advanced.md
   - "Resources":
-      - "Cheat Sheet for OpenMFD": r1-cheatsheet.md
+      - "Cheat Sheet for PyMFCAD": r1-cheatsheet.md
       - "Named Color Lists": r2-color.md
       - "Custom Component Template": r3-component_template.md
       - "JSON Print File Reference": r4-json_print_file_reference.md

@@ -11,12 +11,12 @@ import { createKeyframeSystem } from './keyframes.js';
 import { createThemeManager } from './themes.js';
 import { createSettingsSystem } from './settings.js';
 
-const AUTO_RELOAD_STORAGE_KEY = 'openmfd_auto_reload';
-const AUTO_RELOAD_INTERVAL_KEY = 'openmfd_auto_reload_interval_ms';
-const AXES_STORAGE_KEY = 'openmfd_axes_visible';
-const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'openmfd_default_controls_type';
-const MODEL_DEFAULT_VERSION_KEY = 'openmfd_model_default_version';
-const LIGHTS_STORAGE_KEY = 'openmfd_lights_v1';
+const AUTO_RELOAD_STORAGE_KEY = 'pymfcad_auto_reload';
+const AUTO_RELOAD_INTERVAL_KEY = 'pymfcad_auto_reload_interval_ms';
+const AXES_STORAGE_KEY = 'pymfcad_axes_visible';
+const DEFAULT_CONTROLS_TYPE_STORAGE_KEY = 'pymfcad_default_controls_type';
+const MODEL_DEFAULT_VERSION_KEY = 'pymfcad_model_default_version';
+const LIGHTS_STORAGE_KEY = 'pymfcad_lights_v1';
 
 const sceneState = createScene();
 const {
@@ -357,7 +357,7 @@ const historyState = {
 function getHistorySnapshot() {
   return {
     cameraState: cameraSystem?.getCameraState?.() || null,
-    cameraStorage: localStorage.getItem('openmfd_cameras_v1') || null,
+    cameraStorage: localStorage.getItem('pymfcad_cameras_v1') || null,
     axesVisible: axes?.visible ?? true,
     defaultControlsType: cameraSystem?.getDefaultControlType?.() || defaultControlTypeSelect?.value || 'orbit',
     autoReloadEnabled,
@@ -402,9 +402,9 @@ function applyHistorySnapshot(snapshot) {
   if (!snapshot) return;
   historyState.isApplying = true;
   if (snapshot.cameraStorage !== null) {
-    localStorage.setItem('openmfd_cameras_v1', snapshot.cameraStorage);
+    localStorage.setItem('pymfcad_cameras_v1', snapshot.cameraStorage);
   } else {
-    localStorage.removeItem('openmfd_cameras_v1');
+    localStorage.removeItem('pymfcad_cameras_v1');
   }
   cameraSystem.initCameraStates();
   if (snapshot.cameraState) {
@@ -527,7 +527,7 @@ function applyAnimationSettingsPayload(payload) {
 }
 
 function normalizeSnapshotName(name) {
-  return 'openmfd-viewport.png';
+  return 'pymfcad-viewport.png';
 }
 
 function getSnapshotSettings() {
@@ -549,7 +549,7 @@ function getSnapshotSettings() {
 }
 
 function normalizeAnimationName(name, type) {
-  const trimmed = (name || '').trim() || 'openmfd-animation';
+  const trimmed = (name || '').trim() || 'pymfcad-animation';
   const extMap = {
     webm: '.webm',
     mp4: '.mp4',
@@ -1095,7 +1095,7 @@ async function checkPreviewSettingsPrompt() {
 }
 
 function resetCameraSettings() {
-  localStorage.removeItem('openmfd_cameras_v1');
+  localStorage.removeItem('pymfcad_cameras_v1');
   cameraSystem.initCameraStates();
   cameraSystem.resetCameraHome();
   syncCameraControlSelect();
@@ -1182,7 +1182,7 @@ function applyDefaultVersionVisibilityConstraint() {
 }
 
 function buildCameraPayload() {
-  const raw = localStorage.getItem('openmfd_cameras_v1');
+  const raw = localStorage.getItem('pymfcad_cameras_v1');
   if (!raw) return null;
   try {
     return JSON.parse(raw);
@@ -1224,7 +1224,7 @@ async function saveSettingsToFile() {
   try {
     if (window.showSaveFilePicker) {
       const handle = await window.showSaveFilePicker({
-        suggestedName: 'openmfd-settings.json',
+        suggestedName: 'pymfcad-settings.json',
         types: [
           {
             description: 'JSON',
@@ -1242,7 +1242,7 @@ async function saveSettingsToFile() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'openmfd-settings.json';
+    link.download = 'pymfcad-settings.json';
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -1378,7 +1378,7 @@ function applySettingsPayload(payload, sections = {}) {
   }
 
   if (apply.camera && isNewFormat && payload.camera) {
-    localStorage.setItem('openmfd_cameras_v1', JSON.stringify(payload.camera));
+    localStorage.setItem('pymfcad_cameras_v1', JSON.stringify(payload.camera));
     cameraSystem.initCameraStates();
     cameraSystem.resetCameraHome();
     syncCameraControlSelect();
@@ -1874,14 +1874,14 @@ async function resetAllSettings() {
   localStorage.removeItem(AUTO_RELOAD_INTERVAL_KEY);
   localStorage.removeItem(AXES_STORAGE_KEY);
   localStorage.removeItem(DEFAULT_CONTROLS_TYPE_STORAGE_KEY);
-  localStorage.removeItem('openmfd_theme');
-  localStorage.removeItem('openmfd_theme_defs_v1');
-  localStorage.removeItem('openmfd_cameras_v1');
-  localStorage.removeItem('openmfd_keyframes_v1');
-  localStorage.removeItem('openmfd_model_selector_collapsed');
-  localStorage.removeItem('openmfd_model_selection_v2');
-  localStorage.removeItem('openmfd_model_selection_v3');
-  localStorage.removeItem('openmfd_controls_type');
+  localStorage.removeItem('pymfcad_theme');
+  localStorage.removeItem('pymfcad_theme_defs_v1');
+  localStorage.removeItem('pymfcad_cameras_v1');
+  localStorage.removeItem('pymfcad_keyframes_v1');
+  localStorage.removeItem('pymfcad_model_selector_collapsed');
+  localStorage.removeItem('pymfcad_model_selection_v2');
+  localStorage.removeItem('pymfcad_model_selection_v3');
+  localStorage.removeItem('pymfcad_controls_type');
   localStorage.removeItem(LIGHTS_STORAGE_KEY);
   await fetch('/set_preview_dir', {
     method: 'POST',

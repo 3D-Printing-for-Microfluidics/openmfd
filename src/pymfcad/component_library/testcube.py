@@ -1,5 +1,5 @@
 import inspect
-from openmfd import Component, Port, Color, Cube
+from pymfcad import Component, Port, Color, Cube
 
 
 class TestCube(Component):

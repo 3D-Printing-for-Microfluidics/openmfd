@@ -1,4 +1,4 @@
-# OpenMFD Cheat Sheet (One‑Page Reference)
+# PyMFCAD Cheat Sheet (One‑Page Reference)
 
 Quick reference to build, render, and slice a device.
 

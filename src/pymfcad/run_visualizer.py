@@ -13,18 +13,18 @@ PORT = 8000
 CWD = Path.cwd().resolve()
 
 
-def get_openmfd_env_dir():
-    """Return the absolute path to the openmfd package directory."""
-    spec = importlib.util.find_spec("openmfd")
+def get_pymfcad_env_dir():
+    """Return the absolute path to the pymfcad package directory."""
+    spec = importlib.util.find_spec("pymfcad")
     if spec and spec.origin:
         package_path = Path(spec.origin).parent
-        # print(f"\tFound openmfd package at: {package_path.relative_to(CWD)}")
+        # print(f"\tFound pymfcad package at: {package_path.relative_to(CWD)}")
         return package_path.relative_to(CWD)
-    print("\topenmfd package not found in sys.path")
+    print("\tpymfcad package not found in sys.path")
     return None
 
 def start_server():
-    env_dir = get_openmfd_env_dir()
+    env_dir = get_pymfcad_env_dir()
     site_root = (env_dir / "site").resolve()
     visualizer_root = (site_root / "visualizer").resolve()
     build_dir = (site_root / "dist").resolve()
@@ -140,7 +140,7 @@ def start_server():
         return glb_list
 
     def list_settings_files(preview_dir):
-        candidates = ["openmfd-settings.json", "settings.json"]
+        candidates = ["pymfcad-settings.json", "settings.json"]
         files = []
         for name in candidates:
             path = preview_dir / name
@@ -279,7 +279,7 @@ def start_server():
         if not isinstance(payload, dict):
             return jsonify({"error": "Invalid settings payload"}), 400
 
-        output_path = preview_dir / "openmfd-settings.json"
+        output_path = preview_dir / "pymfcad-settings.json"
         output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return jsonify({"ok": True, "path": str(output_path.resolve())})
 

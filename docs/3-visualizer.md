@@ -3,20 +3,20 @@
 
 Prev: [Part 2: Installation](2-installation.md)
 
-OpenMFD includes a browser-based visualizer for inspecting and validating devices. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
+PyMFCAD includes a browser-based visualizer for inspecting and validating devices. You will use it throughout the tutorial to confirm geometry, labeling, ports, and routing.
 
 ## Step 1 — Launch the visualizer
 
 From your project directory, run:
 
 ```bash
-omfd
+pymfcad
 ```
 
 Or, if using uv:
 
 ```bash
-uv run omfd
+uv run pymfcad
 ```
 
 This command starts a local web server. If the page does not open automatically, go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser. To stop the server, press Enter in the terminal where it is running.

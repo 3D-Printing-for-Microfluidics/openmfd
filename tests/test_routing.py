@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from openmfd import Component, Port, Router
-from openmfd.backend import Color, Cube
-from openmfd import PolychannelShape, BezierCurveShape
-from openmfd.component_library import TJunction
+from pymfcad import Component, Port, Router
+from pymfcad.backend import Color, Cube
+from pymfcad import PolychannelShape, BezierCurveShape
+from pymfcad.component_library import TJunction
 from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 

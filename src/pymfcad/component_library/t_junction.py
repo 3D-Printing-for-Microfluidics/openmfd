@@ -1,5 +1,5 @@
 import inspect
-from openmfd import Component, Port, Color, Cube, Router
+from pymfcad import Component, Port, Color, Cube, Router
 
 
 class TJunction(Component):

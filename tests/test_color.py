@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from openmfd.backend import Color
+from pymfcad.backend import Color
 
 
 def test_color_from_name_and_str():

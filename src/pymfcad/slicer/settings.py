@@ -99,7 +99,7 @@ class Settings:
             "Description": description,
             "Resin": str(resin),
             "3D printer": printer.name,
-            "Slicer": "OpenMFD",
+            "Slicer": "PyMFCAD",
             "Date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "Default layer settings": {
                 "Number of duplications": 1,

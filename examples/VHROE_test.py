@@ -1,6 +1,6 @@
 import inspect
-from openmfd import *
-from openmfd.component_library import Pinhole
+from pymfcad import *
+from pymfcad.component_library import Pinhole
 
 set_fn(50)
 
@@ -34,7 +34,7 @@ vdev.preview()
 settings = Settings(
     # user="Test User",
     # purpose="Test Design",
-    # description="This is a test design for the OpenMFD library.",
+    # description="This is a test design for the PyMFCAD library.",
     printer=Printer(
         name="HR3v3",
         light_engines=[

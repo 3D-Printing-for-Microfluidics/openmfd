@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from openmfd import Component, Port
-from openmfd.backend import Color, Cube, Shape
+from pymfcad import Component, Port
+from pymfcad.backend import Color, Cube, Shape
 from tests.utils.mesh_metrics import compute_mesh_metrics, load_mesh
 
 

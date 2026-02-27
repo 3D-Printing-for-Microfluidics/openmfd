@@ -1,5 +1,5 @@
 import inspect
-from openmfd import Component, Port, Color, Cube, Polychannel, PolychannelShape
+from pymfcad import Component, Port, Color, Cube, Polychannel, PolychannelShape
 
 
 class Pinhole(Component):

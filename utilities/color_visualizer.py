@@ -3,7 +3,7 @@ from math import ceil
 
 import matplotlib.pyplot as plt
 
-from openmfd.backend.color import (
+from pymfcad.backend.color import (
     BASE_COLORS,
     OPEN_COLORS,
     TAB_COLORS,

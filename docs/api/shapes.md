@@ -1,32 +1,32 @@
 ## Shapes
-::: openmfd.Shape
+::: pymfcad.Shape
     options:
       heading_level: 3
 
-::: openmfd.Cube
+::: pymfcad.Cube
     options:
       heading_level: 3
 
-::: openmfd.Cylinder
+::: pymfcad.Cylinder
     options:
       heading_level: 3
 
-::: openmfd.Sphere
+::: pymfcad.Sphere
     options:
       heading_level: 3
 
-::: openmfd.RoundedCube
+::: pymfcad.RoundedCube
     options:
       heading_level: 3
 
-::: openmfd.TextExtrusion
+::: pymfcad.TextExtrusion
     options:
       heading_level: 3
 
-::: openmfd.ImportModel
+::: pymfcad.ImportModel
     options:
       heading_level: 3
 
-::: openmfd.TPMS
+::: pymfcad.TPMS
     options:
       heading_level: 3

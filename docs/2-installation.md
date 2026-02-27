@@ -2,7 +2,7 @@
 
 Prev: [Part 1: Introduction](1-introduction.md)
 
-OpenMFD is available on PyPI. The recommended installation method uses [uv](https://github.com/astral-sh/uv), but legacy venv/pip instructions are also provided.
+PyMFCAD is available on PyPI. The recommended installation method uses [uv](https://github.com/astral-sh/uv), but legacy venv/pip instructions are also provided.
 
 **Why use uv?**
 
@@ -23,16 +23,16 @@ Our dependencies currently support Python 3.10–3.13.
 
 1. (Optional) Create a new project directory:
 ```bash
-mkdir my-mfd-project && cd my-mfd-project
+mkdir my-mf-project && cd my-mf-project
 ```
 2. Install [uv](https://github.com/astral-sh/uv) if you don't have it:
     ```bash
     pip install uv
     ```
-3. Create a virtual environment and install OpenMFD:
+3. Create a virtual environment and install PyMFCAD:
     ```bash
     uv venv
-    uv pip install openmfd
+    uv pip install pymfcad
     ```
 4. Quick verification:
     ```bash
@@ -60,9 +60,9 @@ mkdir my-mfd-project && cd my-mfd-project
             python -m venv env
             .\env\Scripts\Activate.ps1
             ```
-2. Install OpenMFD from PyPI:
+2. Install PyMFCAD from PyPI:
     ```bash
-    pip install openmfd
+    pip install pymfcad
     ```
 3. Quick verification:
     ```bash
@@ -81,7 +81,7 @@ If you are working from the repository, use the Makefile targets below (requires
 
 - `make init` — creates the virtual environment, installs Python packages, and installs JS dependencies
 - `make build` — builds the docs, Vite site, and packages with uv
-- `make serve` — updates docs, builds the Vite site, and serves the OpenMFD webpage
+- `make serve` — updates docs, builds the Vite site, and serves the PyMFCAD webpage
 - `make test` — runs all PyTest test cases
 - `make test-coverage` —  runs all PyTest test cases. Outputs code coverage in htmlcov
 - `make run <python file>` — runs a Python file
@@ -97,7 +97,7 @@ If you are working from the repository, use the Makefile targets below (requires
 
 **Fix:** Run `pip show uv` and add the reported install location to your PATH.
 
-**Issue:** `pip install openmfd` fails while building the `manifold3d` wheel.
+**Issue:** `pip install pymfcad` fails while building the `manifold3d` wheel.
 
 **Fix:** Verify your Python version is supported (Python 3.10–3.13).
 

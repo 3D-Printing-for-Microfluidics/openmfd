@@ -8,14 +8,14 @@ This step dives into the core building blocks: shapes, transforms, and boolean o
 
 ## Step 1 — Shapes (primitives)
 
-OpenMFD provides a compact set of primitives. All sizes are in **pixels (x/y)** and **layers (z)** unless noted.
+PyMFCAD provides a compact set of primitives. All sizes are in **pixels (x/y)** and **layers (z)** unless noted.
 
 ### `Cube(size)`
 
 A rectangular block aligned to the axes.
 
 ```python
-cube = openmfd.Cube((20, 10, 6))
+cube = pymfcad.Cube((20, 10, 6))
 ```
 
 Use cases: bulk volumes, straight channels, rectangular cutouts.
@@ -25,7 +25,7 @@ Use cases: bulk volumes, straight channels, rectangular cutouts.
 A cylinder aligned on the Z‑axis. The `size` tuple defines diameter in X/Y and height in Z.
 
 ```python
-cyl = openmfd.Cylinder((8, 8, 12))
+cyl = pymfcad.Cylinder((8, 8, 12))
 ```
 
 Use cases: round vias, circular reservoirs, posts.
@@ -35,7 +35,7 @@ Use cases: round vias, circular reservoirs, posts.
 An ellipsoid. The `size` tuple defines the full extent in X/Y/Z.
 
 ```python
-sphere = openmfd.Sphere((10, 10, 10))
+sphere = pymfcad.Sphere((10, 10, 10))
 ```
 
 Use cases: rounded terminations, smooth blending volumes.
@@ -45,7 +45,7 @@ Use cases: rounded terminations, smooth blending volumes.
 A cube with rounded edges.
 
 ```python
-rounded = openmfd.RoundedCube((20, 10, 6), radius=2)
+rounded = pymfcad.RoundedCube((20, 10, 6), radius=2)
 ```
 
 Use cases: channels with softer corners and smoother flow.
@@ -55,7 +55,7 @@ Use cases: channels with softer corners and smoother flow.
 Extrudes 2D text into a 3D shape.
 
 ```python
-label = openmfd.TextExtrusion("OpenMFD", height=1, font_size=12)
+label = pymfcad.TextExtrusion("PyMFCAD", height=1, font_size=12)
 ```
 
 Use cases: raised/engraved labels and quick “stamp” features.
@@ -65,7 +65,7 @@ Use cases: raised/engraved labels and quick “stamp” features.
 Imports external geometry (e.g., GLB/STL) and converts it into a shape.
 
 ```python
-imported = openmfd.ImportModel("fixtures/marker.glb")
+imported = pymfcad.ImportModel("fixtures/marker.glb")
 ```
 
 Use cases: custom geometry, branding, or complex shapes.
@@ -75,10 +75,10 @@ Use cases: custom geometry, branding, or complex shapes.
 Generates triply periodic minimal surface structures.
 
 ```python
-tpms = openmfd.TPMS(
+tpms = pymfcad.TPMS(
 	size=(20, 20, 20),
 	cells=(2, 2, 1),
-	func=openmfd.TPMS.gyroid,
+	func=pymfcad.TPMS.gyroid,
 	fill=0.0,
 	refinement=10,
 )
@@ -105,7 +105,7 @@ Every shape supports the same core transforms. Transforms can be chained.
 Moves a shape by the given offset.
 
 ```python
-cube = openmfd.Cube((10, 10, 5)).translate((5, 0, 2))
+cube = pymfcad.Cube((10, 10, 5)).translate((5, 0, 2))
 ```
 
 ### `rotate((rx, ry, rz))`
@@ -113,7 +113,7 @@ cube = openmfd.Cube((10, 10, 5)).translate((5, 0, 2))
 Rotates a shape in degrees about X, Y, and Z.
 
 ```python
-cube = openmfd.Cube((10, 10, 5)).rotate((0, 0, 45))
+cube = pymfcad.Cube((10, 10, 5)).rotate((0, 0, 45))
 ```
 
 ### `resize((x, y, z))`
@@ -121,7 +121,7 @@ cube = openmfd.Cube((10, 10, 5)).rotate((0, 0, 45))
 Scales a shape to the target dimensions.
 
 ```python
-cube = openmfd.Cube((10, 10, 5)).resize((20, 10, 5))
+cube = pymfcad.Cube((10, 10, 5)).resize((20, 10, 5))
 ```
 
 ### `mirror((x, y, z))`
@@ -129,7 +129,7 @@ cube = openmfd.Cube((10, 10, 5)).resize((20, 10, 5))
 Mirrors a shape across the requested axes. Use 1 to mirror on an axis and 0 to leave it unchanged.
 
 ```python
-cube = openmfd.Cube((10, 10, 5)).mirror((1, 0, 0))
+cube = pymfcad.Cube((10, 10, 5)).mirror((1, 0, 0))
 ```
 
 ### `copy()`
@@ -137,7 +137,7 @@ cube = openmfd.Cube((10, 10, 5)).mirror((1, 0, 0))
 Creates a duplicate so you can transform independently.
 
 ```python
-cube = openmfd.Cube((10, 10, 5))
+cube = pymfcad.Cube((10, 10, 5))
 copy = cube.copy().translate((15, 0, 0))
 ```
 
@@ -150,13 +150,13 @@ Boolean operations combine shapes into more complex geometry.
 ### Union (`a + b`)
 
 ```python
-shape = openmfd.Cube((10, 10, 5)) + openmfd.Sphere((8, 8, 8))
+shape = pymfcad.Cube((10, 10, 5)) + pymfcad.Sphere((8, 8, 8))
 ```
 
 ### Difference (`a - b`)
 
 ```python
-shape = openmfd.Cube((20, 20, 10)) - openmfd.Cylinder((6, 6, 12))
+shape = pymfcad.Cube((20, 20, 10)) - pymfcad.Cylinder((6, 6, 12))
 ```
 
 ### Hull (`a.hull(b)`)
@@ -164,7 +164,7 @@ shape = openmfd.Cube((20, 20, 10)) - openmfd.Cylinder((6, 6, 12))
 Creates a smooth blend between two shapes.
 
 ```python
-shape = openmfd.Sphere((6, 6, 6)).hull(openmfd.Sphere((6, 6, 6)).translate((12, 0, 0)))
+shape = pymfcad.Sphere((6, 6, 6)).hull(pymfcad.Sphere((6, 6, 6)).translate((12, 0, 0)))
 ```
 
 ---
@@ -172,12 +172,12 @@ shape = openmfd.Sphere((6, 6, 6)).hull(openmfd.Sphere((6, 6, 6)).translate((12, 
 ## Step 4 — Putting it together
 
 ```python
-component = openmfd.Component(size=(80, 60, 20), px_size=0.0076, layer_size=0.01)
-component.add_label("bulk", openmfd.Color.from_name("aqua", 127))
-component.add_label("void", openmfd.Color.from_name("red", 200))
+component = pymfcad.Component(size=(80, 60, 20), px_size=0.0076, layer_size=0.01)
+component.add_label("bulk", pymfcad.Color.from_name("aqua", 127))
+component.add_label("void", pymfcad.Color.from_name("red", 200))
 
-bulk = openmfd.RoundedCube((80, 60, 20), radius=2)
-channel = openmfd.Cylinder((6, 6, 24)).translate((40, 30, 10))
+bulk = pymfcad.RoundedCube((80, 60, 20), radius=2)
+channel = pymfcad.Cylinder((6, 6, 24)).translate((40, 30, 10))
 
 component.add_void("channel", channel, label="void")
 component.add_bulk("bulk", bulk, label="bulk")

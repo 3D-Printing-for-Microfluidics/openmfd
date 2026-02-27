@@ -1,6 +1,6 @@
 # Integrating llms.txt with AI tools
 
-Use llms.txt (or llms-full.txt for the complete set) as a public, versioned source of truth for OpenMFD documentation. Most AI tools can consume these URLs when you provide them as context.
+Use llms.txt (or llms-full.txt for the complete set) as a public, versioned source of truth for PyMFCAD documentation. Most AI tools can consume these URLs when you provide them as context.
 
 ## Quick start
 
@@ -8,9 +8,9 @@ Use llms.txt (or llms-full.txt for the complete set) as a public, versioned sour
 	- llms.txt (shorter, curated)
 	- llms-full.txt (complete)
 2. Add the URL to your AI tool’s context, prompt, or config.
-    - https://openmfd.readthedocs.io/latest/llms.txt
-    - https://openmfd.readthedocs.io/latest/llms-full.txt
-3. Ask questions that reference OpenMFD workflows or APIs.
+    - https://pymfcad.readthedocs.io/latest/llms.txt
+    - https://pymfcad.readthedocs.io/latest/llms-full.txt
+3. Ask questions that reference PyMFCAD workflows or APIs.
 
 ## VS Code GitHub Copilot
 
@@ -24,7 +24,7 @@ Example:
 ```
 Copilot Instructions
 
-Use OpenMFD docs at https://openmfd.readthedocs.io/latest/llms-full.txt.
+Use PyMFCAD docs at https://pymfcad.readthedocs.io/latest/llms-full.txt.
 Prefer guidance on component structure, labels, ports, and slicer settings.
 ```
 
@@ -33,7 +33,7 @@ Prefer guidance on component structure, labels, ports, and slicer settings.
 Include the URL in the prompt so the model has a canonical reference:
 
 ```
-I’m working on OpenMFD. Use https://openmfd.readthedocs.io/latest/llms-full.txt as reference and suggest a component layout with labels, ports, and subcomponents.
+I’m working on PyMFCAD. Use https://pymfcad.readthedocs.io/latest/llms-full.txt as reference and suggest a component layout with labels, ports, and subcomponents.
 ```
 
 ## Model Context Protocol (MCP)

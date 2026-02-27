@@ -6,10 +6,10 @@ This quick “hello world” tutorial builds a minimal component and previews it
 
 ---
 
-## Step 1 — Import OpenMFD
+## Step 1 — Import PyMFCAD
 
 ```python
-import openmfd
+import pymfcad
 ```
 
 ---
@@ -19,7 +19,7 @@ import openmfd
 Components are sized in **pixels (x/y)** and **layers (z)**. You also define the physical resolution: `px_size` and `layer_size` in mm.
 
 ```python
-component = openmfd.Component(
+component = pymfcad.Component(
 	size=(100, 100, 20),
 	position=(0, 0, 0),
 	px_size=0.0076,
@@ -34,8 +34,8 @@ component = openmfd.Component(
 Labels are named color groups used for visualization and organization.
 
 ```python
-component.add_label("default", openmfd.Color.from_rgba((0, 255, 0, 255)))
-component.add_label("bulk", openmfd.Color.from_name("aqua", 127))
+component.add_label("default", pymfcad.Color.from_rgba((0, 255, 0, 255)))
+component.add_label("bulk", pymfcad.Color.from_name("aqua", 127))
 ```
 
 ---
@@ -43,7 +43,7 @@ component.add_label("bulk", openmfd.Color.from_name("aqua", 127))
 ## Step 4 — Add a simple void
 
 ```python
-hello = openmfd.TextExtrusion("Hello World!", height=1, font_size=15)
+hello = pymfcad.TextExtrusion("Hello World!", height=1, font_size=15)
 hello.translate((5, 5, 19))
 component.add_void("hello", hello, label="default")
 ```
@@ -53,7 +53,7 @@ component.add_void("hello", hello, label="default")
 ## Step 5 — Add bulk
 
 ```python
-bulk_cube = openmfd.Cube((100, 100, 20))
+bulk_cube = pymfcad.Cube((100, 100, 20))
 component.add_bulk("bulk", bulk_cube, label="bulk")
 ```
 

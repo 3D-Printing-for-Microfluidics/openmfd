@@ -1,4 +1,4 @@
-from openmfd import (
+from pymfcad import (
     set_fn,
     Device,
     Component,
@@ -13,14 +13,14 @@ from openmfd import (
     PositionSettings,
     ExposureSettings,
 )
-from openmfd.component_library import Valve20px
+from pymfcad.component_library import Valve20px
 
 set_fn(50)
 
 settings = Settings(
     # user="Test User",
     # purpose="Test Design",
-    # description="This is a test design for the OpenMFD library.",
+    # description="This is a test design for the PyMFCAD library.",
     printer=Printer(
         name="HR3v3",
         light_engines=[

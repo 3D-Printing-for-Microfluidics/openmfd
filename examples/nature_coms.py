@@ -1,5 +1,5 @@
 import inspect
-from openmfd import (
+from pymfcad import (
     set_fn,
     Device,
     Component,
@@ -167,7 +167,7 @@ MembraneValve6px().preview()
 # settings = Settings(
 #     user="Test User",
 #     purpose="Test Design",
-#     description="This is a test design for the OpenMFD library.",
+#     description="This is a test design for the PyMFCAD library.",
 #     printer=Printer(
 #         name="HR3v3",
 #         light_engines=LightEngine(

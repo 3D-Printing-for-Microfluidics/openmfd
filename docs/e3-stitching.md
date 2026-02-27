@@ -25,10 +25,10 @@ $$
 
 Where $(W_0, H_0)$ is the base light engine resolution.
 
-OpenMFD provides a `StitchedDevice` helper for this (optional `overlap_px` in pixels):
+PyMFCAD provides a `StitchedDevice` helper for this (optional `overlap_px` in pixels):
 
 ```python
-from openmfd import StitchedDevice
+from pymfcad import StitchedDevice
 
 device = StitchedDevice(
 	name="StitchedChip",

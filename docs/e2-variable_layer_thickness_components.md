@@ -3,7 +3,7 @@ Prev: [Extra 1: Customizing Subcomponent Labels and Colors](e1-recoloring_compon
 
 Variable layer thickness lets you define **different layer heights** within the same component. This is useful for membranes, thin features, or regions that need higher Z‑resolution.
 
-OpenMFD provides `VariableLayerThicknessComponent`, which behaves like `Component` but accepts a list of layer sizes.
+PyMFCAD provides `VariableLayerThicknessComponent`, which behaves like `Component` but accepts a list of layer sizes.
 
 ---
 
@@ -12,7 +12,7 @@ OpenMFD provides `VariableLayerThicknessComponent`, which behaves like `Componen
 You specify the overall size and a list of `(count, layer_size_mm)` tuples. The counts must sum to the component’s Z size (layer count).
 
 ```python
-from openmfd import VariableLayerThicknessComponent
+from pymfcad import VariableLayerThicknessComponent
 
 component = VariableLayerThicknessComponent(
 	size=(100, 100, 24),
@@ -38,7 +38,7 @@ Once created, you use the same APIs (`add_label`, `add_void`, `add_bulk`, etc.).
 
 ## How layer sizes are handled
 
-- OpenMFD computes a common denominator for modeling.
+- PyMFCAD computes a common denominator for modeling.
 - This ensures correct geometry alignment across multiple layer sizes.
 - For best results, component height should be an integer multiple of parent component layers.
 

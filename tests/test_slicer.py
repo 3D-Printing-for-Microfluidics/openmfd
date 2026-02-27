@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from openmfd.slicer import (
+from pymfcad.slicer import (
     ExposureSettings,
     LightEngine,
     PositionSettings,

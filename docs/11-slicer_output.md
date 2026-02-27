@@ -1,7 +1,7 @@
 # Interpreting Slicer Output
 Prev: [Part 12: Slicing Process](10-slicing.md)
 
-This step explains what the slicer produces and how to validate it. OpenMFD outputs everything needed to reproduce the print: the **design metadata**, **settings**, and **image stack**.
+This step explains what the slicer produces and how to validate it. PyMFCAD outputs everything needed to reproduce the print: the **design metadata**, **settings**, and **image stack**.
 
 ---
 
@@ -11,7 +11,7 @@ When you run `slicer.make_print_file()`, you should get:
 
 1. **Output folder** named after your `filename` (or a ZIP if `zip_output=True`).
 2. **Slices folder** containing 8-bit grayscale images (one per layer unless minimized).
-3. **JSON print file** that follows the OpenMFD print schema.
+3. **JSON print file** that follows the PyMFCAD print schema.
 4. **Recompile-ready metadata** (all python code needed to regenerate the stack).
 
 **Checkpoint:** You should see a folder containing a JSON file and a `slices/` directory with image files.

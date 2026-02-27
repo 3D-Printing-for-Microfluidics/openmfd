@@ -1,5 +1,5 @@
-const SELECTION_STORAGE_KEY = 'openmfd_model_selection_v3';
-const COLLAPSED_STORAGE_KEY = 'openmfd_model_selector_collapsed';
+const SELECTION_STORAGE_KEY = 'pymfcad_model_selection_v3';
+const COLLAPSED_STORAGE_KEY = 'pymfcad_model_selector_collapsed';
 
 function loadSelectionState() {
   const raw = localStorage.getItem(SELECTION_STORAGE_KEY);

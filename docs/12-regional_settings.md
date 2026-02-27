@@ -3,7 +3,7 @@ Prev: [Part 13: Interpreting Slicer Output](11-slicer_output.md)
 
 Regional settings let you override print behavior **inside specific 3D regions**. This is how you tune exposure or motion only where it matters (e.g., membranes, valve seats, or reinforcement zones).
 
-OpenMFD supports **four** regional settings types:
+PyMFCAD supports **four** regional settings types:
 
 1. `ExposureSettings` — change exposure parameters in a region
 2. `PositionSettings` — change motion parameters in a region
@@ -29,7 +29,7 @@ All of them are attached with `add_regional_settings(name, shape, settings, labe
 Use this to locally change exposure multiplier, power, or focus. This is the most common override.
 
 ```python
-from openmfd import ExposureSettings, Cube
+from pymfcad import ExposureSettings, Cube
 
 region = Cube((40, 40, 10)).translate((30, 30, 20))
 device.add_label("region_exposure", Color.from_name("yellow", 127))
@@ -51,7 +51,7 @@ device.add_regional_settings(
 Use this when a region needs different motion behavior (e.g., longer wait times or slower lift (usually limited by accelerations)) to reduce delamination or suction.
 
 ```python
-from openmfd import PositionSettings, Cube
+from pymfcad import PositionSettings, Cube
 
 region = Cube((60, 20, 8)).translate((20, 10, 12))
 device.add_label("region_motion", Color.from_name("orange", 127))
@@ -74,7 +74,7 @@ Membrane settings create a **thin, locally tuned membrane** by controlling max t
 
 ### How membrane masking works
 
-OpenMFD creates membranes by **detecting thin regions inside the mask** and hole-punching them out of the exposure images, then emitting new images for those layers.
+PyMFCAD creates membranes by **detecting thin regions inside the mask** and hole-punching them out of the exposure images, then emitting new images for those layers.
 
 - The slicer builds a **mask** for the regional shape.
 - Inside that mask, it scans the geometry and finds any regions with thickness **≤ `max_membrane_thickness_um`**.
@@ -86,7 +86,7 @@ Practically, you can:
 2. **Geometry-driven membrane detection**: Provide a broader mask and let the slicer find all thin regions (≤ `max_membrane_thickness_um`) within it.
 
 ```python
-from openmfd import MembraneSettings, Cube
+from pymfcad import MembraneSettings, Cube
 
 membrane_region = Cube((30, 30, 6)).translate((40, 40, 18))
 device.add_label("membrane", Color.from_name("purple", 127))
@@ -114,7 +114,7 @@ device.add_regional_settings(
 Secondary dosing lets you add **extra exposure at edges or roofs** above features. This helps stiffen or seal critical regions.
 
 ```python
-from openmfd import SecondaryDoseSettings, Cube
+from pymfcad import SecondaryDoseSettings, Cube
 
 sec_region = Cube((50, 50, 10)).translate((25, 25, 20))
 device.add_label("secondary_dose", Color.from_name("red", 127))

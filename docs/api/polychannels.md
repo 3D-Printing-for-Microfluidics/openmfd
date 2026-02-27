@@ -1,12 +1,12 @@
 # Polychannel
-::: openmfd.Polychannel
+::: pymfcad.Polychannel
     options:
       heading_level: 3
 
-::: openmfd.PolychannelShape
+::: pymfcad.PolychannelShape
     options:
       heading_level: 3
 
-::: openmfd.BezierCurveShape
+::: pymfcad.BezierCurveShape
     options:
       heading_level: 3

@@ -1,5 +1,5 @@
 import inspect
-from openmfd import Component, Port, Color, Cylinder, Cube, MembraneSettings
+from pymfcad import Component, Port, Color, Cylinder, Cube, MembraneSettings
 
 
 class Valve20px(Component):

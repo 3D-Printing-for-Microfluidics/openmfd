@@ -1096,8 +1096,8 @@ wheels = [
 ]
 
 [[package]]
-name = "openmfd"
-version = "0.5.2"
+name = "pymfcad"
+version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "flask" },

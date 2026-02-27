@@ -1,4 +1,4 @@
 # Ports
-::: openmfd.Port
+::: pymfcad.Port
     options:
       heading_level: 3

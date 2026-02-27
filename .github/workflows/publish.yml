@@ -42,7 +42,7 @@ jobs:
       - name: Generate llms.txt files
         uses: demodrive-ai/llms-txt-action@v1
         with:
-          docs_dir: src/openmfd/site/docs
+          docs_dir: src/pymfcad/site/docs
           skip_llms_txt: false
           skip_llms_full_txt: false
           skip_md_files: true
@@ -53,8 +53,8 @@ jobs:
         with:
           name: llms-txt
           path: |
-            src/openmfd/site/docs/llms.txt
-            src/openmfd/site/docs/llms-full.txt
+            src/pymfcad/site/docs/llms.txt
+            src/pymfcad/site/docs/llms-full.txt
 
       - name: Upload distributions
         uses: actions/upload-artifact@v4
@@ -70,7 +70,7 @@ jobs:
       id-token: write
     environment:
       name: pypi
-      url: https://pypi.org/project/openmfd/
+      url: https://pypi.org/project/pymfcad/
     steps:
       - name: Retrieve release distributions
         uses: actions/download-artifact@v4

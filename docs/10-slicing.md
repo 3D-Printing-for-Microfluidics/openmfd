@@ -14,7 +14,7 @@ The slicer needs three things:
 3. A filename prefix for output
 
 ```python
-from openmfd import Slicer
+from pymfcad import Slicer
 
 slicer = Slicer(
 	device=device,

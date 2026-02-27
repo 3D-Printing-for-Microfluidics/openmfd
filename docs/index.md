@@ -1,6 +1,6 @@
-# OpenMFD Documentation
+# PyMFCAD Documentation
 
-Welcome to the official OpenMFD documentation.
+Welcome to the official PyMFCAD documentation.
 
 Use the table of contents to navigate the full tutorial and references.
 

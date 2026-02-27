@@ -16,7 +16,7 @@ Key ideas:
 Create a normal device with labels and a bulk shape.
 
 ```python
-from openmfd import Device, Cube, Color
+from pymfcad import Device, Cube, Color
 
 parent = Device(
 	name="Parent",
@@ -40,7 +40,7 @@ parent.add_bulk("bulk", Cube(parent._size, center=False), label="bulk")
 The embedded device can use a **different pixel size or layer size**. Its position is relative to the parent.
 
 ```python
-from openmfd import Device, Cube
+from pymfcad import Device, Cube
 
 child = Device(
 	name="Inset",

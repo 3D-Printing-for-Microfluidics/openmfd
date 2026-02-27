@@ -3,9 +3,9 @@ Prev: [Part 10: Designing Custom Subcomponents](8-making_subcomponent.md)
 ```python
 
 import inspect
-# import classes from openmfd
+# import classes from pymfcad
 
-# import components from custom classes or openmfd.component_library
+# import components from custom classes or pymfcad.component_library
 
 class ***MyComponent***(***Component or VariableLayerThicknessComponent***):
     def __init__(self, ***component_parameters***, quiet = False):

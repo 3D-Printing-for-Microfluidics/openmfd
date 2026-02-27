@@ -13,19 +13,19 @@ from collections.abc import Callable
 from manifold3d import set_circular_segments, Manifold, Mesh, CrossSection, OpType
 
 
-def get_openmfd_env_dir() -> Path | None:
+def get_pymfcad_env_dir() -> Path | None:
     """
-    Return the absolute path to the openmfd package directory.
+    Return the absolute path to the pymfcad package directory.
 
     Returns:
 
     - Path | None: The relative package path, or None if not found.
     """
-    spec = importlib.util.find_spec("openmfd")
+    spec = importlib.util.find_spec("pymfcad")
     if spec and spec.origin:
         package_path = Path(spec.origin).parent
         return package_path.relative_to(Path.cwd())
-    print("\topenmfd package not found in sys.path")
+    print("\tpymfcad package not found in sys.path")
     return None
 
 
@@ -1097,7 +1097,7 @@ class TextExtrusion(Shape):
             text,
             height=height,
             font_size=font_size,
-            font_path=str(get_openmfd_env_dir() / "backend" / "fonts" / f"{font}.ttf"),
+            font_path=str(get_pymfcad_env_dir() / "backend" / "fonts" / f"{font}.ttf"),
         )
         self._add_bbox_to_keepout(self._object.bounding_box())
 

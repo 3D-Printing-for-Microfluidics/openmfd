@@ -6,19 +6,19 @@ import importlib.util
 CWD = Path.cwd()
 
 
-def get_openmfd_env_dir() -> Path | None:
+def get_pymfcad_env_dir() -> Path | None:
     """
-    Return the absolute path to the openmfd package directory.
+    Return the absolute path to the pymfcad package directory.
 
     Returns:
 
     - Path | None: The resolved package directory, or None if not found.
     """
-    spec = importlib.util.find_spec("openmfd")
+    spec = importlib.util.find_spec("pymfcad")
     if spec and spec.origin:
         package_path = Path(spec.origin).parent
         return package_path.relative_to(CWD)
-    print("\topenmfd package not found in sys.path")
+    print("\tpymfcad package not found in sys.path")
     return None
 
 
@@ -54,19 +54,19 @@ def parse_colors_from_text(
 
 # Load bundled color tables once.
 BASE_COLORS = parse_colors_from_text(
-    get_openmfd_env_dir() / "backend" / "colors" / "base_colors.csv"
+    get_pymfcad_env_dir() / "backend" / "colors" / "base_colors.csv"
 )
 TAB_COLORS = parse_colors_from_text(
-    get_openmfd_env_dir() / "backend" / "colors" / "tableau_colors.csv", "tab:"
+    get_pymfcad_env_dir() / "backend" / "colors" / "tableau_colors.csv", "tab:"
 )
 OPEN_COLORS = parse_colors_from_text(
-    get_openmfd_env_dir() / "backend" / "colors" / "open_colors.csv"
+    get_pymfcad_env_dir() / "backend" / "colors" / "open_colors.csv"
 )
 X11_COLORS = parse_colors_from_text(
-    get_openmfd_env_dir() / "backend" / "colors" / "x11_colors.csv"
+    get_pymfcad_env_dir() / "backend" / "colors" / "x11_colors.csv"
 )
 XKCD_COLORS = parse_colors_from_text(
-    get_openmfd_env_dir() / "backend" / "colors" / "xkcd_colors.csv", "xkcd:"
+    get_pymfcad_env_dir() / "backend" / "colors" / "xkcd_colors.csv", "xkcd:"
 )
 
 

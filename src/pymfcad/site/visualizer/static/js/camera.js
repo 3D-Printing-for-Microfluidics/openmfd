@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const CAMERA_STORAGE_KEY = 'openmfd_cameras_v1';
+const CAMERA_STORAGE_KEY = 'pymfcad_cameras_v1';
 const CAMERA_DEFAULT_COUNT = 0;
 
 export function createCameraSystem({

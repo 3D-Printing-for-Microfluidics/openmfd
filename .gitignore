@@ -1,10 +1,11 @@
 cache/
 /env/
 /.venv/
+/.vscode/
 __pycache__/
 *_cache/
 node_modules/
-src/openmfd/site/node_modules/
+src/pymfcad/site/node_modules/
 /*.glb
 /*.prof
 /settings.json
@@ -12,7 +13,7 @@ src/openmfd/site/node_modules/
 /_visualization/
 /tmp*/
 /dist/
-src/openmfd/site/dist/
-src/openmfd/site/docs/
+src/pymfcad/site/dist/
+src/pymfcad/site/docs/
 .coverage
 htmlcov/

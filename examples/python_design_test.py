@@ -1,4 +1,4 @@
-from openmfd import (
+from pymfcad import (
     Device,
     Cube,
     RoundedCube,
@@ -15,7 +15,7 @@ from openmfd import (
     set_fn,
     Router,
 )
-from openmfd.component_library import Valve20px, TestCube, Pinhole
+from pymfcad.component_library import Valve20px, TestCube, Pinhole
 
 set_fn(50)
 

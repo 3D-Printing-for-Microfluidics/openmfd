@@ -1,7 +1,7 @@
 # Integrating Subcomponents
 Prev: [Part 7: Working with Polychannels](5-polychannel.md)
 
-Subcomponents are predesigned microfluidic features that you can import and reuse in your own devices. They help you build complex devices more quickly and consistently by leveraging existing designs. Subcomponents can come from the built-in `openmfd.component_library`, other libraries, or your own Python files.
+Subcomponents are predesigned microfluidic features that you can import and reuse in your own devices. They help you build complex devices more quickly and consistently by leveraging existing designs. Subcomponents can come from the built-in `pymfcad.component_library`, other libraries, or your own Python files.
 
 ---
 
@@ -22,8 +22,8 @@ You can apply basic transforms to subcomponents, such as translation, 90-degree 
 ## Step 2 — Add a subcomponent
 
 ```python
-from openmfd import Component, Color, Cube
-from openmfd.component_library import Valve20px
+from pymfcad import Component, Color, Cube
+from pymfcad.component_library import Valve20px
 
 component = Component(
     size=(100, 100, 20), position=(0, 0, 0), px_size=0.0076, layer_size=0.01

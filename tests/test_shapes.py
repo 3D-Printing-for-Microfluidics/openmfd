@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 import trimesh
 
-from openmfd import Component
-from openmfd.backend import (
+from pymfcad import Component
+from pymfcad.backend import (
     Color,
     Cube,
     Cylinder,

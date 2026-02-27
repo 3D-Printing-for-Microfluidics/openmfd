@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-const KEYFRAME_STORAGE_KEY = 'openmfd_keyframes_v1';
+const KEYFRAME_STORAGE_KEY = 'pymfcad_keyframes_v1';
 const DEFAULT_HOLD_DURATION = 1;
 const DEFAULT_TRANSITION_DURATION = 1;
 

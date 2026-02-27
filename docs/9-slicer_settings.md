@@ -5,7 +5,7 @@ In this step, you will create a **device** (not just a component), attach slicin
 
 ## Why this step matters
 
-OpenMFD distinguishes between **components** (reusable building blocks) and **devices** (printable assemblies tied to a specific printer/light engine). Slicing requires device-level information such as pixel size, pixel count, layer height, and exposure settings. This step bridges design and fabrication.
+PyMFCAD distinguishes between **components** (reusable building blocks) and **devices** (printable assemblies tied to a specific printer/light engine). Slicing requires device-level information such as pixel size, pixel count, layer height, and exposure settings. This step bridges design and fabrication.
 
 ## What you will build
 
@@ -26,7 +26,7 @@ If you already have a component from earlier steps, you can skip the geometry po
 Devices encode the printer geometry (pixel count, pixel size, layer size). For a Visitech LRS10-based printer you can use the built-in device classmethod:
 
 ```python
-from openmfd import Device
+from pymfcad import Device
 
 device = Device.with_visitech_1x(
 	name="MyFirstDevice",
@@ -45,7 +45,7 @@ device = Device.with_visitech_1x(
 Slicable devices still follow the **void-in-bulk** model. You need at least one bulk shape and one void shape to see meaningful output.
 
 ```python
-from openmfd import Color, Cube
+from pymfcad import Color, Cube
 
 device.add_label("bulk", Color.from_name("gray", 127))
 device.add_label("fluidic", Color.from_name("aqua", 127))
@@ -70,7 +70,7 @@ device.add_bulk("bulk", bulk_cube, label="bulk")
 Settings define the printer, resin, and default exposure/position behavior. Start with a minimal, explicit configuration. You can store settings to JSON so they can be reused by different devices.
 
 ```python
-from openmfd import (
+from pymfcad import (
 	Settings,
 	ResinType,
 	Printer,
@@ -159,7 +159,7 @@ Controls **light exposure behavior** per layer (multiplier, power, wavelength).
 In addition to `Settings`, you can attach **device/component-level defaults** that the slicer will apply to every layer unless you later specify regional overrides (covered in Part 14).
 
 ```python
-from openmfd import ExposureSettings, PositionSettings
+from pymfcad import ExposureSettings, PositionSettings
 
 # Apply defaults to the whole device
 device.add_default_exposure_settings(

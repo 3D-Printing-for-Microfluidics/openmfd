@@ -3,8 +3,8 @@ requires = ["uv_build >= 0.9.21, <0.10.0"]
 build-backend = "uv_build"
 
 [project]
-name = "openmfd"
-version = "0.5.2"
+name = "pymfcad"
+version = "0.1.0"
 dependencies = [
     "freetype-py>=2.5.1",
     "flask>=3.0.0",
@@ -56,12 +56,11 @@ dev = [
 ]
 
 [project.urls]
-repository = "https://github.com/3D-Printing-for-Microfluidics/openmfd"
-documentation = "https://openmfd.readthedocs.io"
+repository = "https://github.com/3D-Printing-for-Microfluidics/pymfcad"
+documentation = "https://pymfcad.readthedocs.io"
 
 [project.scripts]
-mfd-serve = "openmfd.run_visualizer:main"
-omfd = "openmfd.run_visualizer:main"
+pymfcad = "pymfcad.run_visualizer:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -88,6 +87,6 @@ markers = [
 
 [tool.coverage.run]
 omit = [
-    "src/openmfd/component_library/*",
-    "src/openmfd/run_visualizer.py"
+    "src/pymfcad/component_library/*",
+    "src/pymfcad/run_visualizer.py"
     ]

@@ -1,7 +1,7 @@
 # Introduction
 
 
-OpenMFD is a Python package for the rapid design and prototyping of 3D-printed microfluidic devices. It is designed for researchers, engineers, and anyone interested in building complex microfluidic systems using modern additive manufacturing techniques.
+PyMFCAD is a Python package for the rapid design and prototyping of 3D-printed microfluidic devices. It is designed for researchers, engineers, and anyone interested in building complex microfluidic systems using modern additive manufacturing techniques.
 
 This guide is a **step-by-step learning path**. It focuses on concepts and workflows first, with the API reference as a separate resource.
 
@@ -43,16 +43,16 @@ By the end of Part 14, you will be able to:
 - Generate print files and inspect outputs
 - Apply regional settings (membranes, secondary dose, etc.)
 
-## Who Should Use OpenMFD?
+## Who Should Use PyMFCAD?
 
-OpenMFD is ideal for:
+PyMFCAD is ideal for:
 
 - Researchers developing new microfluidic devices
 - Engineers prototyping lab-on-a-chip systems
 - Educators teaching microfluidics or digital fabrication
 - Anyone interested in rapid, reproducible microfluidic design
 
-Whether you are new to microfluidics or an experienced designer, OpenMFD provides a powerful, scriptable environment to accelerate your work.
+Whether you are new to microfluidics or an experienced designer, PyMFCAD provides a powerful, scriptable environment to accelerate your work.
 
 ---
 

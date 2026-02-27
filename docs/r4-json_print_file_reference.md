@@ -1,6 +1,6 @@
 # JSON Print File Reference
 
-This reference explains the JSON print file produced by OpenMFD in plain language. It is based on our open source print file schema and designed to be readable without the full schema document.
+This reference explains the JSON print file produced by PyMFCAD in plain language. It is based on our open source print file schema and designed to be readable without the full schema document.
 
 **Source of truth:** A public schema repository exists at [https://github.com/3D-Printing-for-Microfluidics/3D_printer_json_print_file](https://github.com/3D-Printing-for-Microfluidics/3D_printer_json_print_file).
 
@@ -115,7 +115,7 @@ You can set `Using named default image settings` at the layer level to apply a n
 
 ## Special print techniques (advanced)
 
-At the top level, OpenMFD can write:
+At the top level, PyMFCAD can write:
 
 - `Special print techniques`
 	- `Print under vacuum`
@@ -132,13 +132,13 @@ The schema supports named settings and templates to reduce repetition. If you se
 - `Named image settings`
 - `Named layer groups`
 
-…these are reusable presets referenced by layers. They are optional and generally used in advanced workflows. OpenMFD uses named position and image settings.
+…these are reusable presets referenced by layers. They are optional and generally used in advanced workflows. PyMFCAD uses named position and image settings.
 
 ---
 
 ### Variables (advanced)
 
-You can define `Variables` at the top level and reuse them throughout the JSON using `${...}` expressions. Our custom 3D printers evaluates these with `simple_eval`. These are not curently used by OpenMFD.
+You can define `Variables` at the top level and reuse them throughout the JSON using `${...}` expressions. Our custom 3D printers evaluates these with `simple_eval`. These are not curently used by PyMFCAD.
 
 - Syntax: `${expression}`
 - Example: `${layer * 10}`
@@ -163,4 +163,4 @@ Slice images are 8-bit grayscale:
 - 255 = full exposure
 - intermediate values = partial dose (not currently used)
 
-OpenMFD can also express multi-exposure workflows by listing multiple images per layer in the JSON.
+PyMFCAD can also express multi-exposure workflows by listing multiple images per layer in the JSON.

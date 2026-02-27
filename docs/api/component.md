@@ -1,19 +1,19 @@
 # Component & Device API
 
 ## Component Types
-::: openmfd.Component
+::: pymfcad.Component
     options:
       heading_level: 3
 
-::: openmfd.VariableLayerThicknessComponent
+::: pymfcad.VariableLayerThicknessComponent
     options:
       heading_level: 3
 
 ## Device Types
-::: openmfd.Device
+::: pymfcad.Device
     options:
       heading_level: 3
 
-::: openmfd.StitchedDevice
+::: pymfcad.StitchedDevice
     options:
       heading_level: 3

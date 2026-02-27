@@ -1,4 +1,4 @@
-from openmfd import (
+from pymfcad import (
     Device,
     Settings,
     Printer,

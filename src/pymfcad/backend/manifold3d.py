@@ -1147,15 +1147,12 @@ class ImportModel(Shape):
 
     It checks for common mesh issues such as watertightness, winding consistency, and emptiness.
 
-    If the mesh has issues, it attempts to repair them if auto_repair is set to True.
-
     If the mesh cannot be repaired or is still not watertight, it raises an error.
     """
 
     def __init__(
         self,
         filename: str,
-        auto_repair: bool = True,
         quiet: bool = False,
     ) -> None:
         """
@@ -1164,7 +1161,6 @@ class ImportModel(Shape):
         Parameters:
 
         - filename (str): Path to the 3D model file.
-        - auto_repair (bool): Whether to automatically repair the mesh if it has issues.
         - quiet (bool): If True, suppresses informational output.
 
         Raises:
@@ -1172,93 +1168,75 @@ class ImportModel(Shape):
         - ValueError: Mesh cannot be repaired or remains non-watertight.
         """
         super().__init__()
+        self._object = self._load_to_manifold(filename, quiet)
+        if hasattr(self._object, "bounding_box"):
+            self._add_bbox_to_keepout(self._object.bounding_box())
 
-        def load_3d_file_to_manifold(
-            path: str, auto_repair: bool = True
-        ) -> Manifold:
-            """
-            Load a 3D file and convert it to a Manifold3D object.
 
-            Parameters:
+    def _load_to_manifold(
+        self, filename: str, quiet: bool = False
+    ) -> Manifold:
+        """
+        Load a 3D file and convert it to a Manifold3D object.
 
-            - path (str): Path to the 3D model file.
-            - auto_repair (bool): Whether to automatically repair the mesh if it has issues.
+        Parameters:
 
-            Returns:
+        - filename (str): Path to the 3D model file.
+        - quiet (bool): If True, suppresses informational output.
 
-            - Manifold: The converted manifold.
+        Returns:
 
-            Raises:
+        - Manifold: The converted manifold.
 
-            - ValueError: Mesh cannot be repaired or remains non-watertight.
-            """
+        Raises:
 
-            ext = os.path.splitext(filename)[1].lower()
+        - ValueError: Mesh cannot be repaired or remains non-watertight.
+        """
+
+        ext = os.path.splitext(filename)[1].lower()
+        if not quiet:
+            print(f"\t📦 Loading: {filename} (.{ext[1:]})")
+
+        mesh = trimesh.load_mesh(filename)
+
+        if isinstance(mesh, trimesh.Scene):
             if not quiet:
-                print(f"\t📦 Loading: {filename} (.{ext[1:]})")
+                print("\t🔁 Flattening scene...")
+            mesh = mesh.dump(concatenate=True) if hasattr(mesh, 'dump') else mesh.to_mesh()
 
-            # try:
-            mesh = trimesh.load(filename, force="mesh")
+        try:
+            return self._mesh_to_manifold(mesh)
+        except Exception as e:
+            raise ValueError(f"❌ Failed to convert {filename} to Manifold: {e}")
+    
+    def _mesh_to_manifold(self, mesh: trimesh.Trimesh, _internal=False) -> Manifold:
+        """
+        Convert a Trimesh object to a Manifold3D object.
 
-            if isinstance(mesh, trimesh.Scene):
-                if not quiet:
-                    print("\t🔁 Flattening scene...")
-                mesh = mesh.to_mesh()
+        Parameters:
 
-            issues = []
-            if not mesh.is_watertight:
-                issues.append("❌ Mesh is not watertight (required for Manifold3D).")
-            if not mesh.is_winding_consistent:
-                issues.append("⚠️ Face winding is inconsistent (normals may be wrong).")
-            if mesh.is_empty or len(mesh.faces) == 0:
-                issues.append("❌ Mesh is empty or has no faces.")
-            if not mesh.is_volume:
-                issues.append("⚠️ Mesh may not define a solid volume.")
+        - mesh (trimesh.Trimesh): The input mesh to convert.
 
-            if issues:
-                if not quiet:
-                    print("\t⚠️ Mesh issues detected:")
-                    print("\n\t".join(issues))
-                if not auto_repair:
-                    raise ValueError(
-                        "Mesh has critical issues. Aborting due to `auto_repair=False`."
-                    )
+        Returns:
 
-            if auto_repair:
-                if not quiet:
-                    print("\t🛠️ Attempting repair steps...")
-                mesh = mesh.copy()
-                trimesh.repair.fill_holes(mesh)
-                trimesh.repair.fix_normals(mesh)
-                # mesh.remove_degenerate_faces()
-                # mesh.remove_duplicate_faces() # deprecated
-                mesh.update_faces(mesh.unique_faces())
-                mesh.remove_infinite_values()
-                mesh.remove_unreferenced_vertices()
-
+        - Manifold: The converted manifold.
+        """
+        verts = np.asarray(mesh.vertices, dtype=np.float32)
+        faces = np.asarray(mesh.faces, dtype=np.uint32)
+        mesh_obj = Mesh(verts, faces)
+        manifold = Manifold(mesh_obj)
+        if manifold.is_empty() and not _internal:
+            trimesh.repair.fill_holes(mesh)
+            trimesh.repair.fix_normals(mesh)
+            mesh.update_faces(mesh.unique_faces())
+            mesh.remove_infinite_values()
+            mesh.remove_unreferenced_vertices()
             if not mesh.is_watertight:
                 raise ValueError(
                     "❌ Mesh is still not watertight after repair. Cannot proceed."
                 )
-
-            # Convert to MeshGL
-            verts = np.asarray(mesh.vertices, dtype=np.float32)
-            faces = np.asarray(mesh.faces, dtype=np.uint32)
-            mesh_obj = Mesh(verts, faces)
-
-            manifold = Manifold(mesh_obj)
-            if not quiet:
-                print("\t✅ Successfully converted mesh to Manifold.")
-            return manifold
-
-        self._object = load_3d_file_to_manifold(filename, auto_repair)
-        self._add_bbox_to_keepout(self._object.bounding_box())
-
-        # except Exception as e:
-        #     raise ValueError(f"❌ Error loading mesh: {e}")
-        #     print(f"\t🔥 Error loading mesh: {e}")
-        #     return None
-
+            self._mesh_to_manifold(mesh, _internal=True)  # Retry conversion after repair
+        return manifold
 
 class TPMS(Shape):
     """

@@ -211,7 +211,7 @@ def test_import_model_constructor_render(tmp_path):
     mesh_path = tmp_path / "box.stl"
     mesh.export(mesh_path)
 
-    shape = ImportModel(filename=str(mesh_path), auto_repair=False, quiet=False)
+    shape = ImportModel(filename=str(mesh_path), quiet=False)
     _assert_bbox(shape, expected_extent=(1.0, 2.0, 3.0), expected_center=(0, 0, 0))
     component = _build_component_with_bulk(shape)
     _render_and_validate(component, tmp_path / "ImportModel.glb")
@@ -354,8 +354,7 @@ def test_text():
     assert z_max - z_min == pytest.approx(0.0001)
 
 def test_import():
+    ImportModel(filename="tests/golden_meshes/3DBenchy.stl", quiet=False)
+    ImportModel(filename="tests/golden_meshes/BAD_cube.stl", quiet=False)
     with pytest.raises(ValueError):
-        ImportModel(filename="tests/golden_meshes/BAD_cube.stl", auto_repair=False, quiet=False)
-    ImportModel(filename="tests/golden_meshes/BAD_cube.stl", auto_repair=True, quiet=False)
-    with pytest.raises(ValueError):
-        ImportModel(filename="tests/golden_meshes/empty_stl.stl", auto_repair=True, quiet=False)
+        ImportModel(filename="tests/golden_meshes/empty_stl.stl", quiet=False)

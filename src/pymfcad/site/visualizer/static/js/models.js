@@ -208,6 +208,61 @@ export function createModelManager({ scene, world }) {
     });
   }
 
+  function getRenderOrderBase(idx) {
+    const type = (modelEntries[idx]?.type || '').toLowerCase();
+    if (type === 'void' || type === 'voids') return 10;
+    if (type.startsWith('regional')) return 20;
+    if (type === 'bulk') return 30;
+    if (type === 'device' || type === 'diff') return 30;
+    return 0;
+  }
+
+  function applyRenderOrderToScene(scene, idx, opacityValue = 1) {
+    if (!scene) return;
+    const baseOrder = getRenderOrderBase(idx);
+    const opacityOffset = opacityValue < 0.999 ? 100 : 0;
+    const renderOrder = baseOrder + opacityOffset;
+    scene.renderOrder = renderOrder;
+    scene.traverse((child) => {
+      if (!child.isMesh) return;
+      const backfaceBoost = child.userData && child.userData.isBackface ? 1 : 0;
+      child.renderOrder = renderOrder + backfaceBoost;
+    });
+  }
+
+  function ensureDeviceBackfaces(scene, idx) {
+    if (!scene) return;
+    const type = (modelEntries[idx]?.type || '').toLowerCase();
+    if (type !== 'device' && type !== 'diff') return;
+    scene.traverse((child) => {
+      if (!child.isMesh) return;
+      if (child.userData && child.userData.isBackface) return;
+      if (!child.parent) return;
+      if (child.userData && child.userData.hasBackface) return;
+
+      const cloneMaterial = (mat) => {
+        if (!mat) return mat;
+        const next = mat.clone();
+        next.side = THREE.BackSide;
+        next.transparent = true;
+        next.depthWrite = false;
+        next.depthTest = false;
+        next.polygonOffset = true;
+        next.polygonOffsetFactor = 1;
+        next.polygonOffsetUnits = 1;
+        return next;
+      };
+
+      const backface = child.clone();
+      backface.material = Array.isArray(child.material)
+        ? child.material.map(cloneMaterial)
+        : cloneMaterial(child.material);
+      backface.userData = { ...(child.userData || {}), isBackface: true };
+      child.userData = { ...(child.userData || {}), hasBackface: true };
+      child.parent.add(backface);
+    });
+  }
+
 
   async function loadModelEntry(entry, idx) {
     const versionScenes = new Map();
@@ -247,6 +302,8 @@ export function createModelManager({ scene, world }) {
           }
         }
       });
+      ensureDeviceBackfaces(scene, idx);
+      applyRenderOrderToScene(scene, idx, 1);
       versionScenes.set(id, scene);
     });
 
@@ -356,7 +413,7 @@ export function createModelManager({ scene, world }) {
 
   function applyOpacityToScene(scene, opacity, idx) {
     const value = Math.max(0, Math.min(1, opacity));
-    scene.renderOrder = value < 0.999 ? 100 + idx : 0;
+    applyRenderOrderToScene(scene, idx, value);
     scene.traverse((child) => {
       if (!child.isMesh) return;
       const mat = child.material;
@@ -367,8 +424,8 @@ export function createModelManager({ scene, world }) {
           m.userData.baseOpacity = Number.isFinite(m.opacity) ? m.opacity : 1;
         }
         m.transparent = true;
-        m.depthWrite = value >= 0.999;
-        m.depthTest = true;
+        m.depthWrite = child.userData && child.userData.isBackface ? false : value >= 0.999;
+        m.depthTest = child.userData && child.userData.isBackface ? false : true;
         m.opacity = m.userData.baseOpacity * value;
         m.needsUpdate = true;
       };
@@ -377,7 +434,6 @@ export function createModelManager({ scene, world }) {
       } else {
         applyMat(mat);
       }
-      child.renderOrder = value < 0.999 ? 100 + idx : 0;
     });
   }
 

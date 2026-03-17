@@ -424,7 +424,7 @@ class Router:
                 )
             )
 
-        if sum_x != 1.0 or sum_y != 1.0 or sum_z != 1.0:
+        if round(sum_x, 3) != 1.0 or round(sum_y, 3) != 1.0 or round(sum_z, 3) != 1.0:
             raise ValueError(
                 f"Fractional routing components must sum to (1.0, 1.0, 1.0) currently ({sum_x}, {sum_y}, {sum_z})"
             )

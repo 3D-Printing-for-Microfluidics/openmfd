@@ -308,7 +308,7 @@ class Router:
             )
             + np.array(input_size) / 2
         )
-        if input_port.get_name().startswith("None_"):
+        if input_port._parent._parent is None:  # heuristic for external port
             # shift position to edge of port
             vect = input_port.to_vector()
             for i in range(3):
@@ -335,7 +335,7 @@ class Router:
             )
             + np.array(output_size) / 2
         )
-        if output_port.get_name().startswith("None_"):
+        if output_port._parent._parent is None:  # heuristic for external port
             # shift position to edge of port
             vect = output_port.to_vector()
             for i in range(3):
@@ -470,7 +470,7 @@ class Router:
             )
             + np.array(input_size) / 2
         )
-        if input_port.get_name().startswith("None_"):
+        if input_port._parent._parent is None:  # heuristic for external port
             # shift position to edge of port
             vect = input_port.to_vector()
             for i in range(3):
@@ -509,7 +509,7 @@ class Router:
             )
             + np.array(output_size) / 2
         )
-        if output_port.get_name().startswith("None_"):
+        if output_port._parent._parent is None:  # heuristic for external port
             # shift position to edge of port
             vect = output_port.to_vector()
             for i in range(3):
@@ -782,10 +782,10 @@ class Router:
 
         # add path to component
         self._component.add_void(name, polychannel, label=route_info["label"])
-        if not route_info["input"].get_name().startswith("None_"):
-            route_info["input"]._parent.connect_port(route_info["input"].get_name())
-        if not route_info["output"].get_name().startswith("None_"):
-            route_info["output"]._parent.connect_port(route_info["output"].get_name())
+        if route_info["input"]._parent._parent:  # heuristic for external port
+            route_info["input"]._parent.connect_port(route_info["input"])
+        if route_info["output"]._parent._parent:  # heuristic for external port
+            route_info["output"]._parent.connect_port(route_info["output"])
         return True
 
     def _add_keepouts_from_polychannel(self, name: str, polychannel: Polychannel):
@@ -1154,7 +1154,7 @@ class Router:
         )
         pos = [round(x) for x in pos]
 
-        if port.get_name().startswith("None_"):
+        if port._parent._parent is None:  # heuristic for external port
             # flip vector if port belong to component
             direction = port.to_vector()
             direction = tuple(-d for d in direction)
@@ -1163,7 +1163,7 @@ class Router:
 
         pos_box = self._get_box_from_pos_and_size(pos, self._channel_size)
 
-        if port.get_name().startswith("None_"):
+        if port._parent._parent is None:  # heuristic for external port
             while not self._is_bbox_inside(
                 self._add_margin(pos_box, self._channel_margin),
                 self._component.get_bounding_box(

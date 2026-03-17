@@ -465,7 +465,7 @@ def _component_to_manifold(
         """
         # Append ports not in a route.
         for port in comp.ports.values():
-            if port.get_name() not in comp.connected_ports:
+            if port not in comp.connected_ports:
                 ports.append((port, comp))
 
         # Iterate subcomponents.

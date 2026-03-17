@@ -315,13 +315,13 @@ class Pump(Component):
         r.finalize_routes()
 
         # Mark unrouted ports as connected
-        v1.connect_port(v1.P_IN.get_name())
-        v1.connect_port(v1.P_OUT.get_name())
-        dc.connect_port(dc.P_IN.get_name())
-        dc.connect_port(dc.P_OUT.get_name())
-        v2.connect_port(v2.P_IN.get_name())
-        v2.connect_port(v2.P_OUT.get_name())
-        v2.connect_port(v2.F_OUT.get_name())
+        v1.connect_port(v1.P_IN)
+        v1.connect_port(v1.P_OUT)
+        dc.connect_port(dc.P_IN)
+        dc.connect_port(dc.P_OUT)
+        v2.connect_port(v2.P_IN)
+        v2.connect_port(v2.P_OUT)
+        v2.connect_port(v2.F_OUT)
 
         # Build bulk shape
         self.add_bulk("BulkShape", Cube((125, 36, 36), center=False), label="device")

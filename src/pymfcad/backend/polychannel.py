@@ -199,9 +199,6 @@ class BezierCurveShape:
                 b, (tuple, list, np.ndarray)
             ):
                 try:
-                    print(f"Comparing {a} and {b} with allclose")
-                    print(f"np.array(a) = {np.array(a)}, np.array(b) = {np.array(b)}")
-                    print(f"allclose result: {np.allclose(np.array(a), np.array(b))}")
                     return np.allclose(np.array(a), np.array(b))
                 except Exception:
                     return a == b
@@ -335,7 +332,6 @@ class Polychannel(Shape):
                     center=True,
                     quiet=quiet,
                     _no_validation=shape._no_validation,
-
                 )
             elif shape._shape_type == "sphere":
                 s = Sphere(
@@ -367,10 +363,16 @@ class Polychannel(Shape):
                 for shape in shape_list[1:]:
                     path += shape
             else:
-                path = shape_list[0].hull(shape_list[1])
+                if tuple(shapes[1]._position) == tuple(shapes[0]._position):
+                    path = shape_list[0] + shape_list[1]
+                else:
+                    path = shape_list[0].hull(shape_list[1])
                 last_shape = shape_list[1]
-                for shape in shape_list[2:]:
-                    path += last_shape.hull(shape)
+                for i, shape in enumerate(shape_list[2:]):
+                    if tuple(shapes[i + 2]._position) == tuple(shapes[i + 1]._position):
+                        path += shape
+                    else:
+                        path += last_shape.hull(shape)
                     last_shape = shape
             self._object = path._object
             self._keepouts = path._keepouts

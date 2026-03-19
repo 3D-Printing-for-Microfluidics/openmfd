@@ -80,6 +80,7 @@ explicit = true
 [tool.pytest]
 testpaths = ["tests"]
 markers = [
+    "fast: quick tests",
     "mesh: mesh-related tests",
     "slow: long-running tests",
     "integration: full integration tests",

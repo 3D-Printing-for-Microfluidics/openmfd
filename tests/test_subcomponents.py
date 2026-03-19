@@ -62,6 +62,28 @@ def test_subcomponent_preview_outputs_and_labels(tmp_path):
         ),
     )
 
+    child.add_port(
+        "P2",
+        Port(
+            Port.PortType.INOUT,
+            position=(0, 4, 2),
+            size=(4, 4, 4),
+            surface_normal=Port.SurfaceNormal.NEG_X,
+        ),
+    )
+
+    child.add_port(
+        "P3",
+        Port(
+            Port.PortType.INOUT,
+            position=(0, 4, 2),
+            size=(4, 4, 4),
+            surface_normal=Port.SurfaceNormal.NEG_X,
+        ),
+    )
+
+
+
     parent.add_subcomponent("child", child, subtract_bounding_box=False)
 
     assert "child.device" in child.labels
@@ -145,3 +167,20 @@ def test_component_ops_translate_rotate_mirror():
     child3.mirror(mirror_x=True, mirror_y=False)
     parent.add_subcomponent("child3", child3, subtract_bounding_box=False)
     assert child3.get_bounding_box() == (-9, 7, 7, -1, 17, 13)
+
+
+def test_component_no_bulk():
+    comp = Component(size=(10, 10, 10), position=(0, 0, 0), quiet=True)
+    comp.add_label("device", Color.from_name("gray", 255))
+    comp.add_port(
+        "P1",
+        Port(
+            Port.PortType.IN,
+            position=(1, 2, 3),
+            size=(2, 2, 2),
+            surface_normal=Port.SurfaceNormal.POS_X,
+        ),
+    )
+
+    with pytest.raises(ValueError, match="no bulk shapes to render."):
+        comp.render()

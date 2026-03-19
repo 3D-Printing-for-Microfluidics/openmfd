@@ -157,6 +157,33 @@ def _assert_bbox(
             "min": None,
         },
         {
+            "name": "text_extrusion_font",
+            "shape": lambda: TextExtrusion(
+                text="AB", height=2, font="Inconsolata-Medium", font_size=12, quiet=False
+            ),
+            "extent": None,
+            "center": None,
+            "min": None,
+        },
+        {
+            "name": "text_extrusion_fontpath",
+            "shape": lambda: TextExtrusion(
+                text="AB", height=2, font="tests/data/Inconsolata-Bold.ttf", font_size=12, quiet=False
+            ),
+            "extent": None,
+            "center": None,
+            "min": None,
+        },
+        {
+            "name": "text_extrusion_fontpath_no_ext",
+            "shape": lambda: TextExtrusion(
+                text="AB", height=2, font="tests/data/Inconsolata-Bold", font_size=12, quiet=False
+            ),
+            "extent": None,
+            "center": None,
+            "min": None,
+        },
+        {
             "name": "tpms",
             "shape": lambda: TPMS(
                 size=(3, 3, 3),
@@ -181,6 +208,9 @@ def _assert_bbox(
         "rounded_cube",
         "rounded_cube_offset",
         "text_extrusion",
+        "text_extrusion_font",
+        "text_extrusion_fontpath",
+        "text_extrusion_fontpath_no_ext",
         "tpms",
     ],
 )
@@ -298,6 +328,11 @@ def test_batch_boolean():
     with pytest.raises(ValueError):
         Shape._batch_boolean_add_then_subtract([], [])
 
+    Shape._batch_boolean_subtract([Cube(size=(1,1,1), quiet=False)])
+
+    diff = Shape._batch_boolean_subtract([Cube(size=(2,1,1), quiet=False), Cube(size=(1,1,1), quiet=False)])
+    assert _bbox_min_max(diff)[3] - _bbox_min_max(diff)[0] == pytest.approx(1)
+
 def test_cube():
     shape = Cube(size=(1, 1, 1), center=True, quiet=False)
     assert _bbox_min_max(shape) == pytest.approx((0, 0, 0, 1, 1, 1))
@@ -358,3 +393,7 @@ def test_import():
     ImportModel(filename="tests/golden_meshes/BAD_cube.stl", quiet=False)
     with pytest.raises(ValueError):
         ImportModel(filename="tests/golden_meshes/empty_stl.stl", quiet=False)
+
+def test_bad_fontfile():
+    with pytest.raises(FileNotFoundError):
+        TextExtrusion(text="AB", height=2, font="nonexistent_font.ttf", font_size=12, quiet=False)

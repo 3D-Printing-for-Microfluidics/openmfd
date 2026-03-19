@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 
 from pymfcad.backend import Color
 
+def test_color_imports():
+    from pymfcad.backend.color import parse_colors_from_text
+    parse_colors_from_text(Path("tests/data/base_colors.csv"))
 
 def test_color_from_name_and_str():
     color = Color.from_name("aqua", 128)
     assert color._to_rgba()[3] == 128
     assert str(color).startswith("rgba(")
+
 
 def test_color_from_matplotlib_cycle():
     color = Color.from_name("c0", 200)

@@ -95,7 +95,8 @@ test:
 test-coverage:
 	set -e; \
 	$(ENSURE_UV_VENV) \
-	$(UV) run pytest -v --cov=pymfcad --cov-report=html
+# 	$(UV) run pytest -v --cov=pymfcad --cov-report=html -m "fast" \
+ 	$(UV) run pytest -v --cov=pymfcad --cov-report=html
 
 clean:
 	set -e; \

@@ -511,7 +511,7 @@ class LightEngine:
         if (
             not (isinstance(px_count, tuple) or isinstance(px_count, list))
             or len(px_count) != 2
-            or not all(isinstance(x, int) or x <= 0 for x in px_count)
+            or not all(isinstance(x, int) and x > 0 for x in px_count)
         ):
             raise ValueError("Pixel count must be a tuple of two positive integers")
         if not isinstance(wavelengths, list) or not all(

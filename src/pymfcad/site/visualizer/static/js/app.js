@@ -763,9 +763,16 @@ function getAnimationDurationMs() {
   if (!keyframeSystem) return 0;
   const frames = keyframeSystem.getKeyframes();
   if (!frames.length) return 0;
-  return frames.reduce((total, frame) => {
-    const hold = Number.isFinite(frame?.holdDuration) ? Math.max(0, frame.holdDuration) : 0;
-    const transition = Number.isFinite(frame?.transitionDuration) ? Math.max(0, frame.transitionDuration) : 0;
+  const minDuration = 0.05;
+  return frames.reduce((total, frame, index) => {
+    const hold = Number.isFinite(frame?.holdDuration)
+      ? Math.max(minDuration, frame.holdDuration)
+      : minDuration;
+    const transition = index >= frames.length - 1
+      ? 0
+      : (Number.isFinite(frame?.transitionDuration)
+        ? Math.max(0, frame.transitionDuration)
+        : 0);
     return total + (hold + transition) * 1000;
   }, 0);
 }

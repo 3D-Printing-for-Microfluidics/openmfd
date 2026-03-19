@@ -3,6 +3,7 @@ import * as THREE from 'three';
 const KEYFRAME_STORAGE_KEY = 'pymfcad_keyframes_v1';
 const DEFAULT_HOLD_DURATION = 1;
 const DEFAULT_TRANSITION_DURATION = 1;
+const MIN_FRAME_DURATION = 0.05;
 
 export function createKeyframeSystem({
   cameraSystem,
@@ -187,6 +188,14 @@ export function createKeyframeSystem({
       transitionDuration: DEFAULT_TRANSITION_DURATION,
       transitions: {},
     };
+  }
+
+  function normalizeDuration(value, { allowZero = false } = {}) {
+    const numericValue = Number.isFinite(value) ? value : 0;
+    if (numericValue <= 0) {
+      return allowZero ? 0 : MIN_FRAME_DURATION;
+    }
+    return numericValue;
   }
 
   function saveKeyframes() {
@@ -706,10 +715,10 @@ export function createKeyframeSystem({
   function enforceKeyframeDurations() {
     keyframes.forEach((frame, index) => {
       const normalized = normalizeKeyframe(frame);
-      normalized.holdDuration = Number.isFinite(normalized.holdDuration) ? Math.max(0, normalized.holdDuration) : 0;
+      normalized.holdDuration = normalizeDuration(normalized.holdDuration);
       normalized.transitionDuration = Number.isFinite(normalized.transitionDuration)
         ? Math.max(0, normalized.transitionDuration)
-        : DEFAULT_TRANSITION_DURATION;
+        : 0;
       if (index >= keyframes.length - 1) {
         normalized.transitionDuration = 0;
       }
@@ -1192,7 +1201,7 @@ export function createKeyframeSystem({
 
     for (let i = 0; i < keyframes.length; i += 1) {
       const frame = ensureFrameData(normalizeKeyframe(keyframes[i]));
-      const holdMs = Math.max(0, (Number.isFinite(frame.holdDuration) ? frame.holdDuration : 0) * 1000);
+      const holdMs = normalizeDuration(frame.holdDuration) * 1000;
       if (clamped <= elapsed + holdMs || i === keyframes.length - 1) {
         applyFrameState(frame, { persist: false });
         suppressModelSelectionSave = prevSuppress;
@@ -1235,7 +1244,7 @@ export function createKeyframeSystem({
     if (!endFrame.models && modelSelector) {
       endFrame.models = startFrame.models;
     }
-    const holdDuration = Number.isFinite(startFrame.holdDuration) ? Math.max(0, startFrame.holdDuration) : 0;
+    const holdDuration = normalizeDuration(startFrame.holdDuration);
     const transitionDuration = Number.isFinite(startFrame.transitionDuration)
       ? Math.max(0, startFrame.transitionDuration)
       : 0;

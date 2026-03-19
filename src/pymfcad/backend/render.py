@@ -194,64 +194,6 @@ def _manifold3d_shape_to_trimesh(shape: "Shape") -> trimesh.Trimesh:
     return tm
 
 
-def _manifold3d_shape_to_wireframe(
-    shape: "Shape", coplanar_tol: float = 1e-5
-) -> trimesh.path.Path3D:
-    """
-    Convert a Manifold3D shape to a wireframe Path3D, removing edges between coplanar faces.
-
-    Parameters:
-
-    - shape (Shape): The Manifold3D shape.
-    - coplanar_tol (float): Cosine similarity tolerance for coplanarity (1.0 = perfectly coplanar).
-
-    Returns:
-
-    - Path3D: A wireframe path with redundant coplanar internal edges removed.
-    """
-    m = shape._object.to_mesh()
-    vertices = np.asarray(m.vert_properties)
-    faces = np.asarray(m.tri_verts)
-
-    # Compute face normals.
-    face_normals, _ = trimesh.triangles.normals(vertices[faces])
-
-    # Map edges to faces that share them.
-    edge_face_map = {}
-
-    for face_idx, face in enumerate(faces):
-        tri_edges = [
-            tuple(sorted((face[0], face[1]))),
-            tuple(sorted((face[1], face[2]))),
-            tuple(sorted((face[2], face[0]))),
-        ]
-        for edge in tri_edges:
-            edge_face_map.setdefault(edge, []).append(face_idx)
-
-    # Filter edges
-    retained_edges = []
-
-    for edge, face_indices in edge_face_map.items():
-        if len(face_indices) == 1:
-            # Border edge.
-            retained_edges.append(edge)
-        elif len(face_indices) == 2:
-            # Shared by two triangles — check coplanarity.
-            n1 = face_normals[face_indices[0]]
-            n2 = face_normals[face_indices[1]]
-            cos_angle = np.dot(n1, n2)
-            if cos_angle < 1.0 - coplanar_tol:
-                retained_edges.append(edge)
-        else:
-            # Non-manifold edge (shared by more than 2 faces) — keep for visibility.
-            retained_edges.append(edge)
-
-    # Create the wireframe path.
-    entities = [trimesh.path.entities.Line([e[0], e[1]]) for e in retained_edges]
-    del retained_edges, face_normals, edge_face_map
-    return trimesh.path.Path3D(entities=entities, vertices=vertices)
-
-
 def _component_to_manifold(
     component: "Component",
     render_bulk: bool = True,

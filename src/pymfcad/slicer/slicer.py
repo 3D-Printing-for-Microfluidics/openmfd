@@ -169,7 +169,7 @@ class Slicer:
             if not self.settings.printer.xy_stage_available:
                 print(
                     f"⚠️Warning: Device {target.get_fully_qualified_name()} has a translation but the printer lacks XY stage support."
-                    " Offsets will be kept at 0."
+                    " Offsets will be removed."
                 )
                 return 0.0, 0.0
             return x_um, y_um
@@ -1266,6 +1266,74 @@ class Slicer:
                         new_layers.append(layer)
                         last_layer = layer
                 print_settings["Layers"] = new_layers
+
+            if not self.settings.printer.xy_stage_available:
+                def _strip_offsets(image_settings: dict):
+                    image_settings.pop("Image x offset (um)", None)
+                    image_settings.pop("Image y offset (um)", None)
+
+                _strip_offsets(print_settings["Default layer settings"]["Image settings"])
+                for image_settings in print_settings["Named image settings"].values():
+                    _strip_offsets(image_settings)
+
+            if "Special print techniques" in print_settings:
+                vacuum_settings = print_settings["Special print techniques"].get(
+                    "Print under vacuum"
+                )
+                if vacuum_settings is not None and not self.settings.printer.vacuum_available:
+                    if vacuum_settings.get("Enable vacuum"):
+                        print(
+                            "⚠️Warning: Vacuum printing requested but not supported by the printer. "
+                            "Removing vacuum settings from output JSON."
+                        )
+                    print_settings.pop("Special print techniques", None)
+
+            def _light_engine_supports_grayscale(light_engine_name: str, wavelength: int) -> bool:
+                for le in self.settings.printer.light_engines:
+                    if le.name != light_engine_name:
+                        continue
+                    if wavelength in le.wavelengths:
+                        index = le.wavelengths.index(wavelength)
+                        if index < len(le.grayscale_available):
+                            return le.grayscale_available[index]
+                    return False
+                return False
+
+            grayscale_unsupported_requests = []
+            for name, settings in expanded_named_image_settings.items():
+                if settings.get("Do grayscale correction"):
+                    le_name = settings.get("Light engine")
+                    wavelength = settings.get("Light engine wavelength (nm)")
+                    if not _light_engine_supports_grayscale(le_name, wavelength):
+                        grayscale_unsupported_requests.append((name, le_name, wavelength))
+
+            if grayscale_unsupported_requests:
+                details = ", ".join(
+                    f"{n} (engine={le}, wavelength={wl}nm)"
+                    for n, le, wl in grayscale_unsupported_requests
+                )
+                print(
+                    "⚠️Warning: Grayscale correction requested but not supported by the printer. "
+                    f"Removing grayscale settings from output JSON. Affected settings: {details}."
+                )
+
+            def _strip_grayscale(image_settings: dict):
+                image_settings.pop("Do grayscale correction", None)
+
+            default_image_settings = print_settings["Default layer settings"]["Image settings"]
+            if not _light_engine_supports_grayscale(
+                default_image_settings.get("Light engine"),
+                default_image_settings.get("Light engine wavelength (nm)"),
+            ):
+                _strip_grayscale(default_image_settings)
+
+            for name, image_settings in print_settings["Named image settings"].items():
+                full_settings = expanded_named_image_settings.get(name, {})
+                if not _light_engine_supports_grayscale(
+                    full_settings.get("Light engine"),
+                    full_settings.get("Light engine wavelength (nm)"),
+                ):
+                    _strip_grayscale(image_settings)
 
             # Save json
             with open(print_settings_filename, "w", newline="\r\n") as fileOut:

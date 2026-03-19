@@ -798,6 +798,23 @@ class Component(_InstantiationTrackerMixin):
                 f"Component '{component._name}' has already been added to component '{component._parent._name}' and cannot be added again."
             )
 
+        is_device = isinstance(component, Device)
+        if not is_device and component._px_size != self._px_size:
+            raise ValueError(
+                "Non-device subcomponent px_size must match parent component px_size. "
+                f"Parent px_size={self._px_size}, subcomponent px_size={component._px_size}."
+            )
+        if (
+            not is_device
+            and not isinstance(self, VariableLayerThicknessComponent)
+            and not isinstance(component, VariableLayerThicknessComponent)
+            and component._layer_size != self._layer_size
+        ):
+            raise ValueError(
+                "Non-device subcomponent layer_size must match parent component layer_size. "
+                f"Parent layer_size={self._layer_size}, subcomponent layer_size={component._layer_size}."
+            )
+
         component._name = name
         component._parent = self
         component._subtract_bounding_box = subtract_bounding_box

@@ -23,7 +23,7 @@
 .theme-toggle {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  top: 16px;
   z-index: 1000;
   padding: 8px 10px;
   font-size: 16px;
@@ -123,6 +123,29 @@
   background: #1e1e1e;
   color: #d4d4d4;
   border-color: #3c3c3c;
+}
+
+/* Footer prev/next buttons in dark mode */
+:root[data-theme="dark"] .rst-footer-buttons a.btn,
+:root[data-theme="dark"] .rst-footer-buttons a.btn:visited,
+:root[data-theme="dark"] .rst-footer-buttons a.btn.btn-neutral,
+:root[data-theme="dark"] .rst-footer-buttons a.btn.btn-neutral:visited {
+  background: #2d2d2d !important;
+  color: #d4d4d4 !important;
+  border-color: #3c3c3c !important;
+}
+
+:root[data-theme="dark"] .rst-footer-buttons a.btn:hover,
+:root[data-theme="dark"] .rst-footer-buttons a.btn:focus,
+:root[data-theme="dark"] .rst-footer-buttons a.btn.btn-neutral:hover,
+:root[data-theme="dark"] .rst-footer-buttons a.btn.btn-neutral:focus {
+  background: #3a3a3a !important;
+  color: #ffffff !important;
+  border-color: #4a4a4a !important;
+}
+
+:root[data-theme="dark"] .rst-footer-buttons a.btn .icon {
+  color: inherit !important;
 }
 
 /* Diff2html borders in dark mode */

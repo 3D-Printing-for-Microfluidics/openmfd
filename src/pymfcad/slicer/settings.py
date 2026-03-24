@@ -338,12 +338,14 @@ class Settings:
         )
 
     def save(self, file_path: str | Path):
+        """Save settings to a JSON file."""
         path = Path(file_path)
         with path.open("w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
     def from_file(cls, file_path: str | Path) -> Settings:
+        """Load settings from a JSON file."""
         path = Path(file_path)
         with path.open("r", encoding="utf-8") as f:
             return cls.from_dict(json.load(f))
@@ -476,12 +478,14 @@ class ResinType:
         )
 
     def save(self, file_path: str | Path):
+        """Save resin formulation to a JSON file."""
         path = Path(file_path)
         with path.open("w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
     def from_file(cls, file_path: str | Path) -> ResinType:
+        """Load a resin formulation from a JSON file."""
         path = Path(file_path)
         with path.open("r", encoding="utf-8") as f:
             return cls.from_dict(json.load(f))
@@ -608,12 +612,14 @@ class Printer:
         )
 
     def save(self, file_path: str | Path):
+        """Save printer configuration to a JSON file."""
         path = Path(file_path)
         with path.open("w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
     def from_file(cls, file_path: str | Path) -> Printer:
+        """Load a printer configuration from a JSON file."""
         path = Path(file_path)
         with path.open("r", encoding="utf-8") as f:
             return cls.from_dict(json.load(f))

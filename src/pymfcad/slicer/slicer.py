@@ -93,7 +93,8 @@ class Slicer:
         # Copy main script
         main_file = Path(sys.modules["__main__"].__file__).resolve()
         print(f"\tCopying main script: {main_file}")
-        main_file = self._copy_file_to_target(main_file, target_dir, Path.cwd())
+        base_dir = self._get_module_base_dir(main_file)
+        main_file = self._copy_file_to_target(main_file, target_dir, base_dir)
 
         # Identify and copy dependencies
         for module_name, module in sys.modules.items():
@@ -106,7 +107,8 @@ class Slicer:
                 # Only copy local (non-built-in, non-site-package) files
                 if self._is_local_file(module_path):
                     print(f"\tCopying module: {module_name} -> {module_path}")
-                    self._copy_file_to_target(module_path, target_dir, Path.cwd())
+                    module_base_dir = self._get_module_base_dir(module_path)
+                    self._copy_file_to_target(module_path, target_dir, module_base_dir)
         return main_file
 
     def _is_local_file(self, path: Path) -> bool:
@@ -119,7 +121,24 @@ class Slicer:
             return False
         if str(path).startswith(sys.exec_prefix):
             return False
-        return str(path).startswith(str(Path.cwd()))
+        return True
+
+    def _get_module_base_dir(self, module_path: Path) -> Path:
+        """
+        Determine a base directory so module paths are copied with their package structure.
+        For packaged modules, this is the parent of the top-level package directory.
+        For standalone modules, this is the module's parent directory.
+        """
+        current = module_path.parent
+        top_package = None
+
+        while (current / "__init__.py").exists():
+            top_package = current
+            current = current.parent
+
+        if top_package is not None:
+            return top_package.parent
+        return module_path.parent
 
     def _copy_file_to_target(self, file_path: Path, target_dir: Path, base_dir: Path):
         try:
@@ -275,8 +294,8 @@ class Slicer:
                     + translate_y_um
                 )
 
-                device.default_exposure_settings.image_x_offset = round(base_offset_x_um, 1)
-                device.default_exposure_settings.image_y_offset = round(base_offset_y_um, 1)
+                device.default_exposure_settings.image_x_offset = -round(base_offset_x_um, 1)
+                device.default_exposure_settings.image_y_offset = -round(base_offset_y_um, 1)
 
                 expanded_slices = []
                 for slice_info in info["slices"]:
@@ -295,11 +314,11 @@ class Slicer:
                             tile_slice["image_data"] = rle_encode_packed(tile)
 
                             exposure_settings = device.default_exposure_settings.copy()
-                            exposure_settings.image_x_offset = round(
+                            exposure_settings.image_x_offset = -round(
                                 base_offset_x_um
                                 + _px_to_um(tx * step_x, device._px_size)
                             , 1)
-                            exposure_settings.image_y_offset = round(
+                            exposure_settings.image_y_offset = -round(
                                 base_offset_y_um
                                 + _px_to_um(ty * step_y, device._px_size)
                             , 1)
@@ -320,8 +339,8 @@ class Slicer:
                 device.default_exposure_settings.wavelength,
             )
             device.default_exposure_settings.light_engine = le.name
-            device.default_exposure_settings.image_x_offset = round(device_offset_x_um,1)
-            device.default_exposure_settings.image_y_offset = round(device_offset_y_um,1)
+            device.default_exposure_settings.image_x_offset = -round(device_offset_x_um,1)
+            device.default_exposure_settings.image_y_offset = -round(device_offset_y_um,1)
         else:
             device.default_exposure_settings.light_engine = (
                 device._parent.default_exposure_settings.light_engine

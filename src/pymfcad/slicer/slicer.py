@@ -438,6 +438,55 @@ class Slicer:
     ):
         from .. import Device
 
+        def _px_to_um(px: float, px_size: float) -> float:
+            return px * px_size * 1000
+
+        def _get_translation_offsets_um(target) -> tuple[float, float]:
+            x_um = _px_to_um(target.get_position()[0], target._px_size)
+            y_um = _px_to_um(target.get_position()[1], target._px_size)
+            if x_um == 0 and y_um == 0:
+                return 0.0, 0.0
+            if not self.settings.printer.xy_stage_available:
+                print(
+                    f"⚠️Warning: Device {target.get_fully_qualified_name()} has a translation but the printer lacks XY stage support."
+                    " Offsets will be removed."
+                )
+                return 0.0, 0.0
+            return x_um, y_um
+
+        def _get_root_device(target):
+            current = target
+            while current is not None and current._parent is not None:
+                current = current._parent
+            return current
+
+        def _origin_from_position(parent, x_pos, y_pos, z_pos):
+            if parent is None:
+                return (
+                    x_pos * device._px_size,
+                    y_pos * device._px_size,
+                    z_pos,
+                )
+            x_mm = x_pos * parent._px_size
+            y_mm = y_pos * parent._px_size
+            z_mm = z_pos
+            current = parent
+            while current is not None:
+                if current._parent is None:
+                    x_mm += current.get_position()[0] * current._px_size
+                    y_mm += current.get_position()[1] * current._px_size
+                    z_mm += current.get_position()[2] * current._layer_size
+                    break
+                parent_next = current._parent
+                pos_in_parent = current.get_position(
+                    px_size=parent_next._px_size, layer_size=parent_next._layer_size
+                )
+                x_mm += pos_in_parent[0] * parent_next._px_size
+                y_mm += pos_in_parent[1] * parent_next._px_size
+                z_mm += pos_in_parent[2] * parent_next._layer_size
+                current = parent_next
+            return x_mm, y_mm, z_mm
+
         def _relative_origin_mm(child, stop_parent):
             x_mm = 0.0
             y_mm = 0.0
@@ -473,8 +522,81 @@ class Slicer:
 
             # If its a device, just copy the images from sliced_devices_data into the folder
             if isinstance(device, Device):
-                info["slices"] = slice_list
-                embedded_devices.append((device, info))
+                positions = info.get("positions", [])
+                if not positions:
+                    info["slices"] = slice_list
+                    embedded_devices.append((device, info))
+                else:
+                    base_parent, base_x, base_y, base_z = positions[0]
+                    base_root = _get_root_device(base_parent if base_parent is not None else device)
+                    base_root_offset_x_um, base_root_offset_y_um = _get_translation_offsets_um(base_root)
+                    if base_parent is None and base_root is device:
+                        base_center_offset_x_um = 0.0
+                        base_center_offset_y_um = 0.0
+                        base_z_offset_um = 0.0
+                    else:
+                        base_origin_x_mm, base_origin_y_mm, base_origin_z_mm = _origin_from_position(
+                            base_parent, base_x, base_y, base_z
+                        )
+                        root_w_mm = base_root._size[0] * base_root._px_size
+                        root_h_mm = base_root._size[1] * base_root._px_size
+                        device_w_mm = device._size[0] * device._px_size
+                        device_h_mm = device._size[1] * device._px_size
+                        base_center_offset_x_um = (
+                            (base_origin_x_mm + device_w_mm / 2 - root_w_mm / 2) * 1000
+                        )
+                        base_center_offset_y_um = (
+                            (base_origin_y_mm + device_h_mm / 2 - root_h_mm / 2) * 1000
+                        )
+                        base_z_offset_um = base_origin_z_mm * 1000
+
+                    for parent, x_pos, y_pos, z_pos in positions:
+                        root_device = _get_root_device(parent if parent is not None else device)
+                        root_offset_x_um, root_offset_y_um = _get_translation_offsets_um(root_device)
+                        if parent is None and root_device is device:
+                            center_offset_x_um = 0.0
+                            center_offset_y_um = 0.0
+                            z_offset_um = 0.0
+                        else:
+                            origin_x_mm, origin_y_mm, origin_z_mm = _origin_from_position(
+                                parent, x_pos, y_pos, z_pos
+                            )
+                            root_w_mm = root_device._size[0] * root_device._px_size
+                            root_h_mm = root_device._size[1] * root_device._px_size
+                            device_w_mm = device._size[0] * device._px_size
+                            device_h_mm = device._size[1] * device._px_size
+
+                            center_offset_x_um = (
+                                (origin_x_mm + device_w_mm / 2 - root_w_mm / 2) * 1000
+                            )
+                            center_offset_y_um = (
+                                (origin_y_mm + device_h_mm / 2 - root_h_mm / 2) * 1000
+                            )
+                            z_offset_um = origin_z_mm * 1000
+
+                        device_offset_x_um = root_offset_x_um + center_offset_x_um
+                        device_offset_y_um = root_offset_y_um + center_offset_y_um
+
+                        instance_slices = []
+                        for slice_info in slice_list:
+                            new_slice = slice_info.copy()
+                            normalized_layer = slice_info["layer_position"] - base_z_offset_um
+                            new_slice["layer_position"] = round(normalized_layer + z_offset_um, 1)
+
+                            exposure_settings = slice_info.get("exposure_settings")
+                            if exposure_settings is None:
+                                exposure_settings = device.default_exposure_settings
+                            exposure_settings = exposure_settings.copy()
+                            exposure_settings.image_x_offset = -round(device_offset_x_um, 1)
+                            exposure_settings.image_y_offset = -round(device_offset_y_um, 1)
+                            exposure_settings.light_engine = device.default_exposure_settings.light_engine
+                            new_slice["exposure_settings"] = exposure_settings
+                            instance_slices.append(new_slice)
+
+                        instance_info = info.copy()
+                        instance_info["positions"] = [(parent, x_pos, y_pos, z_pos)]
+                        instance_info["slices"] = instance_slices
+                        embedded_devices.append((device, instance_info))
                 
             # If its a component, we need to insert its slices into its parent components (relabeling if necessary)
             else:

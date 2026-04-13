@@ -395,7 +395,14 @@ class Component(_InstantiationTrackerMixin):
         if not isinstance(other, Component):
             return False
         if not type(self) == type(other):
-            return False
+            try:
+                same_name = type(self).__name__ == type(other).__name__
+                same_def = self._class_definition_path() == other._class_definition_path()
+            except Exception:
+                same_name = False
+                same_def = False
+            if not (same_name and same_def):
+                return False
         if self._rotation != other._rotation:
             return False
         if self._mirroring != other._mirroring:
@@ -1689,10 +1696,11 @@ class Device(Component):
         - quiet (bool): If True, suppresses informational output. Default is False.
         """
         
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+        if type(self) == Device:
+            frame = inspect.currentframe()
+            args, _, _, values = inspect.getargvalues(frame)
+            self.init_args = [values[arg] for arg in args if arg != "self"]
+            self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         super().__init__(
             (px_count[0], px_count[1], layers),
@@ -1841,10 +1849,11 @@ class StitchedDevice(Device):
         - quiet (bool): If True, suppresses informational output. Default is False.
         """
 
-        frame = inspect.currentframe()
-        args, _, _, values = inspect.getargvalues(frame)
-        self.init_args = [values[arg] for arg in args if arg != "self"]
-        self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
+        if type(self) == StitchedDevice:
+            frame = inspect.currentframe()
+            args, _, _, values = inspect.getargvalues(frame)
+            self.init_args = [values[arg] for arg in args if arg != "self"]
+            self.init_kwargs = {arg: values[arg] for arg in args if arg != "self"}
 
         if tiles_x < 1 or tiles_y < 1:
             raise ValueError("tiles_x and tiles_y must be >= 1")

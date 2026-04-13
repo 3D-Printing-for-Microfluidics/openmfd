@@ -97,6 +97,7 @@ Describes the optics that define pixel resolution.
 - `name` links the light engine to the hardware configuration.
 - `px_size` and `px_count` set the **physical resolution**.
 - `wavelengths` lists the available wavelengths in the projector.
+- `settle_time_ms` adds an extra wait before the **first exposure** after switching to this light engine.
 - If device size doesn’t match the light engine resolution, slicing will fail.
 - If exposure settings use an unlisted light engine or an unavailable wavelength, slicing will fail.
 

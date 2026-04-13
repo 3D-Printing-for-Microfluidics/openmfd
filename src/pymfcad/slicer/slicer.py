@@ -1192,6 +1192,7 @@ class Slicer:
             print("Compile print settings...")
             layers = []
             last_layer = 0.0
+            last_light_engine = None
             for layer, groups in combined_slices:
                 print(
                     f"\r\tProcessing layer at {layer:.1f} um... ",
@@ -1256,6 +1257,25 @@ class Slicer:
                         # Find closest named image setting
                         exposure_settings = group_exposure_settings.copy()
                         exposure_settings["Layer exposure time (ms)"] = exp
+                        current_light_engine = exposure_settings.get("Light engine")
+                        if current_light_engine != last_light_engine:
+                            le = self.settings.printer.get_light_engine_by_name(
+                                current_light_engine
+                            )
+                            extra_wait = (
+                                le.settle_time_ms
+                                if le is not None
+                                else 0.0
+                            )
+                            if extra_wait:
+                                base_wait = (
+                                    exposure_settings.get("Wait before exposure (ms)")
+                                    or 0.0
+                                )
+                                exposure_settings[
+                                    "Wait before exposure (ms)"
+                                ] = base_wait + extra_wait
+                            last_light_engine = current_light_engine
                         match_key, match_dict = self._match_or_find_closest_named_setting(
                             exposure_settings,
                             expanded_named_image_settings,

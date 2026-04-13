@@ -500,6 +500,7 @@ class LightEngine:
         px_count: tuple[int, int] = (2560, 1600),
         wavelengths: list[int] = [365],
         grayscale_available: list[bool] = [False],
+        settle_time_ms: float = 0.0,
     ):
         """
         Initialize a LightEngine object.
@@ -511,6 +512,8 @@ class LightEngine:
         - px_count: Tuple of (width, height) pixel count.
         - wavelengths: List of supported wavelengths in nm.
         - grayscale_available: List of booleans indicating if grayscale is available for each wavelength.
+        - settle_time_ms: Extra wait time in milliseconds for the first exposure
+            after switching to this light engine.
         """
         if not isinstance(px_size, (int, float)) or px_size <= 0:
             raise ValueError("Pixel size must be a positive number")
@@ -528,11 +531,14 @@ class LightEngine:
             isinstance(x, bool) for x in grayscale_available
         ):
             raise ValueError("Grayscale availability must be a list of booleans")
+        if not isinstance(settle_time_ms, (int, float)) or settle_time_ms < 0:
+            raise ValueError("Settle time must be a non-negative number")
         self.name = name
         self.px_size = px_size
         self.px_count = px_count
         self.wavelengths = wavelengths
         self.grayscale_available = grayscale_available
+        self.settle_time_ms = float(settle_time_ms)
 
     def to_dict(self) -> dict:
         return {
@@ -541,6 +547,7 @@ class LightEngine:
             "px_count": list(self.px_count),
             "wavelengths": list(self.wavelengths),
             "grayscale_available": list(self.grayscale_available),
+            "settle_time_ms": self.settle_time_ms,
         }
 
     @classmethod
@@ -551,6 +558,7 @@ class LightEngine:
             px_count=tuple(data.get("px_count", (2560, 1600))),
             wavelengths=list(data.get("wavelengths", [365])),
             grayscale_available=list(data.get("grayscale_available", [False])),
+            settle_time_ms=data.get("settle_time_ms", 0.0),
         )
 
 class Printer:
@@ -578,6 +586,12 @@ class Printer:
         self.xy_stage_available = xy_stage_available
         self.vacuum_available = vacuum_available
 
+    def get_light_engine_by_name(self, name: str) -> LightEngine | None:
+        """Return the light engine matching the given name, or None if not found."""
+        for le in self.light_engines:
+            if le.name == name:
+                return le
+        return None
 
     def _get_light_engine(self, px_size, px_count, wavelength):
         """Get the light engine with the specified pixel size, pixel count, and wavelength."""

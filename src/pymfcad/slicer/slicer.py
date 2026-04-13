@@ -535,7 +535,7 @@ class Slicer:
             # If its a device, just copy the images from sliced_devices_data into the folder
             if isinstance(device, Device):
                 positions = info.get("positions", [])
-                if not positions:
+                if not positions or len(positions) == 1:
                     info["slices"] = slice_list
                     embedded_devices.append((device, info))
                 else:

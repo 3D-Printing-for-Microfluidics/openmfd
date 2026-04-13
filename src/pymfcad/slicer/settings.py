@@ -209,6 +209,7 @@ class Settings:
                         "type": "PrintOnFilm",
                         "enabled": sit.enabled,
                         "distance_up_mm": sit.distance_up,
+                        "up_wait": sit.up_wait,
                     }
                 )
             else:
@@ -234,6 +235,7 @@ class Settings:
                     PrintOnFilm(
                         enabled=item.get("enabled", False),
                         distance_up_mm=item.get("distance_up_mm", 0.3),
+                        up_wait=item.get("up_wait", 20000.0),
                     )
                 )
             else:
@@ -771,7 +773,7 @@ class ZeroMicronLayer(SpecialImageTechniques):
         self.count = count
 
 class PrintOnFilm(SpecialImageTechniques):
-    def __init__(self, enabled: bool = False, distance_up_mm: float = 0.3):
+    def __init__(self, enabled: bool = False, distance_up_mm: float = 0.3, up_wait: float = 20000.0):
         """
         Settings for printing on film.
 
@@ -779,9 +781,11 @@ class PrintOnFilm(SpecialImageTechniques):
 
         - enabled: Whether to enable printing on film.
         - distance_up_mm: Distance to move up in mm when printing on film.
+        - up_wait: Wait time at the up position in milliseconds before exposing the image.
         """
         self.enabled = enabled
         self.distance_up = distance_up_mm
+        self.up_wait = up_wait
 
 class ExposureSettings:
     def __init__(

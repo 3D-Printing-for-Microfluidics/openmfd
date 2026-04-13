@@ -296,6 +296,10 @@ class Slicer:
 
                 device.default_exposure_settings.image_x_offset = -round(base_offset_x_um, 1)
                 device.default_exposure_settings.image_y_offset = -round(base_offset_y_um, 1)
+                if device.default_exposure_settings.image_x_offset == -0.0:
+                    device.default_exposure_settings.image_x_offset = 0.0
+                if device.default_exposure_settings.image_y_offset == -0.0:
+                    device.default_exposure_settings.image_y_offset = 0.0
 
                 expanded_slices = []
                 for slice_info in info["slices"]:
@@ -322,6 +326,10 @@ class Slicer:
                                 base_offset_y_um
                                 + _px_to_um(ty * step_y, device._px_size)
                             , 1)
+                            if exposure_settings.image_x_offset == -0.0:
+                                exposure_settings.image_x_offset = 0.0
+                            if exposure_settings.image_y_offset == -0.0:
+                                exposure_settings.image_y_offset = 0.0
                             exposure_settings.light_engine = le.name
 
                             tile_slice["exposure_settings"] = exposure_settings
@@ -341,6 +349,10 @@ class Slicer:
             device.default_exposure_settings.light_engine = le.name
             device.default_exposure_settings.image_x_offset = -round(device_offset_x_um,1)
             device.default_exposure_settings.image_y_offset = -round(device_offset_y_um,1)
+            if device.default_exposure_settings.image_x_offset == -0.0:
+                device.default_exposure_settings.image_x_offset = 0.0
+            if device.default_exposure_settings.image_y_offset == -0.0:
+                device.default_exposure_settings.image_y_offset = 0.0
         else:
             device.default_exposure_settings.light_engine = (
                 device._parent.default_exposure_settings.light_engine
@@ -589,6 +601,10 @@ class Slicer:
                             exposure_settings = exposure_settings.copy()
                             exposure_settings.image_x_offset = -round(device_offset_x_um, 1)
                             exposure_settings.image_y_offset = -round(device_offset_y_um, 1)
+                            if exposure_settings.image_x_offset == -0.0:
+                                exposure_settings.image_x_offset = 0.0
+                            if exposure_settings.image_y_offset == -0.0:
+                                exposure_settings.image_y_offset = 0.0
                             exposure_settings.light_engine = device.default_exposure_settings.light_engine
                             new_slice["exposure_settings"] = exposure_settings
                             instance_slices.append(new_slice)

@@ -3,6 +3,7 @@ import os
 import cv2
 import sys
 import json
+import copy
 import shutil
 import numpy as np
 from PIL import Image
@@ -155,16 +156,16 @@ class Slicer:
         # Fill device default settings
         settings_owner = device._parent if device._parent is not None else self.settings
         if device.default_exposure_settings is None:
-            device.default_exposure_settings = (
-                settings_owner.default_exposure_settings.copy()
+            device.default_exposure_settings = copy.deepcopy(
+                settings_owner.default_exposure_settings
             )
         else:
             device.default_exposure_settings.fill_with_defaults(
                 settings_owner.default_exposure_settings,
             )
         if device.default_position_settings is None:
-            device.default_position_settings = (
-                settings_owner.default_position_settings.copy()
+            device.default_position_settings = copy.deepcopy(
+                settings_owner.default_position_settings
             )
         else:
             device.default_position_settings.fill_with_defaults(
@@ -317,7 +318,7 @@ class Slicer:
                             tile_slice = slice_info.copy()
                             tile_slice["image_data"] = rle_encode_packed(tile)
 
-                            exposure_settings = device.default_exposure_settings.copy()
+                            exposure_settings = copy.deepcopy(device.default_exposure_settings)
                             exposure_settings.image_x_offset = -round(
                                 base_offset_x_um
                                 + _px_to_um(tx * step_x, device._px_size)
@@ -367,7 +368,7 @@ class Slicer:
         # Fill slice info settings
         for i, slice in enumerate(info["slices"]):
             slice["position_settings"] = device.default_position_settings
-            slice["exposure_settings"] = device.default_exposure_settings.copy()
+            slice["exposure_settings"] = copy.deepcopy(device.default_exposure_settings)
             slice["exposure_settings"].image_x_offset = (
                 device.default_exposure_settings.image_x_offset
             )
@@ -598,7 +599,7 @@ class Slicer:
                             exposure_settings = slice_info.get("exposure_settings")
                             if exposure_settings is None:
                                 exposure_settings = device.default_exposure_settings
-                            exposure_settings = exposure_settings.copy()
+                            exposure_settings = copy.deepcopy(exposure_settings)
                             exposure_settings.image_x_offset = -round(device_offset_x_um, 1)
                             exposure_settings.image_y_offset = -round(device_offset_y_um, 1)
                             if exposure_settings.image_x_offset == -0.0:
@@ -1135,13 +1136,13 @@ class Slicer:
             ] = embedded_devices[0][0].default_exposure_settings.image_y_offset
 
             # Create copies of named image settings. These include the defaults and are fully expanded for comparision
-            expanded_named_position_settings = print_settings[
+            expanded_named_position_settings = copy.deepcopy(print_settings[
                 "Named position settings"
-            ].copy()
+            ])
             expanded_named_position_settings["default"] = print_settings[
                 "Default layer settings"
             ]["Position settings"]
-            expanded_named_image_settings = print_settings["Named image settings"].copy()
+            expanded_named_image_settings = copy.deepcopy(print_settings["Named image settings"])
             expanded_named_image_settings["default"] = print_settings[
                 "Default layer settings"
             ]["Image settings"]
@@ -1255,7 +1256,7 @@ class Slicer:
 
                     for file, exp in zip(output_img_files, output_times):
                         # Find closest named image setting
-                        exposure_settings = group_exposure_settings.copy()
+                        exposure_settings = copy.deepcopy(group_exposure_settings)
                         exposure_settings["Layer exposure time (ms)"] = exp
                         current_light_engine = exposure_settings.get("Light engine")
                         if current_light_engine != last_light_engine:
@@ -1304,7 +1305,7 @@ class Slicer:
                                 )
 
                             # set named image settings
-                            image_settings = match_dict.copy()
+                            image_settings = copy.deepcopy(match_dict)
                             if match_key != "default":
                                 image_settings["Using named image settings"] = match_key
                             print_settings["Named image settings"][
@@ -1394,7 +1395,7 @@ class Slicer:
                     settings_name = f"z_{layer}"
 
                     # set named position settings
-                    _position_settings = match_dict.copy()
+                    _position_settings = copy.deepcopy(match_dict)
                     if match_key != "default":
                         _position_settings["Using named position settings"] = match_key
                     print_settings["Named position settings"][
